@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Consultation Hunter — Campaign Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a href="campaign-planner.html">Campaign Planner</a>
+      <a href="option-1-scout.html">1 · Scout</a>
+      <a href="option-2-ward-machine.html">2 · Ward Machine</a>
+      <a href="option-3-one-street-many-masters.html">3 · One Street</a>
+      <a class="cur" href="option-4-consultation-hunter.html">4 · Hunter</a>
+    </nav>
+    <a class="pillbtn" href="#about">About this concept</a>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#r1">1</a><a href="#r2">2</a><a href="#r3">3</a><a href="#r4">4</a><a href="#r5">5</a><a href="#r6">6</a>
+</nav>
+
+<section class="hero container">
+  <div class="eyebrow">Prototype 4 · Participation · every open UK consultation</div>
+  <h1>Democracy runs on <span class="serif">deadlines</span></h1>
+  <p class="caption"><strong>What it is:</strong> a radar that watches every open UK consultation — national and local — and drafts cited responses before the windows close. <strong>How it uses an agent factory:</strong> deterministic feed adapters pour decision windows into a queue as they open; ranking and drafting agents run against each one in the cloud; every draft lands in a human inbox for approval, and nothing is ever submitted by a machine. This page walks the six rungs from a chat guess to machine-speed participation.</p>
+  <a class="cta" href="#r1">Walk the ladder <span class="chip">↓</span></a>
+  <div class="keys"><kbd>→</kbd> next rung · <kbd>←</kbd> back · <kbd>1</kbd>–<kbd>6</kbd> jump · <kbd>[</kbd> <kbd>]</kbd> other prototypes</div>
+</section>
+
+<!-- R1 -->
+<section class="rung" id="r1">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">1</div>
+      <h2>One <span class="serif">chat</span></h2>
+      <p class="whatsnew">Ask what's open right now, and the model guesses. Confidently.</p>
+      <div class="agents-chip">1 model · 0 agents</div>
+      <p class="limit">Deadlines are exactly what a model without tools cannot know. Its “currently open” consultation closed in 2020.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> chat</div>
+        <div class="wire-body">
+          <div class="bubble-u">Which open consultations should a road-safety charity respond to this month?</div>
+          <div class="bubble-m">You may wish to consider the Department for Transport's consultation on pavement parking, which is currently open, as well as local engagement exercises in your area…</div>
+          <p class="note-bad">0 sources · the pavement-parking consultation closed in 2020</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow"><span class="node">You</span><span class="arrow">→</span><span class="node model">Model</span><span class="arrow">→</span><span class="node">Stale guess</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R2 -->
+<section class="rung" id="r2">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">2</div>
+      <h2>+ <span class="serif">Feeds</span></h2>
+      <p class="whatsnew">Three keyless public APIs, polled live. A complete list that — verified — exists nowhere else in the UK.</p>
+      <div class="agents-chip">1 agent · 3 feed adapters</div>
+      <p class="limit">A feed isn't judgement: 83 open windows, and no idea which six matter to this organisation.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> consultation radar</div>
+        <div class="wire-body">
+          <div class="row">
+            <div class="minicard"><div class="k">Open now</div><div class="v">83</div></div>
+            <div class="minicard"><div class="k">Closing in 14 days</div><div class="v">19</div></div>
+            <div class="minicard"><div class="k">Platforms</div><div class="v">3 + GOV.UK</div></div>
+          </div>
+          <div class="line" style="margin-top:.75rem"><span class="status f">skipped</span> Commonplace councils — JS-rendered, adapter not built · gap disclosed</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node model">Agent</span><span class="arrow">⇄</span>
+          <span class="node tool">GOV.UK API</span>
+          <span class="node tool">Citizen Space ×4</span>
+          <span class="node tool">Go Vocal (Brent)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R3 -->
+<section class="rung" id="r3">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">3</div>
+      <h2>Deadline <span class="serif">triage</span></h2>
+      <p class="whatsnew">Poll, dedupe, compute the clock, rank. The workflow's first output is a wound: the one you already missed.</p>
+      <div class="agents-chip">1 agent · 4 coded steps</div>
+      <p class="limit">Triage can't respond. It can only tell you the truth about time.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> triage board</div>
+        <div class="wire-body">
+          <div class="line"><span class="status f">missed</span> Brent · Harris Primary school street — closed 7 Jul, 4 days ago. No alert existed.</div>
+          <div class="line"><span class="status d">caught</span> Leicester · St John the Baptist objection window — 112 days remaining</div>
+          <div class="line"><span class="status r">closing</span> DfT national consultation — 9 days remaining</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node store">Poll feeds</span><span class="arrow">→</span>
+          <span class="node store">Dedupe</span><span class="arrow">→</span>
+          <span class="node store">Deadline math</span><span class="arrow">→</span>
+          <span class="node store">Rank vs goals</span>
+        </div>
+        <p class="dg-note"><b>The miss is real:</b> the Brent consultation closed four days before this research ran, unannounced. That silence is how local democracy works today.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R4 -->
+<section class="rung" id="r4">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">4</div>
+      <h2>Specialist <span class="serif">agents</span></h2>
+      <p class="whatsnew">A drafter writes the response; a discrepancy handler notices the council's own sources disagree — and discloses it in the text.</p>
+      <div class="agents-chip">4 specialist agents</div>
+      <p class="limit">The submit button is rendered permanently disabled. A machine that could submit would be a different, worse machine.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> drafted response — not sent</div>
+        <div class="wire-body">
+          <p style="margin:0;font-size:.98rem">“We write in support of making orders TMP1029 and TMP2013 permanent. The council's consultation found <span class="fix">59% support</span>. We note the 28 May press release states ‘over 60%’; we cite the published figure…”</p>
+          <p class="note-good">Discrepancy found and disclosed · 3 citations resolve</p>
+          <p class="note-bad" style="margin-top:.75rem">[ Submit to council ] — disabled, permanently. A human downloads, signs, sends.</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — named roles, separate contexts</div>
+        <div class="flow" style="gap:1.4rem">
+          <span class="agent c1"><span class="a-face">📡</span>Ranker</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Drafter</span>
+          <span class="agent c2"><span class="a-face">⚖️</span>Discrepancy handler</span>
+          <span class="agent c2"><span class="a-face">🛡️</span>Reviewer</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R5 -->
+<section class="rung" id="r5">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">5</div>
+      <h2>An <span class="serif">orchestrator</span></h2>
+      <p class="whatsnew">Ranked windows flow to drafting agents in parallel; every draft fans back into one review stream.</p>
+      <div class="agents-chip">1 orchestrator + 4 specialists, parallel</div>
+      <p class="limit">The least “agentic” prototype, honestly framed: the power here is plumbing; the agents only rank and write.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> run trace — this week's windows</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">done · 8s</span> ranker — 6 of 83 match org goals</div>
+          <div class="line"><span class="status d">done · 40s</span> drafter — Leicester objection response</div>
+          <div class="line"><span class="status d">done · 35s</span> drafter — DfT national response</div>
+          <div class="line"><span class="status d">pass</span> discrepancy handler — 1 source conflict disclosed</div>
+          <div class="line"><span class="status nr">needs review</span> 2 responses held for signature</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — fan out, fan in</div>
+        <div class="flow" style="justify-content:center"><span class="node model">Orchestrator</span></div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↙</span><span class="arrow">↓</span><span class="arrow">↘</span></div>
+        <div class="flow" style="justify-content:center;gap:1.2rem">
+          <span class="agent c1"><span class="a-face">📡</span>Ranker</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Drafter ×N</span>
+          <span class="agent c2"><span class="a-face">⚖️</span>Checker</span>
+        </div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↘</span><span class="arrow">↓</span><span class="arrow">↙</span></div>
+        <div class="flow" style="justify-content:center"><span class="node">Response drafts</span><span class="arrow">→</span><span class="node human">Human inbox</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R6 -->
+<section class="rung" id="r6">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">6</div>
+      <h2>The <span class="serif">factory</span></h2>
+      <p class="whatsnew">Feeds trigger runs as windows open — no one types anything. Now imagine every organisation running one.</p>
+      <div class="agents-chip">orchestrator × every open window · continuous</div>
+      <p class="limit">1,400 fluent, cited responses meet the same number of council officers as before. The asymmetry is the question.</p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">The factory floor</div>
+        <div class="floor">
+          <div class="bay intake"><div class="b-t">📥 Intake</div><ul><li>feed adapters<span class="status q">nightly</span></li><li>trigger: window opens</li></ul></div>
+          <div class="bay"><div class="b-t">🗂 Queue</div><ul><li>Leicester TRO<span class="status d">done</span></li><li>DfT national<span class="status r">running</span></li><li>+1,398<span class="status q">queued</span></li></ul></div>
+          <div class="bay"><div class="b-t">☁️ Worker bays</div><ul><li>rank · draft · check</li><li>per-window sandboxes</li></ul></div>
+          <div class="bay"><div class="b-t">🧪 Evaluator</div><ul><li>citations resolve?</li><li>discrepancies disclosed?</li></ul></div>
+          <div class="bay gate"><div class="b-t">👤 Human inbox</div><ul><li>approve</li><li>edit</li><li>reject · respond</li></ul></div>
+          <div class="bay out"><div class="b-t">📦 Returned</div><ul><li>signed by humans</li><li>0 machine submissions</li></ul></div>
+        </div>
+        <div class="feedback">↩ an edited response teaches the ranker what this organisation actually cares about — feedback tunes the radar</div>
+      </div>
+      <div class="tiles3" style="margin-top:1rem" data-anim="2">
+        <div class="ptile y"><div class="big">1,400</div><div class="s">open consultations tracked · one drafted response each</div></div>
+        <div class="ptile b"><div class="big">40s</div><div class="s">per response, versus roughly three hours by hand</div></div>
+        <div class="ptile p"><div class="big">=</div><div class="s">council officers reading them: unchanged. That's the asymmetry.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="qsection container">
+  <div class="eyebrow">For the panel</div>
+  <p class="q">When every organisation can respond to everything, what does a consultation response <span class="serif">prove</span>?</p>
+  <p style="margin-top:2rem"><a class="cta" href="campaign-planner.html#s2">A deadline is only the start — the Campaign Planner <span class="chip">→</span></a></p>
+  <p style="font-size:.9rem;color:var(--muted-foreground);margin-top:.75rem">The Hunter's decision-window radar feeds the planner's stage 2 — sense-making names the meeting, the office, and the timeframe.</p>
+</section>
+
+<section class="about container" id="about">
+  <h2>About this <span class="serif">concept</span></h2>
+  <details open>
+    <summary>User &amp; problem</summary>
+    <p>Any small advocacy org. Statutory decision windows open and close unheard — verified: no aggregator of UK local-authority consultations exists. This machine is the missing thing, which is both the pitch and the warning.</p>
+  </details>
+  <details>
+    <summary>Where the agents multiply — and why it isn't theatre</summary>
+    <p>Honest inversion of the other prototypes: deterministic adapters and deadline arithmetic do the impressive part; agents add judgement only where it's needed (relevance vs org goals, drafting, discrepancy disclosure). The factory rung is the truest “factory” of the four — triggered by external events, continuous, with the human inbox's edits feeding back into the ranker.</p>
+  </details>
+  <details>
+    <summary>What's real on stage</summary>
+    <table>
+      <tr><td>Live</td><td>GOV.UK, Citizen Space and Go Vocal pulls — three keyless JSON APIs verified 11 Jul 2026; ranking; drafting</td></tr>
+      <tr><td>Cached</td><td>Brent record, TfL Barnes lifecycle, Leicester TRO documents</td></tr>
+      <tr><td>Deterministic</td><td>feed adapters, deadline arithmetic, citation binding, submission blocking</td></tr>
+      <tr><td>Agentic</td><td>relevance ranking, drafting, discrepancy handling</td></tr>
+      <tr><td>Simulated</td><td>the 1,400-window national board (per-platform feeds real; the 317-council crawl not built — labelled)</td></tr>
+    </table>
+  </details>
+  <details>
+    <summary>Risks &amp; tensions</summary>
+    <p>Consultation flooding and evidentiary laundering at machine speed. The Brent miss is the emotional engine; if rehearsal audiences don't react to it, fold this radar into the winning prototype as a single panel.</p>
+  </details>
+  <details>
+    <summary>Build complexity &amp; 10-minute fit</summary>
+    <p>Medium-low: three adapters, triage, drafting. Most defensible live layer and the only prototype that's a real product in August. UI mirrors shadcn (Awake template tokens); production would use shadcn/ui React components directly.</p>
+  </details>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · AI &amp; Campaigning conference · 16 July 2026</span>
+    <span>All data sources verified 11 Jul 2026 · public data only · read-only tools</span>
+  </div>
+</footer>
+
+<script>window.PROTO = { prev: "option-3-one-street-many-masters.html", next: "option-1-scout.html" };</script>
+<script src="awake.js"></script>
+</body>
+</html>

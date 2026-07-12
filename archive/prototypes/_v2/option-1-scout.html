@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Scout — Campaign Factory</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Campaign Factory</span>
+  <span class="proto">Prototype 1 · The Scout</span>
+  <span class="spacer"></span>
+  <span class="mode"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:var(--good)"></span> Replaying cached run · 11 Jul</span>
+  <button class="iconbtn" data-drawer-toggle>i&nbsp; About</button>
+</header>
+
+<main class="stage">
+
+  <!-- S0 -->
+  <section class="state" data-label="Title" data-notes="This is Sam. Sam is the entire campaigns team of a two-person road-safety charity. All Sam has is a postcode. We're going to ask one question, six times — to six increasingly capable machines.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">Prototype 1</div>
+      <h1 class="h-display">The Scout</h1>
+      <p style="font-size:32px;max-width:26ch;color:var(--ink-2)">Enter a postcode. Get the local issue, evidence, and campaign draft.</p>
+      <div class="who"><span class="avatar">S</span> Sam · sole campaigner, Safe Routes Trust (fictional)</div>
+      <button class="btn primary big" data-next>Start →</button>
+    </div>
+  </section>
+
+  <!-- S1 -->
+  <section class="state" data-label="1 · Model only" data-notes="Machine one: a plain language model. Fluent, confident — and it hasn't touched the world. Count the sources.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 1 of 6 · Model only</div>
+      <h2 class="h-state">The question, asked cold</h2>
+    </div>
+    <div class="chat">
+      <div class="msg user" data-step="1">What should a road-safety charity campaign on around LE2 1TE?</div>
+      <div class="msg model" data-step="2" data-type>Leicester has seen ongoing discussion about traffic in residential areas. It is widely felt that school-run congestion is a growing concern for many families, and engaging the local community on safer streets could be a valuable starting point.</div>
+      <div class="nosrc" data-step="3">0 sources · model knowledge only · no way to check any of this</div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Give it tools →</button></div>
+  </section>
+
+  <!-- S2 -->
+  <section class="state" data-label="2 · + Tools" data-notes="Machine two: the same model, with read-only tools. Now the postcode becomes a real ward, a real MP, and three real candidate issues — each with a citation you can open.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 2 of 6 · + Read-only tools</div>
+      <h2 class="h-state">Same question, real ground</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov"><span class="dot"></span>Live</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Resolve LE2 1TE <span class="t-status">postcodes.io</span></div>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Look up MP and councillors <span class="t-status">Parliament API · council register</span></div>
+        <div class="task" data-dur="900"><span class="t-ic"></span>Search council records <span class="t-status">14 sources · 3 matches</span></div>
+      </div>
+    </div>
+    <div class="tilerow" data-step="2" style="margin-bottom:32px">
+      <div class="tile"><div class="t-label">Ward</div><div class="t-value sm">Castle</div><div class="t-sub">Leicester · Green, since 2023</div></div>
+      <div class="tile"><div class="t-label">Constituency</div><div class="t-value sm">Leicester South</div><div class="t-sub">Shockat Adam (Ind)</div></div>
+      <div class="tile"><div class="t-label">Candidate issues</div><div class="t-value sm">3</div><div class="t-sub">from public records</div></div>
+    </div>
+    <div class="cardcol" data-step="3">
+      <div class="card pick"><span class="c-title">School street trial · St John the Baptist CofE Primary</span>
+        <div class="c-sub">Experimental traffic order, in force to Dec 2027 <span class="cite" data-pop="news">council news · 28 May</span> <span class="cite" data-pop="tro">traffic order</span></div>
+      </div>
+      <div class="card"><span class="c-title">Queens Road junction safety review</span><div class="c-sub"><span class="cite" data-pop="minutes">committee minutes</span></div></div>
+      <div class="card"><span class="c-title">20mph zone extension petition</span><div class="c-sub"><span class="cite" data-pop="petition">petitions register</span></div></div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Build the evidence pack →</button></div>
+  </section>
+
+  <!-- S3 -->
+  <section class="state" data-label="3 · + Workflow" data-notes="Machine three: a fixed pipeline. Fetch, extract, verify, rank — every claim bound to a source before anything downstream can use it. Note the failure: one source is unreachable, so it's excluded, not guessed.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 3 of 6 · + Verification workflow</div>
+      <h2 class="h-state">Every claim gets a source</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov">Cached 11 Jul 09:14</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="800"><span class="t-ic"></span>Fetch council documents <span class="t-status">7 of 7 · news, minutes, traffic orders, consultation</span></div>
+        <div class="task" data-dur="700" data-fail><span class="t-ic"></span>Fetch local press <span class="t-status">leicestermercury.co.uk unreachable · excluded from evidence</span></div>
+        <div class="task" data-dur="900"><span class="t-ic"></span>Extract and verify claims <span class="t-status">13 claims checked</span></div>
+      </div>
+    </div>
+    <div class="row" data-step="2">
+      <div class="tile"><div class="t-label">Supported</div><div class="t-value" style="color:var(--good)">11</div></div>
+      <div class="tile"><div class="t-label">Mixed</div><div class="t-value" style="color:var(--warn)">2</div><div class="t-sub">sources disagree: 59% vs “over 60%” support</div></div>
+      <div class="tile"><div class="t-label">Unsupported</div><div class="t-value">0</div></div>
+    </div>
+    <details class="clps" data-step="2" style="margin-top:24px">
+      <summary>Show verified claims</summary>
+      <div class="claim"><span class="ok">✓</span> Experimental school street in force 2 Jun 2026 – 1 Dec 2027 <span class="cite" data-pop="tro">traffic order</span></div>
+      <div class="claim"><span class="ok">✓</span> Followed requests from residents and the school community <span class="cite" data-pop="news">council news</span></div>
+      <div class="claim"><span class="mix">◐</span> 59% of consultees supported the pilot — press release says “over 60%” <span class="cite" data-pop="consult">scheme page</span></div>
+    </details>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Draft the campaign →</button></div>
+  </section>
+
+  <!-- S4 -->
+  <section class="state" data-label="4 · + Specialists" data-notes="Machine four: specialist agents draft — and check each other. Watch this sentence. I'm going to challenge it, live. The machine wrote something no source supports.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 4 of 6 · + Specialist agents</div>
+      <h2 class="h-state">Challenge a claim</h2>
+    </div>
+    <div class="panel p-gen" data-step="1">
+      <span class="prov">Generated</span>
+      <p class="draft"><span class="flagged swap-flag">Parents have demanded the road be closed for good.</span><span class="swap-fix" style="display:none">Residents and the school community asked the council to act <span class="cite" data-pop="news">council news</span>.</span> The trial has already changed the school run for six hundred families…</p>
+    </div>
+    <div class="actions" data-step="1" style="margin-top:32px"><button class="btn primary" data-next>Check this claim</button></div>
+    <div class="panel p-real" data-step="2" style="margin-top:32px">
+      <span class="prov">Live</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="1100"><span class="t-ic"></span>Re-check against 7 sources <span class="t-status">no match found</span></div>
+      </div>
+    </div>
+    <div data-step="3">
+      <p class="flagnote">Unsupported — no source mentions “demanded” or “for good”.</p>
+      <p class="fixnote">Reworded to match citation: “Residents and the school community asked the council to act.” <span class="cite" data-pop="news">council news · 28 May</span></p>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Assemble the pack →</button></div>
+  </section>
+
+  <!-- S5 -->
+  <section class="state" data-label="5 · Approval" data-gate="on" data-notes="Machine five: orchestration — and the gate. Nothing leaves this system without a named human approving it. That's not a feature, it's the constitution.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 5 of 6 · Human approval</div>
+      <h2 class="h-state">Review before export</h2>
+    </div>
+    <div class="panel p-gen" data-step="1" style="max-width:1100px">
+      <span class="prov">Generated · 4 citations</span>
+      <p class="draft" style="font-size:24px"><strong style="color:var(--ink)">Make the school street permanent, says Safe Routes Trust</strong><br>
+      Safe Routes Trust today called on Leicester City Council to make the St John the Baptist school street permanent. The experimental order, in force since June <span class="cite" data-pop="tro">traffic order</span>, followed requests from residents and the school community <span class="cite" data-pop="news">council news</span>. In the council's own consultation, 59% supported the pilot <span class="cite" data-pop="consult">scheme page</span>.</p>
+      <p class="elide">+ supporter email · social posts · briefing note</p>
+    </div>
+    <div class="actions" data-step="2" style="margin-top:32px">
+      <button class="btn primary big" data-open-dialog="#dlg-approve">Review before export</button>
+      <button class="btn locked" disabled data-needs-approval data-noop-export>Export pack</button>
+    </div>
+  </section>
+
+  <!-- S6 -->
+  <section class="state" data-label="6 · Factory" data-notes="Machine six. Nothing about this was specific to Leicester. Same pipeline, every school street in England. Sam's charity runs three campaigns a year.">
+    <div class="wall-wrap" data-step="1">
+      <div class="wall" data-wall></div>
+      <div class="wall-overlay">
+        <div class="kicker">Layer 6 of 6 · Simulated run · real places</div>
+        <div class="hero-num" data-count="412">0</div>
+        <div style="font-size:32px;color:var(--ink)">candidate school streets · England</div>
+        <div style="font-size:22px;color:var(--ink-2)">38 open decision windows · every export still needs a human</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 -->
+  <section class="state" data-label="Question" data-notes="Leave this on screen for the panel.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">For the panel</div>
+      <p class="qcard">A volunteer could research one street. This researched them all before lunch. What happens to the other 409 campaigns?</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- approval gate bar -->
+<div class="gatebar">
+  <div class="g-blocked" style="display:flex;align-items:center;gap:20px"><span class="g-ic">⏸</span> Export blocked · 1 draft awaiting review</div>
+  <div class="g-approved" style="display:none;align-items:center;gap:20px"><span class="g-ic g-ok">✓</span> Approved · ready to export</div>
+</div>
+
+<!-- stepper -->
+<nav class="stepper"></nav>
+
+<!-- approval dialog -->
+<div class="scrim" id="dlg-approve">
+  <div class="dialog">
+    <h2>Review before export</h2>
+    <p style="font-size:22px">Press release · 312 words · 4 citations, all resolving · 1 claim reworded after check</p>
+    <div class="claim"><span class="ok">✓</span> Experimental order dates <span class="cite" data-pop="tro">traffic order</span></div>
+    <div class="claim"><span class="ok">✓</span> Community request <span class="cite" data-pop="news">council news</span></div>
+    <div class="claim"><span class="mix">◐</span> Support figure — lower sourced figure used (59%) <span class="cite" data-pop="consult">scheme page</span></div>
+    <div class="d-actions">
+      <button class="btn" data-close-dialog>Reject</button>
+      <button class="btn" data-close-dialog>Request changes</button>
+      <button class="btn approve" data-approve>Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- citation popover -->
+<div class="pop"><button class="p-x" onclick="this.parentNode.classList.remove('show')">✕</button><div class="p-src"></div><div class="p-meta"></div><blockquote></blockquote></div>
+
+<!-- speaker notes -->
+<div class="notes"><span class="n-k">Presenter</span><span class="n-body"></span></div>
+
+<!-- About drawer -->
+<aside class="drawer">
+  <button class="iconbtn" data-drawer-close style="float:right">✕</button>
+  <h2>About this concept</h2>
+  <p>The Scout — enter a postcode, get the local issue, evidence, and campaign draft.</p>
+  <h3>User &amp; problem</h3>
+  <p>The sole campaigner at a small road-safety charity. Finding a genuine, actionable local issue currently takes a week of council-website archaeology; this compresses it to minutes, with citations.</p>
+  <h3>Central demonstration idea</h3>
+  <p>One question — “what should we campaign on here?” — replayed against six escalating machines: model only → tools → verification workflow → specialist agents → human-gated orchestration → national factory.</p>
+  <h3>Main flow</h3>
+  <p>Postcode → geography + officeholders → candidate issues with citations → verified evidence pack → challenged claim corrected → drafted pack behind an approval gate → factory view.</p>
+  <h3>What's real</h3>
+  <table>
+    <tr><td>Live</td><td>postcode/MP resolution; claim re-check; draft synthesis (on stage: replayed from cache)</td></tr>
+    <tr><td>Cached</td><td>council documents, context datasets, national scan (all sources verified open, 11 Jul 2026)</td></tr>
+    <tr><td>Deterministic</td><td>geography joins, document fetch/parse, citation binding, approval state</td></tr>
+    <tr><td>Agentic</td><td>issue ranking, contradiction finding, drafting</td></tr>
+    <tr><td>Simulated</td><td>the 412-site factory run (real places, fake execution — labelled)</td></tr>
+  </table>
+  <h3>Benefits</h3>
+  <p>Legible in 30 seconds; sympathetic protagonist; lowest ethical risk; the pipeline is the real recommended build.</p>
+  <h3>Risks &amp; tensions</h3>
+  <p>The least frightening reveal — capacity, not menace. The panel must supply the unease. Risk of reading as “ChatGPT with better sources.”</p>
+  <h3>Build complexity</h3>
+  <p>Medium: full pipeline but one location. All critical sources verified keyless. UI kit mirrors Base UI component vocabulary; production would swap to @base-ui-components/react one-to-one.</p>
+  <h3>In a 10-minute demo</h3>
+  <p>Works as the clearest teaching version of the ladder. Weakest closing note of the four — pair with a strong panel handoff, or use the hybrid ending.</p>
+</aside>
+
+<script>
+window.PROTO = { prev: "option-4-consultation-hunter.html", next: "option-2-ward-machine.html" };
+window.CITES = {
+  news:    { src: "Leicester City Council — news", meta: "news.leicester.gov.uk · 28 May 2026 · cached", quote: "The scheme … follows requests from residents and the school community to tackle road safety and congestion outside the school." },
+  tro:     { src: "Experimental Traffic Orders TME 1028 / TME 2012", meta: "leicester.gov.uk · made 29 Apr 2026 · cached PDF", quote: "In force from 2 June 2026 until 1 December 2027. Objections to the permanent orders may be made within six months." },
+  consult: { src: "Choose How You Move — scheme page", meta: "choosehowyoumove.co.uk · cached", quote: "59% of respondents supported the introduction of a school street." },
+  minutes: { src: "Highways and Transport committee minutes", meta: "cabinet.leicester.gov.uk · cached", quote: "Officers to report on junction safety measures on the Queens Road corridor." },
+  petition:{ src: "Petitions register", meta: "change.org · cached", quote: "St John the Baptist Primary School needs safer traffic measures." }
+};
+window.WALL = {
+  total: 412, animate: 16, runLabel: "scanning", doneLabel: "pack ready",
+  names: ["Leicester","Sheffield","Cardiff","Bristol","Bradford","Newcastle","Leeds","Manchester","Nottingham","Derby","Coventry","Hull","Plymouth","Southampton","Norwich","Oxford","Cambridge","York","Bath","Exeter","Reading","Luton","Ipswich","Preston","Blackburn","Bolton","Stockport","Wigan","Oldham","Rochdale","Salford","Sunderland","Gateshead","Middlesbrough","Stoke-on-Trent","Wolverhampton","Walsall","Dudley","Sandwell","Solihull","Birmingham","Croydon","Barnet","Ealing","Enfield","Bromley","Lewisham","Hackney"]
+};
+</script>
+<script src="ui.js"></script>
+</body>
+</html>

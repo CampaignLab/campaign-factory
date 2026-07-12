@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ward Machine — Campaign Factory</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Campaign Factory</span>
+  <span class="proto">Prototype 2 · The Ward Machine</span>
+  <span class="spacer"></span>
+  <span class="mode"><span style="width:10px;height:10px;border-radius:50%;background:var(--good);display:inline-block"></span> Replaying cached run · 11 Jul</span>
+  <button class="iconbtn" data-drawer-toggle>i&nbsp; About</button>
+</header>
+
+<main class="stage">
+
+  <!-- S0 -->
+  <section class="state" data-label="Title" data-notes="This is Jo, a regional field organiser. Head office has assigned Jo a target ward for May 2027. Jo has never been to Leicester. The old answer to that problem was local members. Watch the new answer.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">Prototype 2</div>
+      <h1 class="h-display">The Ward Machine</h1>
+      <p style="font-size:32px;max-width:28ch;color:var(--ink-2)">Builds a ward brief and doorstep script for any target ward.</p>
+      <div class="who"><span class="avatar">J</span> Jo · field organiser, party unnamed · target: Castle ward, Leicester</div>
+      <button class="btn primary big" data-next>Start →</button>
+    </div>
+  </section>
+
+  <!-- S1 -->
+  <section class="state" data-label="1 · Model only" data-notes="Machine one. Ask a plain model about a ward and you get horoscope-grade advice — plausible for every ward in Britain, specific to none.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 1 of 6 · Model only</div>
+      <h2 class="h-state">The question, asked cold</h2>
+    </div>
+    <div class="chat">
+      <div class="msg user" data-step="1">How should we campaign in Castle ward, Leicester?</div>
+      <div class="msg model" data-step="2" data-type>Castle ward is a diverse inner-city area. Residents are likely to care about issues such as housing, potholes and antisocial behaviour. A strong ground game and visible community presence are widely considered effective.</div>
+      <div class="nosrc" data-step="3">0 sources · could describe any ward in Britain</div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Give it tools →</button></div>
+  </section>
+
+  <!-- S2 -->
+  <section class="state" data-label="2 · + Tools" data-notes="Machine two: real electoral ground. Green-held, low turnout, everything up in May 2027 — and one detail no model would know: the school street straddles the boundary between a Green ward and a Labour ward.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 2 of 6 · + Read-only tools</div>
+      <h2 class="h-state">The ward, on the record</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov"><span class="dot"></span>Live</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Resolve ward <span class="t-status">postcodes.io · Castle E05010463</span></div>
+        <div class="task" data-dur="800"><span class="t-ic"></span>Election history <span class="t-status">leicester.gov.uk results · 21 wards</span></div>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Incumbents and next election <span class="t-status">Open Council Data · CC0</span></div>
+      </div>
+    </div>
+    <div class="tilerow" data-step="2" style="margin-bottom:32px">
+      <div class="tile"><div class="t-label">Held by</div><div class="t-value sm">Green</div><div class="t-sub">since May 2023 <span class="cite" data-pop="results">2023 results</span></div></div>
+      <div class="tile"><div class="t-label">2023 turnout</div><div class="t-value">30%</div><div class="t-sub">30.43% · all 3 seats up May 2027</div></div>
+      <div class="tile"><div class="t-label">Local volunteers</div><div class="t-value">0</div><div class="t-sub">available to Jo</div></div>
+    </div>
+    <div class="card" data-step="3" style="border-color:var(--yellow)">
+      <span class="c-title">Boundary note</span>
+      <div class="c-sub">The school street sits on the Castle–Knighton ward boundary: Green-held Castle on one side, Labour-held Knighton on the other. The councillor fronting the scheme sits for Knighton. <span class="cite" data-pop="wards">councillor register</span></div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Scan for issues →</button></div>
+  </section>
+
+  <!-- S3 -->
+  <section class="state" data-label="3 · + Workflow" data-notes="Machine three ranks what it found — by usefulness to Jo, not importance to residents. Nobody in this ward asked for help. Click the score: the methodology disclaimer is in the product, because pretending this is science would be the real deception.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 3 of 6 · + Ranking workflow</div>
+      <h2 class="h-state">Issues, ranked for electoral use</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov">Cached 11 Jul 09:14</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="800"><span class="t-ic"></span>Scan public records <span class="t-status">council portal · petitions · consultations · police</span></div>
+        <div class="task" data-dur="900"><span class="t-ic"></span>Score against ward profile <span class="t-status">3 candidates</span></div>
+      </div>
+    </div>
+    <div class="cardcol" data-step="2">
+      <div class="card pick"><span class="c-title">School street trial · Clarendon Park</span>
+        <div class="c-sub">Live decision window · divides the incumbent's base · high salience for parents
+        <span class="cite" data-pop="score">resonance 8.7</span> <span class="cite" data-pop="news">council news</span></div>
+      </div>
+      <div class="card"><span class="c-title">Student HMO licensing row</span><div class="c-sub"><span class="cite" data-pop="score">resonance 6.2</span> <span class="cite" data-pop="minutes">licensing minutes</span></div></div>
+      <div class="card"><span class="c-title">Victoria Park events noise</span><div class="c-sub"><span class="cite" data-pop="score">resonance 4.1</span> <span class="cite" data-pop="petition">petitions register</span></div></div>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Write the doorstep script →</button></div>
+  </section>
+
+  <!-- S4 -->
+  <section class="state" data-label="4 · + Specialists" data-notes="Machine four writes the script — and invents supporters mid-sentence. 'Some neighbours told us.' Nobody told anyone anything. The review agent catches it; a human decides. This is the most important 20 seconds of the demo.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 4 of 6 · + Specialist agents</div>
+      <h2 class="h-state">The script, and the catch</h2>
+    </div>
+    <div class="panel p-gen" data-step="1" style="max-width:1150px">
+      <span class="prov">Generated</span>
+      <p class="draft" data-type>“Hi, I'm out talking to residents about the school street trial on East Avenue. Some neighbours told us they weren't properly consulted — how has it been for you? … If you had one message for the council, what would it be?”</p>
+    </div>
+    <div data-step="2">
+      <p class="flagnote">“Some neighbours told us they weren't properly consulted” — no source. No resident contact has occurred.</p>
+      <p class="fixnote swap-fixnote" style="display:none">Revised: “The council's own consultation had a 59% support rate — we want to hear the other 41% too.” <span class="cite" data-pop="consult">scheme page</span></p>
+    </div>
+    <div class="actions mt-auto" data-step="2">
+      <button class="btn primary big" data-open-dialog="#dlg-review">Review flagged line</button>
+    </div>
+  </section>
+
+  <!-- S5 -->
+  <section class="state" data-label="5 · Approval" data-gate="on" data-notes="Machine five: the same facts, framed for three broad audiences — geography and life-stage only, nothing sensitive, nothing individual. And the gate: nothing goes to a printer or a doorstep without a named human.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 5 of 6 · Audience frames · human approval</div>
+      <h2 class="h-state">One issue, three doorsteps</h2>
+    </div>
+    <div data-tabs data-step="1" style="max-width:1150px">
+      <div class="tabs">
+        <button class="tab" data-tab="a" data-selected>Parents</button>
+        <button class="tab" data-tab="b">Boundary-road residents</button>
+        <button class="tab" data-tab="c">Students &amp; renters</button>
+      </div>
+      <div class="tabpanel" data-panel="a" data-open>
+        <p class="draft" style="font-size:24px">Opens on safety: “602 children walk into that school gate.” Asks about the school run before politics. <span class="cite" data-pop="gias">school record</span></p>
+      </div>
+      <div class="tabpanel" data-panel="b">
+        <p class="draft" style="font-size:24px">Opens on displacement: parking and through-traffic on roads just outside the zone. Asks, doesn't asserts — no displacement data exists yet.</p>
+      </div>
+      <div class="tabpanel" data-panel="c">
+        <p class="draft" style="font-size:24px">Opens on air quality and safer cycling on the London Road corridor. Notes the trial's objection window is open to all residents. <span class="cite" data-pop="tro">traffic order</span></p>
+      </div>
+    </div>
+    <div class="actions mt-auto" data-step="2">
+      <button class="btn primary big" data-open-dialog="#dlg-approve">Review before export</button>
+      <button class="btn locked" disabled data-needs-approval data-noop-export>Export scripts</button>
+    </div>
+  </section>
+
+  <!-- S6 -->
+  <section class="state" data-label="6 · Factory" data-notes="Machine six. There are about 8,000 wards in Great Britain, and every party has a target list. Strategy centrally, agents locally. The gate is still there — but who reads 120 approvals a day?">
+    <div class="wall-wrap" data-step="1">
+      <div class="wall" data-wall></div>
+      <div class="wall-overlay">
+        <div class="kicker">Layer 6 of 6 · Simulated run · real wards</div>
+        <div class="hero-num" data-count="120">0</div>
+        <div style="font-size:32px;color:var(--ink)">target wards · each with its own found issue</div>
+        <div style="font-size:22px;color:var(--ink-2)">local volunteers consulted: 0 · approvals required: 120</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 -->
+  <section class="state" data-label="Question" data-notes="Leave this on screen for the panel.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">For the panel</div>
+      <p class="qcard">Local knowledge without locals. Strategy centrally, agents locally. What are local members for, now?</p>
+    </div>
+  </section>
+
+</main>
+
+<div class="gatebar">
+  <div class="g-blocked" style="display:flex;align-items:center;gap:20px"><span class="g-ic">⏸</span> Export blocked · 3 scripts awaiting review</div>
+  <div class="g-approved" style="display:none;align-items:center;gap:20px"><span class="g-ic g-ok">✓</span> Approved · ready to export</div>
+</div>
+
+<nav class="stepper"></nav>
+
+<!-- S4 review dialog -->
+<div class="scrim" id="dlg-review">
+  <div class="dialog">
+    <h2>Flagged line</h2>
+    <p class="draft" style="font-size:24px"><span class="flagged">“Some neighbours told us they weren't properly consulted.”</span></p>
+    <p style="font-size:22px">Check result: no source. The consultation record shows 59% support, 41% opposed or unsure — a sourced version of the same door-opener exists.</p>
+    <div class="d-actions">
+      <button class="btn" data-close-dialog>Keep (not recommended)</button>
+      <button class="btn approve" data-fix>Request changes — use sourced line</button>
+    </div>
+  </div>
+</div>
+
+<!-- S5 approval dialog -->
+<div class="scrim" id="dlg-approve">
+  <div class="dialog">
+    <h2>Review before export</h2>
+    <p style="font-size:22px">3 doorstep scripts · audiences are broad and non-sensitive (geography + life-stage) · 1 line revised after flag · all factual lines cited</p>
+    <div class="claim"><span class="ok">✓</span> 602 pupils <span class="cite" data-pop="gias">school record</span></div>
+    <div class="claim"><span class="ok">✓</span> Objection window open <span class="cite" data-pop="tro">traffic order</span></div>
+    <div class="claim"><span class="ok">✓</span> 59% support figure <span class="cite" data-pop="consult">scheme page</span></div>
+    <div class="d-actions">
+      <button class="btn" data-close-dialog>Reject</button>
+      <button class="btn" data-close-dialog>Request changes</button>
+      <button class="btn approve" data-approve>Approve</button>
+    </div>
+  </div>
+</div>
+
+<div class="pop"><button class="p-x" onclick="this.parentNode.classList.remove('show')">✕</button><div class="p-src"></div><div class="p-meta"></div><blockquote></blockquote></div>
+
+<div class="notes"><span class="n-k">Presenter</span><span class="n-body"></span></div>
+
+<aside class="drawer">
+  <button class="iconbtn" data-drawer-close style="float:right">✕</button>
+  <h2>About this concept</h2>
+  <p>The Ward Machine — builds a ward brief and doorstep script for any target ward.</p>
+  <h3>User &amp; problem</h3>
+  <p>A party field organiser assigned a target ward with no local members. The machine substitutes for local knowledge — which is exactly the capability and exactly the threat.</p>
+  <h3>Central demonstration idea</h3>
+  <p>Issues chosen for electoral utility, not local demand. The machine finds the wedge, writes the doorstep script, invents social proof — and a review agent plus a human catch it. Ends on volunteer displacement at national scale.</p>
+  <h3>Main flow</h3>
+  <p>Target ward → electoral brief (real 2023 results, real boundary fault line) → issues ranked by synthetic “resonance” → doorstep script with flagged invented claim → audience frames → approval gate → 120-ward battleground view.</p>
+  <h3>What's real</h3>
+  <table>
+    <tr><td>Live</td><td>ward/electoral resolution; ranking; script drafting (on stage: replayed from cache)</td></tr>
+    <tr><td>Cached</td><td>council documents, 2023 ward results, CC0 councillor data — all verified open 11 Jul 2026</td></tr>
+    <tr><td>Deterministic</td><td>joins, citation binding, approval state, banned-tactic checks</td></tr>
+    <tr><td>Agentic</td><td>issue ranking, frame selection, drafting, the flag</td></tr>
+    <tr><td>Simulated</td><td>“resonance” methodology (disclosed in-product) and the 120-ward run (real ward names)</td></tr>
+  </table>
+  <h3>Benefits</h3>
+  <p>Exactly matches the audience; the only option where the fear is native to the story; the flag-and-fix beat is the strongest approval moment of any prototype.</p>
+  <h3>Risks &amp; tensions</h3>
+  <p>Ethically hottest: a real school's safety scheme instrumentalised for electoral gain, with real incumbents named. Party stays unnamed. Must be staged as “look straight at what's coming”, never a pitch. Requires Ed + Hannah's explicit sign-off.</p>
+  <h3>Build complexity</h3>
+  <p>Medium-high: option 1's spine plus electoral layer (verified open). Kit mirrors Base UI; production swaps to @base-ui-components/react.</p>
+  <h3>In a 10-minute demo</h3>
+  <p>Highest stage impact and panel fit. The price is the ethics cell — a deliberate choice, not an accident.</p>
+</aside>
+
+<script>
+window.PROTO = { prev: "option-1-scout.html", next: "option-3-one-street-many-masters.html" };
+window.CITES = {
+  results: { src: "Leicester City Council — 2023 ward results", meta: "leicester.gov.uk · HTML tables · cached", quote: "Castle: Kitterick (Green) 1,564 · Gregg (Green) 1,453 · Sahu (Green) 1,419 · turnout 30.43%." },
+  wards:   { src: "Councillors by ward", meta: "cabinet.leicester.gov.uk · cached", quote: "Castle: Gregg, Kitterick, Sahu (Green). Knighton: March, Moore, Whittle (Labour)." },
+  news:    { src: "Leicester City Council — news", meta: "news.leicester.gov.uk · 28 May 2026 · cached", quote: "The scheme follows requests from residents and the school community." },
+  consult: { src: "Choose How You Move — scheme page", meta: "choosehowyoumove.co.uk · cached", quote: "59% of respondents supported the introduction of a school street." },
+  tro:     { src: "Experimental Traffic Orders TME 1028 / TME 2012", meta: "leicester.gov.uk · cached PDF", quote: "Objections to the permanent orders may be made within six months." },
+  gias:    { src: "Get Information About Schools", meta: "GIAS bulk CSV · URN 120230 · cached", quote: "St John the Baptist CofE Primary — 602 pupils on roll (Jan 2026 census)." },
+  minutes: { src: "Licensing committee minutes", meta: "cabinet.leicester.gov.uk · cached", quote: "Additional HMO licensing scheme — consultation responses considered." },
+  petition:{ src: "Petitions register", meta: "cached", quote: "Petition regarding event noise in Victoria Park." },
+  score:   { src: "Resonance score", meta: "synthetic · prototype only", quote: "This score is a synthetic placeholder. No validated methodology for 'voter resonance' exists in this prototype — shipping one would require polling data and would raise exactly the targeting questions this demo is about." }
+};
+window.WALL = {
+  total: 120, animate: 14, runLabel: "scanning", doneLabel: "issue found",
+  names: ["Castle · Leicester","Walkley · Sheffield","Cathays · Cardiff","Easton · Bristol","Heaton · Newcastle","Chapel Allerton · Leeds","Rusholme · Manchester","Hillfields · Coventry","St Ann's · Nottingham","Arboretum · Derby","Everton · Liverpool","Wavertree · Liverpool","Fallowfield · Manchester","Headingley · Leeds","Selly Oak · Birmingham","Handsworth · Birmingham","Fishergate · York","Cowley · Oxford","Petersfield · Cambridge","Bevois · Southampton","Stoke · Plymouth","Beeston · Leeds","Radford · Nottingham","Ancoats · Manchester"]
+};
+</script>
+<script src="ui.js"></script>
+</body>
+</html>

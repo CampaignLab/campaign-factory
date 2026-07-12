@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Factory — Prototypes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+<style>
+  .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin: 3rem 0; }
+  @media (max-width: 900px) { .pgrid { grid-template-columns: 1fr; } }
+  .pcard {
+    border: 1px solid rgba(27,29,30,.1); border-radius: var(--radius-2xl); padding: 2rem;
+    text-decoration: none; color: var(--ink); display: block; transition: all .2s ease; background: var(--card);
+  }
+  .pcard:hover { border-color: var(--brand); }
+  .pcard:hover h2 { color: var(--brand); }
+  .pcard h2 { font-size: 1.8rem; margin: .5rem 0 .75rem; transition: color .2s ease; }
+  .pcard p { color: var(--muted-foreground); font-size: .98rem; margin: 0 0 1rem; }
+  .pcard .meta { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .pcard .meta span {
+    font-size: .78rem; font-weight: 500; border: 1px solid var(--border); border-radius: 999px; padding: .25rem .7rem; color: var(--muted-foreground);
+  }
+  .ladder-strip { display: flex; align-items: center; gap: .5rem; justify-content: center; flex-wrap: wrap; margin: 2.5rem 0 0; }
+  .archives { text-align: center; padding: 2rem 0 4rem; font-size: .9rem; color: var(--muted-foreground); }
+  .archives a { color: var(--brand); text-decoration: none; margin: 0 .75rem; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a href="campaign-planner.html">Campaign Planner</a>
+      <a href="option-1-scout.html">1 · Scout</a>
+      <a href="option-2-ward-machine.html">2 · Ward Machine</a>
+      <a href="option-3-one-street-many-masters.html">3 · One Street</a>
+      <a href="option-4-consultation-hunter.html">4 · Hunter</a>
+    </nav>
+    <a class="pillbtn" href="_v1/compare.html">Decision matrix</a>
+  </div>
+</header>
+
+<section class="hero container">
+  <div class="eyebrow">AI &amp; Campaigning conference · agents demo · 16 July 2026</div>
+  <h1>From one chat to an <span class="serif">agent factory</span></h1>
+  <p class="caption">Four prototype concepts, one ladder. Each page walks the same six rungs — model, tools, workflow, specialist agents, orchestration, factory — showing the app <strong>and</strong> the architecture at every step, so you can see exactly where the agents multiply and why. Scroll or arrow-key through; the diagrams grow as you descend.</p>
+  <div class="ladder-strip">
+    <span class="node model">1 chat</span><span class="arrow">→</span>
+    <span class="node tool">+ tools</span><span class="arrow">→</span>
+    <span class="node store">workflow</span><span class="arrow">→</span>
+    <span class="node">specialists</span><span class="arrow">→</span>
+    <span class="node">orchestrator</span><span class="arrow">→</span>
+    <span class="node human">factory + human gate</span>
+  </div>
+</section>
+
+<div class="container">
+  <a class="pcard" href="campaign-planner.html" style="border-width:2px;border-color:var(--ink);margin-top:3rem;display:block">
+    <div class="eyebrow" style="margin:0">Flagship · the end-to-end journey · issue → actionable campaign</div>
+    <h2>The Campaign Planner</h2>
+    <p>The Leicester school street taken all the way: sense-making, an objective that passes the SMART check, a power map with stated/inferred badges, pressure analysis, a strategy, sequenced tactics, a supporter ladder, six resource packs, metrics, and an export gate. Nine specialist agents contribute; four of their disagreements are shown and resolved on the record. Built on the two campaign-workshop decks.</p>
+    <div class="meta"><span>Objective → Strategy → Tactics</span><span>9 specialist agents</span><span>4 disagreements on record</span><span>Real verified case</span></div>
+  </a>
+  <p style="text-align:center;color:var(--muted-foreground);font-size:.95rem;margin:2.5rem 0 0">The four concepts below are the ladder demos — each now feeds a stage of the planner.</p>
+  <div class="pgrid">
+    <a class="pcard" href="option-1-scout.html">
+      <div class="eyebrow" style="margin:0">Prototype 1 · advocacy · fear 2/5</div>
+      <h2>The Scout</h2>
+      <p>A research department for one campaigner: postcode in, cited campaign pack out. The factory fans specialist read-only research agents across every school street in England — 412 packs overnight, one human inbox.</p>
+      <div class="meta"><span>Ends: 412 runs</span><span>Build: medium</span><span>Leicester spine</span></div>
+    </a>
+    <a class="pcard" href="option-2-ward-machine.html">
+      <div class="eyebrow" style="margin:0">Prototype 2 · electoral · fear 5/5</div>
+      <h2>The Ward Machine</h2>
+      <p>Local knowledge without locals: head office feeds target wards into the hopper; electoral-analysis, research, drafting and review agents return doorstep-ready campaigns. 120 wards, zero volunteers consulted.</p>
+      <div class="meta"><span>Ends: 120 wards</span><span>Needs Ed + Hannah sign-off</span></div>
+    </a>
+    <a class="pcard" href="option-3-one-street-many-masters.html">
+      <div class="eyebrow" style="margin:0">Prototype 3 · pluralism · fear 4/5</div>
+      <h2>One Street, Many Masters</h2>
+      <p>Manufactured pluralism: frame agents run in parallel against one frozen evidence pack, a drift-checker keeps every fact locked, and opposed campaigns emerge — for any street, for any organisation on the register.</p>
+      <div class="meta"><span>Ends: any street × any master</span><span>Build: lowest</span></div>
+    </a>
+    <a class="pcard" href="option-4-consultation-hunter.html">
+      <div class="eyebrow" style="margin:0">Prototype 4 · participation · fear 4/5</div>
+      <h2>The Consultation Hunter</h2>
+      <p>Machine-speed participation: feed adapters pour every opening consultation into a queue, drafting agents respond to each in the cloud, and a human signs everything. 1,400 windows tracked; officers reading them: unchanged.</p>
+      <div class="meta"><span>Ends: 1,400 responses</span><span>Most useful afterwards</span></div>
+    </a>
+  </div>
+
+  <p style="text-align:center;color:var(--muted-foreground);font-size:.95rem">
+    <kbd style="border:1px solid var(--border);border-radius:.4rem;padding:.05rem .5rem">→</kbd> next rung ·
+    <kbd style="border:1px solid var(--border);border-radius:.4rem;padding:.05rem .5rem">1</kbd>–<kbd style="border:1px solid var(--border);border-radius:.4rem;padding:.05rem .5rem">6</kbd> jump ·
+    <kbd style="border:1px solid var(--border);border-radius:.4rem;padding:.05rem .5rem">[</kbd> <kbd style="border:1px solid var(--border);border-radius:.4rem;padding:.05rem .5rem">]</kbd> switch prototype ·
+    append <code>?all</code> to reveal a whole page at once
+  </p>
+</div>
+
+<div class="archives">
+  <a href="_v1/compare.html">Decision matrix &amp; scores</a> ·
+  <a href="../writeups/option-1-scout.md">Long-form write-ups</a> ·
+  <a href="REBUILD-SPEC.md">Design spec</a> ·
+  <a href="_v1/index.html">v1 (storyboards)</a> ·
+  <a href="_v2/index.html">v2 (stage click-through)</a>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · Newspeak House × Campaign Lab</span>
+    <span>Public data only · read-only tools · a human approves everything</span>
+  </div>
+</footer>
+
+</body>
+</html>

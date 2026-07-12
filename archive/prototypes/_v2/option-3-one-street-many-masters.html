@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Street, Many Masters — Campaign Factory</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Campaign Factory</span>
+  <span class="proto">Prototype 3 · One Street, Many Masters</span>
+  <span class="spacer"></span>
+  <span class="mode" id="packchip" style="display:none;color:var(--real)">🔒 Pack EP-041 · frozen</span>
+  <button class="iconbtn" data-drawer-toggle>i&nbsp; About</button>
+</header>
+
+<main class="stage">
+
+  <!-- S0 -->
+  <section class="state" data-label="Title" data-notes="One street in Leicester. One set of facts. We're going to hand those facts to four different organisations and watch four different campaigns come out — including two that directly oppose each other.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">Prototype 3</div>
+      <h1 class="h-display">One Street,<br>Many Masters</h1>
+      <p style="font-size:32px;max-width:28ch;color:var(--ink-2)">One evidence pack, four organisations, four opposing campaigns.</p>
+      <button class="btn primary big" data-next>Start →</button>
+    </div>
+  </section>
+
+  <!-- S1 -->
+  <section class="state" data-label="1 · Model only" data-notes="Ask a plain model to 'write a campaign' and notice something: it already has a position. No facts, no sources — but plenty of opinion. That's the baseline we're fixing.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 1 of 6 · Model only</div>
+      <h2 class="h-state">The model already has an opinion</h2>
+    </div>
+    <div class="chat">
+      <div class="msg user" data-step="1">Write a campaign about the Clarendon Park school street.</div>
+      <div class="msg model" data-step="2" data-type>Great initiative! School streets make neighbourhoods safer and greener. A campaign could celebrate this vital scheme, rally the community behind it, and urge the council to expand it across Leicester…</div>
+      <div class="nosrc" data-step="3">0 sources · position adopted without a single fact · whose campaign is this?</div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Get the facts first →</button></div>
+  </section>
+
+  <!-- S2 -->
+  <section class="state" data-label="2 · + Tools" data-notes="Machine two collects what is actually on the record. Thirteen claims, seven public sources — including the one detail the council's own sources disagree on.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 2 of 6 · + Read-only tools</div>
+      <h2 class="h-state">What the record actually says</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov">Cached 11 Jul 09:14</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Fetch council record <span class="t-status">news · traffic orders · consultation · minutes</span></div>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Resolve geography and officeholders <span class="t-status">Castle ward · Leicester South</span></div>
+        <div class="task" data-dur="800"><span class="t-ic"></span>Extract claims <span class="t-status">13 claims · 7 sources</span></div>
+      </div>
+    </div>
+    <div class="cardcol" data-step="2" style="max-width:1150px">
+      <div class="claim"><span class="ok">✓</span> Experimental school street, in force 2 Jun 2026 – 1 Dec 2027 <span class="cite" data-pop="tro">traffic order</span></div>
+      <div class="claim"><span class="ok">✓</span> Followed requests from residents and the school community <span class="cite" data-pop="news">council news</span></div>
+      <div class="claim"><span class="ok">✓</span> Objection window on permanent orders: six months <span class="cite" data-pop="tro">traffic order</span></div>
+      <div class="claim"><span class="mix">◐</span> Support: 59% — press release says “over 60%” <span class="cite" data-pop="consult">scheme page</span></div>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Verify and freeze →</button></div>
+  </section>
+
+  <!-- S3 -->
+  <section class="state" data-label="3 · + Workflow" data-notes="Machine three locks the pack. From this click on, nothing downstream can change a fact — a checker diffs every output against these frozen claims. Framing can move. Facts cannot.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 3 of 6 · + Verification workflow</div>
+      <h2 class="h-state">Freeze the facts</h2>
+    </div>
+    <div class="tilerow" data-step="1" style="margin-bottom:48px">
+      <div class="tile"><div class="t-label">Claims</div><div class="t-value">13</div><div class="t-sub">11 supported · 2 mixed</div></div>
+      <div class="tile"><div class="t-label">Sources</div><div class="t-value">7</div><div class="t-sub">all public · all cached</div></div>
+      <div class="tile"><div class="t-label">Drift checker</div><div class="t-value sm">armed</div><div class="t-sub">every output diffed against the pack</div></div>
+    </div>
+    <div class="actions" data-step="1">
+      <button class="btn primary big" data-next onclick="document.getElementById('packchip').style.display='inline-flex'">🔒 Freeze evidence pack EP-041</button>
+    </div>
+    <div class="panel p-real" data-step="2" style="margin-top:48px;max-width:900px">
+      <span class="prov">Deterministic</span>
+      <p style="font-size:26px;color:var(--ink);margin:0">Pack EP-041 frozen. 13 claims locked. All downstream drafts must cite it.</p>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Choose who it works for →</button></div>
+  </section>
+
+  <!-- S4 -->
+  <section class="state" data-label="4 · + Specialists" data-notes="Machine four. I change exactly one input — who the machine works for — and the same thirteen facts become opposite campaigns. Watch the claims rail on the left: it never changes.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 4 of 6 · + Specialist agents</div>
+      <h2 class="h-state">Toggle the master</h2>
+    </div>
+    <div class="row grow" data-step="1">
+      <div class="col" style="flex:0 0 420px">
+        <div class="panel p-real grow">
+          <span class="prov">Frozen</span>
+          <div class="kicker" style="margin-bottom:16px">Pack EP-041 — identical for every frame</div>
+          <div class="claim" style="font-size:20px"><span class="ok">✓</span> Trial in force to Dec 2027</div>
+          <div class="claim" style="font-size:20px"><span class="ok">✓</span> Community requested</div>
+          <div class="claim" style="font-size:20px"><span class="ok">✓</span> Objection window open</div>
+          <div class="claim" style="font-size:20px"><span class="mix">◐</span> 59% support</div>
+        </div>
+      </div>
+      <div class="col grow">
+        <div data-tabs>
+          <div class="tabs">
+            <button class="tab" data-tab="a" data-selected style="color:var(--real)">■ Safe Routes Trust</button>
+            <button class="tab" data-tab="b" style="color:var(--aqua)">■ Residents' Access Alliance</button>
+          </div>
+          <div class="tabpanel" data-panel="a" data-open>
+            <div class="panel p-gen">
+              <span class="prov">Generated · cites EP-041</span>
+              <p class="draft"><strong style="color:var(--ink)">Objective: make the trial permanent.</strong><br>
+              “Residents asked, the council listened — now finish the job. 59% backed this scheme <span class="cite" data-pop="consult">EP-041 · claim 12</span>. The objection window is the moment to show support.” Target: highways lead · petition at the school gate.</p>
+            </div>
+          </div>
+          <div class="tabpanel" data-panel="b">
+            <div class="panel p-gen">
+              <span class="prov">Generated · cites EP-041</span>
+              <p class="draft" data-type>“Objective: suspend the trial pending genuine consultation. An experimental order was imposed while 41% of respondents were unconvinced. The same objection window is the moment to be heard.” Target: the same highways lead · formal objections under the order.</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel" data-step="2" style="border-left:4px solid var(--good)">
+          <p style="font-size:22px;margin:0;color:var(--ink)">Drift check: no factual drift · framing only · both drafts cite the same claims</p>
+        </div>
+      </div>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Run all four →</button></div>
+  </section>
+
+  <!-- S5 -->
+  <section class="state" data-label="5 · Approval" data-gate="on" data-notes="Machine five: four organisations, four campaigns, one street, one evidence pack. Two of them cancel each other out. All four are waiting on a human.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 5 of 6 · Four frames · human approval</div>
+      <h2 class="h-state">Four campaigns, one street</h2>
+    </div>
+    <div class="row grow" data-step="1">
+      <div class="panel p-gen grow" style="border-top:4px solid var(--real)"><div class="kicker">Safe Routes Trust</div><p class="draft" style="font-size:22px">Make it permanent · press release · petition · MP letter</p></div>
+      <div class="panel p-gen grow" style="border-top:4px solid var(--aqua)"><div class="kicker">Residents' Access Alliance</div><p class="draft" style="font-size:22px">Suspend the trial · objection drive · council deputation</p></div>
+    </div>
+    <div class="row grow" data-step="2" style="margin-top:32px">
+      <div class="panel p-gen grow" style="border-top:4px solid var(--yellow)"><div class="kicker">Clean-Air Parents</div><p class="draft" style="font-size:22px">Extend to five more schools · air-quality briefing · assembly pack</p></div>
+      <div class="panel p-gen grow" style="border-top:4px solid var(--gen)"><div class="kicker">Party ward branch</div><p class="draft" style="font-size:22px">Own the issue by May 2027 · doorstep script · survey leaflet</p></div>
+    </div>
+    <div class="actions mt-auto" data-step="2">
+      <button class="btn primary big" data-open-dialog="#dlg-approve">Review before export</button>
+      <button class="btn locked" disabled data-needs-approval data-noop-export>Export packs</button>
+    </div>
+  </section>
+
+  <!-- S6 -->
+  <section class="state" data-label="6 · Factory" data-notes="Machine six. There are 170,000 charities on the register, every party has branches, and every street has a record like this one. Pick any street. Pick any master.">
+    <div class="wall-wrap" data-step="1">
+      <div class="wall" data-wall></div>
+      <div class="wall-overlay">
+        <div class="kicker">Layer 6 of 6 · Simulated · real organisation types, real streets</div>
+        <div class="hero-num" data-count="4">0</div>
+        <div style="font-size:32px;color:var(--ink)">campaigns per street · any street · any organisation</div>
+        <div style="font-size:22px;color:var(--ink-2)">same public record underneath every one</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 -->
+  <section class="state" data-label="Question" data-notes="Leave this on screen for the panel.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">For the panel</div>
+      <p class="qcard">All four cite the same documents. A councillor's inbox can't tell which came from a community and which came from a prompt. Can you?</p>
+    </div>
+  </section>
+
+</main>
+
+<div class="gatebar">
+  <div class="g-blocked" style="display:flex;align-items:center;gap:20px"><span class="g-ic">⏸</span> Export blocked · 0 of 4 packs approved</div>
+  <div class="g-approved" style="display:none;align-items:center;gap:20px"><span class="g-ic g-ok">✓</span> Approved · ready to export</div>
+</div>
+
+<nav class="stepper"></nav>
+
+<div class="scrim" id="dlg-approve">
+  <div class="dialog">
+    <h2>Review before export</h2>
+    <p style="font-size:22px">4 campaign packs · all cite frozen pack EP-041 · drift check passed on all four · two packs directly oppose each other</p>
+    <div class="claim"><span class="ok">✓</span> No factual drift in any pack</div>
+    <div class="claim"><span class="mix">◐</span> Packs 1 and 2 will contest the same objection window</div>
+    <div class="d-actions">
+      <button class="btn" data-close-dialog>Reject all</button>
+      <button class="btn" data-close-dialog>Approve selectively</button>
+      <button class="btn approve" data-approve>Approve all four</button>
+    </div>
+  </div>
+</div>
+
+<div class="pop"><button class="p-x" onclick="this.parentNode.classList.remove('show')">✕</button><div class="p-src"></div><div class="p-meta"></div><blockquote></blockquote></div>
+
+<div class="notes"><span class="n-k">Presenter</span><span class="n-body"></span></div>
+
+<aside class="drawer">
+  <button class="iconbtn" data-drawer-close style="float:right">✕</button>
+  <h2>About this concept</h2>
+  <p>One Street, Many Masters — one evidence pack, four organisations, four opposing campaigns.</p>
+  <h3>User &amp; problem</h3>
+  <p>A staffer at each of four organisations — the point is that it's the same tool. The audience, not the user, does the deciding: what does “grassroots” mean when campaigns are manufactured from a shared record?</p>
+  <h3>Central demonstration idea</h3>
+  <p>Facts frozen by code; framing swapped by a toggle. The wow is watching identical claims become opposite campaigns, live, with a drift checker proving no fact moved.</p>
+  <h3>Main flow</h3>
+  <p>Model-only opinion (uncited) → evidence collected → pack frozen (EP-041) → frame toggle: two live opposed syntheses → all four frames → approval gate → “any street, any master” view.</p>
+  <h3>What's real</h3>
+  <table>
+    <tr><td>Live</td><td>the frame toggle and both re-syntheses — the wow is genuinely live (smallest live surface of the four options)</td></tr>
+    <tr><td>Cached</td><td>the frozen evidence pack; frames 3–4 (Leicester sources verified open 11 Jul 2026)</td></tr>
+    <tr><td>Deterministic</td><td>citation binding to EP-041; the drift diff; approval state</td></tr>
+    <tr><td>Agentic</td><td>per-frame strategy and drafting; drift judgement calls</td></tr>
+    <tr><td>Simulated</td><td>the four organisations (fictional composites — naming real orgs would be the one genuinely irresponsible move)</td></tr>
+  </table>
+  <h3>Benefits</h3>
+  <p>Cleanest single idea; cheapest reliable wow (one cached pack + two model calls); directly stages synthetic campaigning and evidentiary laundering.</p>
+  <h3>Risks &amp; tensions</h3>
+  <p>No geographic scale — the factory point lands via multiplicity, not volume. Risk of reading as “AI is a spin machine”, an older point than “AI is an organising machine.” Fixable with the hybrid ending (scale frame 4 across wards).</p>
+  <h3>Build complexity</h3>
+  <p>Lowest of the four. Kit mirrors Base UI; production swaps to @base-ui-components/react.</p>
+  <h3>In a 10-minute demo</h3>
+  <p>Highest reliability, clearest idea. If models converge instead of diverging in rehearsal, the concept dies — that's the kill criterion.</p>
+</aside>
+
+<script>
+window.PROTO = { prev: "option-2-ward-machine.html", next: "option-4-consultation-hunter.html" };
+window.CITES = {
+  news:    { src: "Leicester City Council — news", meta: "news.leicester.gov.uk · 28 May 2026 · cached", quote: "The scheme follows requests from residents and the school community to tackle road safety and congestion outside the school." },
+  tro:     { src: "Experimental Traffic Orders TME 1028 / TME 2012", meta: "leicester.gov.uk · made 29 Apr 2026 · cached PDF", quote: "In force from 2 June 2026 until 1 December 2027. Objections to the permanent orders may be made within six months." },
+  consult: { src: "Choose How You Move — scheme page", meta: "choosehowyoumove.co.uk · cached", quote: "59% of respondents supported the introduction of a school street. (Press release of 28 May states 'over 60%'.)" }
+};
+window.WALL = {
+  total: 400, animate: 16, runLabel: "drafting", doneLabel: "4 packs",
+  names: ["Active-travel charity","Residents' association","Party branch","Health charity","Faith group","Parents' group","Cycling club","Traders' association","Tenants' union","Air-quality group","School PTA","Civic society"]
+};
+</script>
+<script src="ui.js"></script>
+</body>
+</html>

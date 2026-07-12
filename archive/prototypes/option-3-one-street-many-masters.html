@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Street, Many Masters — Campaign Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a href="campaign-planner.html">Campaign Planner</a>
+      <a href="option-1-scout.html">1 · Scout</a>
+      <a href="option-2-ward-machine.html">2 · Ward Machine</a>
+      <a class="cur" href="option-3-one-street-many-masters.html">3 · One Street</a>
+      <a href="option-4-consultation-hunter.html">4 · Hunter</a>
+    </nav>
+    <a class="pillbtn" href="#about">About this concept</a>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#r1">1</a><a href="#r2">2</a><a href="#r3">3</a><a href="#r4">4</a><a href="#r5">5</a><a href="#r6">6</a>
+</nav>
+
+<section class="hero container">
+  <div class="eyebrow">Prototype 3 · Pluralism · Clarendon Park, Leicester</div>
+  <h1>One street, <span class="serif">many</span> masters</h1>
+  <p class="caption"><strong>What it is:</strong> one frozen, citation-bound evidence pack about one street; flip the organisation and opposed campaigns come out — all citing the same sources. <strong>How it uses an agent factory:</strong> frame agents run in parallel against a shared frozen evidence store, a drift-checker agent audits every output against the locked claims, and the orchestrator can repeat the trick for any street × any organisation on the register. This page walks the six rungs from a chat opinion to manufactured pluralism.</p>
+  <a class="cta" href="#r1">Walk the ladder <span class="chip">↓</span></a>
+  <div class="keys"><kbd>→</kbd> next rung · <kbd>←</kbd> back · <kbd>1</kbd>–<kbd>6</kbd> jump · <kbd>[</kbd> <kbd>]</kbd> other prototypes</div>
+</section>
+
+<!-- R1 -->
+<section class="rung" id="r1">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">1</div>
+      <h2>One <span class="serif">chat</span></h2>
+      <p class="whatsnew">Ask a plain model to “write a campaign” and notice: it already has a position.</p>
+      <div class="agents-chip">1 model · 0 agents</div>
+      <p class="limit">Opinion without facts. Whose campaign is this? Nobody's — and that's the problem this prototype stages.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> chat</div>
+        <div class="wire-body">
+          <div class="bubble-u">Write a campaign about the Clarendon Park school street.</div>
+          <div class="bubble-m">Great initiative! School streets make neighbourhoods safer and greener. A campaign could celebrate this vital scheme and rally the community behind it…</div>
+          <p class="note-bad">0 sources · position adopted without a single fact</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow"><span class="node">You</span><span class="arrow">→</span><span class="node model">Model</span><span class="arrow">→</span><span class="node">Opinion</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R2 -->
+<section class="rung" id="r2">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">2</div>
+      <h2>+ <span class="serif">Tools</span></h2>
+      <p class="whatsnew">Collect what is actually on the record — including the detail the council's own sources disagree on.</p>
+      <div class="agents-chip">1 agent · 3 tools</div>
+      <p class="limit">Facts gathered, but nothing stops the next draft from bending them.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> the record</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">found</span> Experimental order in force 2 Jun 2026 – 1 Dec 2027 <em style="color:var(--muted-foreground)">traffic order PDF</em></div>
+          <div class="line"><span class="status d">found</span> Objection window on permanent orders: six months <em style="color:var(--muted-foreground)">traffic order PDF</em></div>
+          <div class="line"><span class="status r">mixed</span> Support 59% — press release says “over 60%” <em style="color:var(--muted-foreground)">two official sources</em></div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node model">Agent</span><span class="arrow">⇄</span>
+          <span class="node tool">council record</span>
+          <span class="node tool">consultation hub</span>
+          <span class="node tool">postcodes.io</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R3 -->
+<section class="rung" id="r3">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">3</div>
+      <h2>Freeze the <span class="serif">facts</span></h2>
+      <p class="whatsnew">The workflow locks the pack. From here, no downstream agent can change a fact — code enforces it.</p>
+      <div class="agents-chip">1 agent · 4 coded steps</div>
+      <p class="limit">Freezing facts doesn't freeze meaning: framing still moves. That's the next rung.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> pack EP-041 · 🔒 frozen</div>
+        <div class="wire-body">
+          <div class="row">
+            <div class="minicard"><div class="k">Claims</div><div class="v">13</div></div>
+            <div class="minicard"><div class="k">Sources</div><div class="v">7</div></div>
+            <div class="minicard"><div class="k">Status</div><div class="v">Locked</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node store">Fetch record</span><span class="arrow">→</span>
+          <span class="node store">Extract claims</span><span class="arrow">→</span>
+          <span class="node store">Bind citations</span><span class="arrow">→</span>
+          <span class="node store">🔒 Freeze EP-041</span>
+        </div>
+        <p class="dg-note"><b>The evidence store is shared infrastructure</b> — every agent downstream reads the same frozen pack.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R4 -->
+<section class="rung" id="r4">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">4</div>
+      <h2>Frame <span class="serif">agents</span></h2>
+      <p class="whatsnew">Change one input — who the machine works for — and identical claims become opposite campaigns.</p>
+      <div class="agents-chip">4 frame agents + 1 drift checker</div>
+      <p class="limit">The drift checker proves no fact moved. Nothing checks whether the <em>street</em> wanted either campaign.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> same pack, two masters</div>
+        <div class="wire-body">
+          <div class="row">
+            <div class="minicard" style="border-top:3px solid var(--pastel-blue)"><div class="k">Safe Routes Trust</div><div style="font-size:.95rem;margin-top:.3rem"><b>Make it permanent.</b> “59% backed this scheme — the objection window is the moment to show support.”</div></div>
+            <div class="minicard" style="border-top:3px solid var(--pastel-purple)"><div class="k">Residents' Access Alliance</div><div style="font-size:.95rem;margin-top:.3rem"><b>Suspend the trial.</b> “41% were unconvinced — the same objection window is the moment to be heard.”</div></div>
+          </div>
+          <p class="note-good">Drift check: no factual drift · framing only · both cite EP-041</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — parallel frames over one store</div>
+        <div class="flow" style="justify-content:center"><span class="node store">🔒 EP-041</span></div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↙</span><span class="arrow">↓</span><span class="arrow">↓</span><span class="arrow">↘</span></div>
+        <div class="flow" style="justify-content:center;gap:1.2rem">
+          <span class="agent c1"><span class="a-face">🚸</span>Safety frame</span>
+          <span class="agent c3"><span class="a-face">🚗</span>Access frame</span>
+          <span class="agent c4"><span class="a-face">🌿</span>Clean-air frame</span>
+          <span class="agent c2"><span class="a-face">🗳️</span>Party frame</span>
+        </div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↘</span><span class="arrow">↓</span><span class="arrow">↓</span><span class="arrow">↙</span></div>
+        <div class="flow" style="justify-content:center"><span class="node">Drift checker</span><span class="arrow">→</span><span class="node human">Human review</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R5 -->
+<section class="rung" id="r5">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">5</div>
+      <h2>An <span class="serif">orchestrator</span></h2>
+      <p class="whatsnew">All four frames run in parallel — separate contexts, shared store — and fan back in through the drift checker.</p>
+      <div class="agents-chip">1 orchestrator + 4 frames + 1 checker</div>
+      <p class="limit">Parallel frames are cheap because the expensive part (evidence) is shared. That economics is the warning.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> run trace — one street, four masters</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">done · 12s</span> safety frame — “make it permanent”</div>
+          <div class="line"><span class="status d">done · 11s</span> access frame — “suspend the trial”</div>
+          <div class="line"><span class="status d">done · 13s</span> clean-air frame — “extend to 5 schools”</div>
+          <div class="line"><span class="status d">done · 12s</span> party frame — “own the issue by May 2027”</div>
+          <div class="line"><span class="status d">pass</span> drift checker — 0 factual deltas across 4 drafts</div>
+          <div class="line"><span class="status nr">needs review</span> 4 packs held · two directly opposed</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Why parallel isn't theatre here</div>
+        <p class="dg-note" style="margin-top:0"><b>Context isolation:</b> each frame agent argues its brief without seeing the others — exactly how four real organisations would behave. The orchestrator's job is to keep them honest against one shared store, not to make them agree.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R6 -->
+<section class="rung" id="r6">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">6</div>
+      <h2>The <span class="serif">factory</span></h2>
+      <p class="whatsnew">Now generalise both inputs: any street with a public record × any organisation on the register. The factory manufactures pluralism to order.</p>
+      <div class="agents-chip">orchestrator × streets × masters</div>
+      <p class="limit">Every output is cited, checked, approved — and a councillor's inbox still can't tell which campaign came from a community.</p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">The factory floor</div>
+        <div class="floor">
+          <div class="bay intake"><div class="b-t">📥 Intake</div><ul><li>street records<span class="status q">any</span></li><li>org register<span class="status q">170k</span></li></ul></div>
+          <div class="bay"><div class="b-t">🗂 Queue</div><ul><li>street × master pairs</li><li>Clarendon Pk × 4<span class="status d">done</span></li></ul></div>
+          <div class="bay"><div class="b-t">☁️ Worker bays</div><ul><li>frame agents, parallel</li><li>shared frozen packs</li></ul></div>
+          <div class="bay"><div class="b-t">🧪 Drift checker</div><ul><li>facts vs pack?</li><li>citations resolve?</li></ul></div>
+          <div class="bay gate"><div class="b-t">👤 Human inbox</div><ul><li>approve</li><li>edit</li><li>reject · respond</li></ul></div>
+          <div class="bay out"><div class="b-t">📦 Returned</div><ul><li>4 campaigns / street</li><li>0 auto-published</li></ul></div>
+        </div>
+        <div class="feedback">↩ a rejected frame re-runs against the same frozen pack with the reviewer's notes — the facts never move, the framing does</div>
+      </div>
+      <div class="tiles3" style="margin-top:1rem" data-anim="2">
+        <div class="ptile y"><div class="big">1</div><div class="s">evidence pack under every campaign on this street</div></div>
+        <div class="ptile b"><div class="big">4</div><div class="s">opposed campaigns generated from it — in six minutes</div></div>
+        <div class="ptile p"><div class="big">?</div><div class="s">which one is grassroots — and how would anyone know?</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="qsection container">
+  <div class="eyebrow">For the panel</div>
+  <p class="q">All four cite the same documents. A councillor's inbox can't tell which came from a community and which came from a <span class="serif">prompt</span>. Can you?</p>
+  <p style="margin-top:2rem"><a class="cta" href="campaign-planner.html#s6">One frame, taken seriously — the Campaign Planner <span class="chip">→</span></a></p>
+  <p style="font-size:.9rem;color:var(--muted-foreground);margin-top:.75rem">One Street's frame agents feed the planner's stage 6 narrative — one master, one strategy, owned by a real community.</p>
+</section>
+
+<section class="about container" id="about">
+  <h2>About this <span class="serif">concept</span></h2>
+  <details open>
+    <summary>User &amp; problem</summary>
+    <p>A staffer at each of four fictional organisations — the point is that it's the same tool. The audience does the deciding: what does “grassroots” mean when opposed campaigns are manufactured from one shared record?</p>
+  </details>
+  <details>
+    <summary>Where the agents multiply — and why it isn't theatre</summary>
+    <p>Frame agents genuinely need separate contexts: each argues its organisation's brief without seeing the others, exactly as four real organisations would. The drift checker is a separate evaluator agent (generator/checker separation). The factory rung generalises the orchestration across two axes — streets and masters — with the frozen evidence store as shared infrastructure.</p>
+  </details>
+  <details>
+    <summary>What's real on stage</summary>
+    <table>
+      <tr><td>Live</td><td>the frame toggle and re-syntheses — the wow is genuinely live, and the smallest live surface of the four</td></tr>
+      <tr><td>Cached</td><td>the frozen evidence pack (all Leicester sources verified open 11 Jul 2026)</td></tr>
+      <tr><td>Deterministic</td><td>citation binding, the drift diff, approval state</td></tr>
+      <tr><td>Agentic</td><td>per-frame strategy and drafting; drift judgement calls</td></tr>
+      <tr><td>Simulated</td><td>the four organisations (fictional composites) and the street × register generalisation</td></tr>
+    </table>
+  </details>
+  <details>
+    <summary>Risks &amp; tensions</summary>
+    <p>Stages synthetic campaigning and evidentiary laundering directly. No geographic scale — the factory point lands via multiplicity; if the panel needs volume, use the hybrid ending (scale the party frame across wards). Kill criterion: if models converge instead of opposing in rehearsal, the concept dies.</p>
+  </details>
+  <details>
+    <summary>Build complexity &amp; 10-minute fit</summary>
+    <p>Lowest build of the four: one cached pack, parallel frame calls, a diff. Highest reliability. UI mirrors shadcn (Awake template tokens); production would use shadcn/ui React components directly.</p>
+  </details>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · AI &amp; Campaigning conference · 16 July 2026</span>
+    <span>All data sources verified 11 Jul 2026 · public data only · read-only tools</span>
+  </div>
+</footer>
+
+<script>window.PROTO = { prev: "option-2-ward-machine.html", next: "option-4-consultation-hunter.html" };</script>
+<script src="awake.js"></script>
+</body>
+</html>

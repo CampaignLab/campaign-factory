@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Planner — Campaign Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a class="cur" href="campaign-planner.html">Campaign Planner</a>
+      <a href="option-1-scout.html">Scout</a>
+      <a href="option-2-ward-machine.html">Ward Machine</a>
+      <a href="option-3-one-street-many-masters.html">One Street</a>
+      <a href="option-4-consultation-hunter.html">Hunter</a>
+    </nav>
+    <a class="pillbtn" href="#about">About</a>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#s1">1</a><a href="#s2">2</a><a href="#s3">3</a><a href="#s4">4</a><a href="#s5">5</a>
+  <a href="#s6">6</a><a href="#s7">7</a><a href="#s8">8</a><a href="#s9">9</a><a href="#s10">10</a>
+</nav>
+
+<!-- ================= HERO ================= -->
+<section class="hero container">
+  <div class="eyebrow">The end-to-end journey · Objective → Strategy → Tactics · built on the workshop frameworks</div>
+  <h1>From an issue to an <span class="serif">actionable</span> campaign</h1>
+  <p class="caption"><strong>What it is:</strong> a campaign-planning system that takes one real issue — the Leicester school street — through sense-making, objective, power analysis, pressure, strategy, tactics, organising, and resources, to an exportable plan. <strong>How it uses an agent factory:</strong> nine specialist agents (strategy, power, tactics, lobbying, organising, media, digital, tech, verification) each contribute to a shared structured campaign object, disagree on the record, and stop at human approval gates. The factory drafts; the campaigner decides; the school community acts.</p>
+  <a class="cta" href="#s1">Start with the issue <span class="chip">↓</span></a>
+  <div class="keys">Every stage shows which specialist agent contributed · <span class="ev stated">stated</span> = cited &amp; dated · <span class="ev inferred">inferred</span> = model reasoning, human must confirm · <span class="ev unknown">unknown</span></div>
+</section>
+
+<!-- ================= S1 ISSUE & EVIDENCE ================= -->
+<section class="rung" id="s1">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">1</div>
+      <h2>Issue &amp; <span class="serif">evidence</span></h2>
+      <p class="whatsnew">What is happening, what do we know, and what don't we know yet?</p>
+      <span class="agentchip">🤖 scout · verifier</span>
+      <p class="limit" style="margin-top:1rem">Research is not a campaign. Everything below exists to serve a decision, not a report.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> evidence pack EP-041 · all sources verified 11 Jul 2026</div>
+        <div class="wire-body">
+          <div class="line"><span class="ev stated">stated</span> Experimental school street at St John the Baptist CofE Primary (602 pupils), in force 2 Jun 2026 – 1 Dec 2027 <em style="color:var(--muted-foreground)">traffic orders TME1028/2012</em></div>
+          <div class="line"><span class="ev stated">stated</span> Objections/support on <b>permanent</b> orders TMP1029/TMP2013 accepted for 6 months from 6 May 2026 — window closes <b>~early November 2026</b> <em style="color:var(--muted-foreground)">deposit notice</em></div>
+          <div class="line"><span class="ev stated">stated</span> Consultation support 59% — council press release said “over 60%” <em style="color:var(--muted-foreground)">two official sources</em></div>
+          <div class="line"><span class="ev stated">stated</span> Trial currently run with daily cones + traffic marshals (an ongoing revenue cost) <em style="color:var(--muted-foreground)">council news</em></div>
+        </div>
+      </div>
+      <div class="panel" data-anim="2" style="border:1px solid var(--border);border-radius:var(--radius-xl);padding:1rem 1.25rem;margin-top:1rem;font-size:.92rem">
+        <b>What we don't know yet</b> (deck: “what don't we know?”): trial monitoring data (displacement to boundary roads) · current objection count on the traffic team's file · what permanent design officers will cost up · whether the residents opposed in the 41% are organising. <span class="ev unknown">unknown</span> items block export of any claim that depends on them.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S2 SENSE-MAKING ================= -->
+<section class="rung" id="s2">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">2</div>
+      <h2>Sense-<span class="serif">making</span></h2>
+      <p class="whatsnew">Turn a messy political problem into something you can make decisions about.</p>
+      <span class="agentchip">🤖 power analyst</span>
+      <p class="limit" style="margin-top:1rem">Deck punchline honoured: parts of this stage need <b>no tech</b> — “whether the council wants an excuse to say yes” is read over one coffee with an officer, not from an API.</p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">5 whys — from symptom to the real problem</div>
+        <div class="flow" style="flex-direction:column;align-items:flex-start;gap:.4rem;font-size:.95rem">
+          <span>Traffic outside the school → <em>because</em> parents drive the run → <em>because</em> walking feels unsafe → <em>because</em> the street prioritises through-traffic → <em>because</em> trials only become permanent when support is voiced in statutory windows →</span>
+          <span style="font-weight:600">The objection process hears angry drivers by default; the supportive majority (59%) is silent and unorganised.</span>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Who actually decides — the chain, in practice (strong-mayor council)</div>
+        <div class="flow">
+          <span class="node tool">Traffic officers<br><small>write the report</small></span><span class="arrow">→</span>
+          <span class="node">A. L. Smith<br><small>Director, signs orders</small></span><span class="arrow">→</span>
+          <span class="node">Cllr Whittle<br><small>portfolio holder</small></span><span class="arrow">→</span>
+          <span class="node">Mayor Soulsby<br><small>executive</small></span>
+        </div>
+        <p class="dg-note"><b>Not on the map:</b> the MP (no formal role in traffic orders — megaphone, not vote) and ward councillors (this executive can't be outvoted — they provide cover, not decisions). The three Castle Greens matter as <em>cross-party cover</em>, not as votes.</p>
+      </div>
+      <div class="tiles3" data-anim="3" style="margin-top:1rem">
+        <div class="ptile y"><div class="big" style="font-size:2.2rem">Nov 2026</div><div class="s">the intervention point: statutory window on permanent orders closes. Name the office: the council traffic team.</div></div>
+        <div class="ptile b"><div class="big" style="font-size:2.2rem">59%</div><div class="s">baseline support already on record — this is a “help them say yes” campaign, not a fight</div></div>
+        <div class="ptile p"><div class="big" style="font-size:2.2rem">41%</div><div class="s">the risk: opponents flooding the same window while supporters stay silent</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S3 OBJECTIVE ================= -->
+<section class="rung" id="s3">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">3</div>
+      <h2>Objective &amp; <span class="serif">decision check</span></h2>
+      <p class="whatsnew">No campaign materials until the objective passes the check.</p>
+      <span class="agentchip">🤖 strategy · objective checker</span>
+      <p class="limit" style="margin-top:1rem">Editable: the campaigner can change the decision-maker, the timeframe, and the minimum win — the whole plan downstream recomputes from this object.</p>
+    </aside>
+    <div>
+      <div class="checkin" data-anim="1">
+        <div class="clock">⏰ Check-in formula</div>
+        We want <span class="fill">the Director of Planning, Development &amp; Transportation (via Cllr Whittle)</span> to <span class="fill">confirm permanent orders TMP1029/TMP2013 for the St John the Baptist school street</span> by <span class="fill">the decision following the November 2026 window</span>, even if the outcome is only <span class="fill">one permanent street, no replication yet</span>.
+      </div>
+      <div class="wire" data-anim="2" style="margin-top:1rem">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> objective checker — a naive objective, rejected</div>
+        <div class="wire-body">
+          <p style="margin:0 0 .5rem;font-size:.95rem"><span class="flag">“Raise awareness of road safety in Leicester”</span></p>
+          <div class="line"><span class="ev unknown">✗ not specific</span> no decision-maker, no decision named</div>
+          <div class="line"><span class="ev unknown">✗ not measurable</span> no done-state — unlike counting support representations filed</div>
+          <div class="line"><span class="ev unknown">✗ not time-bound</span> ignores the Nov 2026 statutory deadline, after which awareness is worthless to this decision</div>
+        </div>
+      </div>
+      <div class="routes" data-anim="3" style="margin-top:1rem">
+        <div class="route">
+          <h4>Minimum viable win</h4>
+          <p style="font-size:.92rem;margin:0">Support representations <b>formally outnumber objections</b> on the traffic team's statutory record by early Nov 2026 — the council then cannot cite objection weight to abandon the trial, even if the decision slips.</p>
+        </div>
+        <div class="route">
+          <h4>Theory of change</h4>
+          <p style="font-size:.92rem;margin:0">If parents and residents submit individual written support during the window, the formal record confirms the 59% majority. That lowers Whittle's and Soulsby's political risk of confirming, with Castle's Greens providing cross-party cover. One confirmed order becomes the replicable playbook.</p>
+        </div>
+      </div>
+      <div class="stagegate" data-anim="3"><span class="g-ok">✓ Objective check passed</span> specific · measurable · achievable · relevant · time-bound · decision-maker named · minimum win defined — materials unlocked</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S4 POWER MAP ================= -->
+<section class="rung" id="s4">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">4</div>
+      <h2>Power &amp; <span class="serif">stakeholders</span></h2>
+      <p class="whatsnew">Not a directory — who decides, who influences, who mobilises, who resists, and what each is asked to do.</p>
+      <span class="agentchip">🤖 power analyst · verifier</span>
+      <p class="limit" style="margin-top:1rem">Every position badge is enforced: <span class="ev stated">stated</span> needs a cited, dated quote; <span class="ev inferred">inferred</span> shows its reasoning and expiry and cannot be copied into external documents until a human confirms it.</p>
+    </aside>
+    <div>
+      <div class="stakes" data-anim="1">
+        <div class="stake"><div class="s-head"><span class="s-name">Peter Soulsby · City Mayor</span><span class="pw decides">decides</span></div>
+          <div class="s-meta">Cares about: citywide transport legacy, avoiding backlash · <span class="ev inferred">inferred</span> supportive-if-quiet</div>
+          <div class="s-ask"><b>Ask:</b> publicly back permanence before Nov 2026 · <b>Approach via:</b> headteacher + charity jointly</div>
+        </div>
+        <div class="stake"><div class="s-head"><span class="s-name">Andrew L Smith · Director PD&amp;T</span><span class="pw decides">decides</span></div>
+          <div class="s-meta">Signs the orders · cares about defensible evidence, low objection count · <span class="ev stated">neutral-professional</span></div>
+          <div class="s-ask"><b>Ask:</b> weight the 59% support; record supportive responses · <b>Approach:</b> formally, officers first</div>
+        </div>
+        <div class="stake"><div class="s-head"><span class="s-name">Cllr Geoff Whittle · Asst City Mayor E&amp;T</span><span class="pw decides">decides / influences</span></div>
+          <div class="s-meta">His scheme; sits for Knighton — the boundary ward · <span class="ev inferred">inferred</span> supportive · re-verify after exec meetings</div>
+          <div class="s-ask"><b>Ask:</b> champion permanence at the executive · <b>Approach via:</b> residents' assoc + parents in Knighton</div>
+        </div>
+        <div class="stake"><div class="s-head"><span class="s-name">Trudie Colotto · headteacher</span><span class="pw mobilises">mobilises</span></div>
+          <div class="s-meta"><span class="ev stated">stated</span> publicly supportive (quoted, 28 May) · cares about pupil safety</div>
+          <div class="s-ask"><b>Ask:</b> convene parents to respond in the window · <b>Approach:</b> charity directly · <b>Consent first — never named as campaign infrastructure without agreement</b></div>
+        </div>
+        <div class="stake inf"><div class="s-head"><span class="s-name">Castle ward Green councillors ×3</span><span class="pw influences">influences / mobilises</span></div>
+          <div class="s-meta"><span class="ev inferred">inferred</span> supportive (Green transport politics) · care about credit-sharing vs Labour executive</div>
+          <div class="s-ask"><b>Ask:</b> cross-party letter — amplify without partisanising · <b>Approach via:</b> local cycling groups</div>
+        </div>
+        <div class="stake inf"><div class="s-head"><span class="s-name">Governors + PTA</span><span class="pw mobilises">mobilises</span></div>
+          <div class="s-meta"><span class="ev inferred">inferred</span> supportive · care about safety, air quality</div>
+          <div class="s-ask"><b>Ask:</b> organised response drive · <b>Approach via:</b> headteacher</div>
+        </div>
+        <div class="stake inf"><div class="s-head"><span class="s-name">Residents' associations (both wards)</span><span class="pw resists">mobilises / resists — split</span></div>
+          <div class="s-meta"><span class="ev inferred">inferred</span> mixed · care about displacement traffic, parking</div>
+          <div class="s-ask"><b>Ask:</b> supportive responses; surface fixable grievances early · <b>Approach:</b> door-to-door, charity-neutral</div>
+        </div>
+        <div class="stake"><div class="s-head"><span class="s-name">MP Shockat Adam (Ind)</span><span class="pw influences">influences only</span></div>
+          <div class="s-meta"><span class="ev unknown">unknown</span> position · no formal role in traffic orders</div>
+          <div class="s-ask"><b>Ask:</b> one supportive letter, nothing more · <b>Approach via:</b> constituents</div>
+        </div>
+      </div>
+      <p style="font-size:.85rem;color:var(--muted-foreground);margin-top:.8rem" data-anim="2">Also mapped: local cycling/active-travel groups (mobilise), Leicester Mercury (influences — see media pack). <b>Must move:</b> Smith, Whittle, Soulsby. <b>Can move them:</b> officers' file, headteacher, cross-party letter. <b>Can mobilise others:</b> Colotto, PTA, captains. <b>May resist:</b> part of the 41%, boundary-road residents.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S5 PRESSURE & ROUTE ================= -->
+<section class="rung" id="s5">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">5</div>
+      <h2>Pressure &amp; <span class="serif">route</span></h2>
+      <p class="whatsnew">What makes maintaining the status quo more costly than changing course — for these decision-makers?</p>
+      <span class="agentchip">🤖 power · tactics · lobbying</span>
+      <p class="limit" style="margin-top:1rem">The specialists disagree here. The product shows the disagreement and the campaigner chooses the route.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> what these decision-makers respond to</div>
+        <div class="wire-body">
+          <div class="line"><b>Smith (officer)</b> · defensible file: supportive representations on the statutory record, monitoring data, low legal risk</div>
+          <div class="line"><b>Whittle (portfolio)</b> · scheme succeeding publicly; no ward blowback in Knighton; internal Labour comfort</div>
+          <div class="line"><b>Soulsby (mayor)</b> · legacy + low-cost win; reputational risk of “council abandons children's safety” if reversal follows visible support</div>
+          <div class="line"><b>Cost lever</b> · permanent camera/planter design is cheaper than daily marshals — confirming <em>saves</em> money; status quo has a running cost</div>
+        </div>
+      </div>
+      <div class="routes" data-anim="2" style="margin-top:1rem">
+        <div class="route rec">
+          <h4>Route A — insider: fill the statutory record</h4>
+          <ul>
+            <li>Officers first, then Whittle, then cross-party cover</li>
+            <li>150–300 personalised support responses into the window</li>
+            <li>Media used for warmth (first-day-back photo), not conflict</li>
+            <li>Why: the council already agrees — help them say yes</li>
+          </ul>
+        </div>
+        <div class="route">
+          <h4>Route B — public pressure: scorecard &amp; counter</h4>
+          <ul>
+            <li>Public “Leicester school streets scorecard” (schemes, not people)</li>
+            <li>Live response counter; louder media, faster growth</li>
+            <li>Risk: provokes organised objections into the same window</li>
+            <li>Held as escalation if Route A stalls — not deleted</li>
+          </ul>
+        </div>
+      </div>
+      <div class="disagree" data-anim="3" style="margin-top:1rem">
+        <div class="d-title">Specialist disagreement № 1 — the route</div>
+        <p class="voice"><b>Tactics:</b> the deck's league-table play wins — public comparison creates competitive pressure and momentum.</p>
+        <p class="voice"><b>Power + lobbying:</b> with 59% support and a supportive portfolio holder this is an insider campaign; noise recruits the opposition into the one channel that counts.</p>
+        <p class="res">Route A default; Route B pre-built and triggered only if the objection count overtakes support at the October check-point. Scorecard ranks <em>schemes</em>, never councillors (verification specialist's condition).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S6 STRATEGY ================= -->
+<section class="rung" id="s6">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">6</div>
+      <h2>The <span class="serif">strategy</span></h2>
+      <p class="whatsnew">Why this approach can work — not a list of outputs.</p>
+      <span class="agentchip">🤖 strategy · all specialists reviewed</span>
+      <p class="limit" style="margin-top:1rem">Constrained by real resources: 2 staff, ~£0 budget, school-community volunteer time, existing school channels. No tactic below assumes capacity that doesn't exist.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> strategy on a page · v2 · awaiting approval</div>
+        <div class="wire-body" style="font-size:.95rem">
+          <div class="line"><b>Narrative</b> · “The street belongs to the children for twenty minutes a day — let's keep it that way.” Warm, non-partisan, school-owned.</div>
+          <div class="line"><b>Route to influence</b> · officers → portfolio holder → executive, with the school community filling the statutory record behind them</div>
+          <div class="line"><b>Priority audiences</b> · 602 families · Clarendon Park &amp; Knighton residents · both wards' councillors (broad, non-sensitive categories only)</div>
+          <div class="line"><b>Phases</b> · Foundation (Jul–Aug) → Public proof (Sep) → Window mobilisation (Oct) → Endgame (Nov)</div>
+          <div class="line"><b>Escalation path</b> · Route B scorecard + Mercury accountability angle, only on trigger</div>
+          <div class="line"><b>Failing signals</b> · captains &lt; 15 by Sept · responses &lt; 100 by mid-Oct · objections overtake support · Whittle declines to meet twice</div>
+        </div>
+      </div>
+      <div class="tiles3" data-anim="2" style="margin-top:1rem">
+        <div class="ptile b"><div class="big" style="font-size:2rem">2 + 602</div><div class="s">two staff, six hundred and two families — the resource map says the school community must own this, or nothing happens</div></div>
+        <div class="ptile y"><div class="big" style="font-size:2rem">£0</div><div class="s">no budget assumed: school channels, WhatsApp, a Google form, kitchen tables</div></div>
+        <div class="ptile p"><div class="big" style="font-size:2rem">30</div><div class="s">parent captains needed — the strategy's single load-bearing number</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S7 TACTICS ================= -->
+<section class="rung" id="s7">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">7</div>
+      <h2>Tactics &amp; <span class="serif">sequencing</span></h2>
+      <p class="whatsnew">Every tactic has a purpose, a target, a doer, a scale, and a branch for success and failure. Pressure builds toward the window.</p>
+      <span class="agentchip">🤖 tactics · lobbying · media · digital</span>
+      <p class="limit" style="margin-top:1rem">Tech test applied to each creative tactic (deck): does it enable a new tactic or strengthen an old one — and would the tactic survive without it?</p>
+    </aside>
+    <div>
+      <details class="phase" open data-anim="1">
+        <summary><span class="ph-n">Phase 1</span><span class="ph-t">Foundation</span><span class="ph-w">Jul–Aug 2026</span></summary>
+        <div class="tac"><div class="t-head"><span class="t-name">Officer meeting, then Whittle meeting</span><span class="t-tag conv">lobbying</span><span class="apr ext">human approves + attends</span></div>
+          <div class="t-line">Purpose: learn what evidence the executive needs; no surprises · Who: charity leads + headteacher · Scale: 2 meetings</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> co-design announcement timing · <span class="ko">fails →</span> formal written representation + cross-party councillor letter</div>
+        </div>
+        <div class="tac"><div class="t-head"><span class="t-name">Recruit 30 parent captains</span><span class="t-tag conv">organising</span></div>
+          <div class="t-line">Purpose: build the machine before the window · Who: headteacher convenes, charity trains · Scale: 1 per class</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> Phase 3 runs itself · <span class="ko">fails →</span> shrink to share-only roles, lower response target</div>
+        </div>
+      </details>
+      <details class="phase" data-anim="2">
+        <summary><span class="ph-n">Phase 2</span><span class="ph-t">Public proof</span><span class="ph-w">Sep 2026 · term starts</span></summary>
+        <div class="tac"><div class="t-head"><span class="t-name">First-day-back photo moment</span><span class="t-tag conv">media</span><span class="apr ext">approval + consents</span></div>
+          <div class="t-line">Purpose: set the frame first (story is unclaimed — no coverage exists) · Target: Mercury, BBC Radio Leicester · Who: headteacher + 3 parent voices</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> warm coverage banked for endgame · <span class="ko">fails →</span> ward Facebook groups + school newsletter carry the story</div>
+        </div>
+        <div class="tac"><div class="t-head"><span class="t-name">Street-by-street thermometer</span><span class="t-tag creative">creative</span></div>
+          <div class="t-line">Purpose: visible momentum (the league table in miniature — schemes and streets, not people) · laminated poster at the gate + counter on the action page · Who: captains update weekly</div>
+          <div class="t-branch">Tech test: <b>strengthens</b> an old tactic; survives without tech as a paper poster — slower, still works</div>
+        </div>
+      </details>
+      <details class="phase" data-anim="2">
+        <summary><span class="ph-n">Phase 3</span><span class="ph-t">Window mobilisation</span><span class="ph-w">Oct 2026</span></summary>
+        <div class="tac"><div class="t-head"><span class="t-name">Personalised support responses — target 150–300</span><span class="t-tag conv">mobilisation</span><span class="apr never">never auto-sent</span></div>
+          <div class="t-line">Purpose: the minimum viable win itself · Target: traffic team's statutory record · Who: captains' one-to-ones deliver the action page · Scale: 602 families, 3 pushes</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> publicise tally to executive · <span class="ko">fails →</span> response-party events + headteacher letter home</div>
+        </div>
+        <div class="tac"><div class="t-head"><span class="t-name">Cross-party councillor letter</span><span class="t-tag conv">lobbying</span><span class="apr ext">humans sign</span></div>
+          <div class="t-line">Purpose: cover, not pressure — Green ward + Labour portfolio, no party loses by confirming · Who: charity brokers, councillors author</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> Whittle carries it to the executive · <span class="ko">fails →</span> governors' open letter instead</div>
+        </div>
+      </details>
+      <details class="phase" data-anim="3">
+        <summary><span class="ph-n">Phase 4</span><span class="ph-t">Endgame</span><span class="ph-w">Nov 2026</span></summary>
+        <div class="tac"><div class="t-head"><span class="t-name">Hand-delivered tally + community letter</span><span class="t-tag conv">lobbying</span><span class="apr ext">approval</span></div>
+          <div class="t-line">Purpose: make confirming the easy story · Target: Soulsby's office, before the window closes · Who: headteacher, governors, one pupil-safe photo</div>
+          <div class="t-branch"><span class="ok">succeeds →</span> orders confirmed → replication playbook · <span class="ko">fails →</span> contingency ↓</div>
+        </div>
+        <div class="tac"><div class="t-head"><span class="t-name">Contingency — opponents flood the window</span><span class="t-tag creative">contingency</span></div>
+          <div class="t-line">Shift frame from volume to breadth/legitimacy: “who actually uses this street” story · offer a face-saving compromise (resident permits) via Whittle · trigger Route B scorecard (schemes only)</div>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S8 ORGANISING ================= -->
+<section class="rung" id="s8">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">8</div>
+      <h2>Organising <span class="serif">people</span></h2>
+      <p class="whatsnew">Supporters are owners, not recipients. Relationships and structures let 602 families act together.</p>
+      <span class="agentchip">🤖 organising · digital</span>
+      <p class="limit" style="margin-top:1rem">Disagreement № 2 — volume vs authenticity: digital wanted mass semi-personalised sends; organising insisted 150 genuinely authored responses beat 500 detectable near-duplicates the traffic team will bundle as one. <b>Resolution: class reps deliver the digital asset — relational send, personal words.</b></p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">Supporter ladder — each rung is a concrete action</div>
+        <div class="sladder">
+          <div class="srung"><div class="r-t">Interested</div><div class="r-a">signs up at the gate / WhatsApp opt-in</div></div>
+          <div class="srung"><div class="r-t">Informed</div><div class="r-a">reads the one-page briefing: what the order is, why the window matters</div></div>
+          <div class="srung hot"><div class="r-t">First action</div><div class="r-a">3-minute personalised response to the traffic team — the campaign's core conversion</div></div>
+          <div class="srung"><div class="r-t">Event</div><div class="r-a">45-min response-party after drop-off</div></div>
+          <div class="srung"><div class="r-t">Recruits</div><div class="r-a">asks 3 named parents from class WhatsApp</div></div>
+          <div class="srung"><div class="r-t">Organiser</div><div class="r-a">takes a role: captain · street rep · host · liaison</div></div>
+        </div>
+      </div>
+      <div class="routes" data-anim="2" style="margin-top:1rem">
+        <div class="route">
+          <h4>One-to-one guide (5 beats)</h4>
+          <ul><li>Their story — why does the street matter to <em>your</em> family?</li><li>The stakes — trial ends; silence reads as indifference</li><li>The ask — one concrete rung, this week</li><li>Handle hesitation — listen, don't rebut</li><li>Commitment — named action, named date, “can I check in Friday?”</li></ul>
+        </div>
+        <div class="route">
+          <h4>What must stay human / what breaks without tech</h4>
+          <ul><li><b>Human:</b> the gate ask · every one-to-one · every response's personal story · the headteacher's consent and voice</li><li><b>Tech (factory earns its keep):</b> tracking 602 families' ladder stage · who-needs-a-nudge follow-ups · window monitoring &amp; deadline alarms · drafting role kits captains adapt</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S9 RESOURCES ================= -->
+<section class="rung" id="s9">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">9</div>
+      <h2>Campaign <span class="serif">resources</span></h2>
+      <p class="whatsnew">First drafts, generated after strategy — never before. Each artifact names its contributing agent and its approval gate.</p>
+      <span class="agentchip">🤖 lobbying · media · digital · organising · verifier</span>
+      <p class="limit" style="margin-top:1rem">Regenerate any single asset without touching the others — they all read from the same structured campaign object (issue, objective, MVW, stakeholders, narrative, tactics).</p>
+    </aside>
+    <div>
+      <div class="about" style="padding:0;border:none" data-anim="1">
+        <details open>
+          <summary>Campaign brief <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 strategy · <span class="apr int">approve before internal use</span></span></summary>
+          <p>Issue, evidence (4 stated claims + 4 unknowns), objective in check-in format, decision chain, MVW, theory of change, narrative, failing signals, next 3 steps: book officer meeting · recruit first 10 captains · draft action page.</p>
+        </details>
+        <details>
+          <summary>Lobbying pack <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 lobbying · <span class="apr ext">approve before external use</span></span></summary>
+          <p><b>Engagement ladder:</b> officers → Whittle → ward councillors (letter) → MP last, sparingly. <b>Arguments ranked for this decision-maker:</b> ① council's own “over 60%” public commitment — confirming honours their line (never weaponise the discrepancy) ② permanent design cheaper than daily marshals ③ cross-party cover ④ national precedent. <b>Meeting-request email</b> (5 lines, headteacher joins, September date). <b>Objections &amp; responses:</b> cost → camera enforcement payback · displacement → publish monitoring data · “41% opposed” → answerable individually. <b>If refused:</b> statutory representation → cross-party letter → deputation to the mayor. Press last — Whittle is an ally. <b>Never machine-generated:</b> the relationship, the negotiating position, real signatures.</p>
+        </details>
+        <details>
+          <summary>Media pack <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 media · <span class="apr ext">approve before external use</span></span></summary>
+          <p><b>Angles ranked:</b> ① first-day-back photo op ② “will it survive?” decision-window story ③ 59/60 discrepancy — held as corrected footnote, campaign initiates the correction or doesn't touch it (disagreement № 3, verifier vs media vs lobbying: resolved as “never lead with it”) ④ marshal-cost angle — opponents get there first, pre-empt with the cheaper-permanent-design fact. <b>Pitch email</b> (story unclaimed — no existing coverage, verified). <b>Quotes:</b> headteacher-voice and parent-voice drafts, both flagged “requires the named person's consent — never auto-attributed”. <b>Hostile Q&amp;A:</b> displacement · “rigged consultation” · “who pays for marshals forever”. <b>Never:</b> fabricate journalist contacts; imply coverage that doesn't exist.</p>
+        </details>
+        <details>
+          <summary>Digital pack <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 digital · <span class="apr ext">approve · </span><span class="apr never">responses never auto-sent</span></span></summary>
+          <p><b>Action page:</b> one action — “Email the traffic team” — pre-drafted body citing TMP1029/TMP2013, with <em>required</em> personalisation fields (your street, your child's journey, one thing you've seen at the gate) because officers must weigh material individual points and discount template floods. <b>Funnel:</b> class WhatsApp → action page (~25–35% via trusted-parent sender) → sent response (~30–40%) → shares to 3 → volunteer list; ~40–70 responses per push, three pushes planned. <b>Two WhatsApp messages + one social post</b> in parent voice. <b>Progress mechanic:</b> gate thermometer + page counter. <b>Email subjects:</b> launch / halfway (“140 families have written. Has yours?”) / final week.</p>
+        </details>
+        <details>
+          <summary>Organising pack <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 organising · <span class="apr ext">scripts approved · safeguarding checked</span></span></summary>
+          <p><b>Volunteer roles:</b> school-gate captain (1/year group) · street rep (own street, especially the 41%) · response-party host · coalition liaison. <b>One-to-one guide</b> (5 beats, above). <b>Response-party plan:</b> 45 minutes, kitchen table or school hall, write together, personal stories only. <b>Coalition list:</b> PTA, governors, cycling groups, both residents' associations. <b>Safeguarding rule (verifier):</b> no strangers with scripts at school gates — captains are known parents; the headteacher consents to every use of the school's name.</p>
+        </details>
+        <details>
+          <summary>Tactical timeline <span style="font-weight:400;color:var(--muted-foreground)">· 🤖 tactics · <span class="apr int">internal · escalation steps re-approved at trigger</span></span></summary>
+          <p>The four phases above with owners, dependencies, decision points (October check: objections vs support count), and the rule that <b>no escalation fires on a machine's clock</b> — Route B triggers only on human decision at a review point.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S10 MEASUREMENT, RISKS, EXPORT ================= -->
+<section class="rung" id="s10">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">10</div>
+      <h2>Measure, <span class="serif">iterate</span>, export</h2>
+      <p class="whatsnew">“It just fails. Metrics — think hard. Retros. Iteration — keep trying.” The first plan is a hypothesis.</p>
+      <span class="agentchip">🤖 verifier · all</span>
+      <p class="limit" style="margin-top:1rem">Metrics measure movement toward the decision and growth in capacity — never volume of AI output.</p>
+    </aside>
+    <div>
+      <div class="metrics" data-anim="1">
+        <div class="metric-col">
+          <h4>✓ Metrics that matter</h4>
+          <ul>
+            <li>Support vs objection count on the statutory record (the MVW itself)</li>
+            <li>Meetings secured: officers · Whittle · executive</li>
+            <li>Captains recruited &amp; retained (target 30) · supporters moving up the ladder</li>
+            <li>Cross-party letter signed · public positions moved (Soulsby statement)</li>
+            <li>Coverage banked before the window · window deadline influenced</li>
+          </ul>
+        </div>
+        <div class="metric-col weak">
+          <h4>✗ Metrics we refuse</h4>
+          <ul>
+            <li>Number of posts generated</li>
+            <li>Number of emails drafted</li>
+            <li>Volume of AI output</li>
+            <li>Impressions without action</li>
+          </ul>
+        </div>
+      </div>
+      <div class="wire" data-anim="2" style="margin-top:1rem">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> review points &amp; assumptions to test</div>
+        <div class="wire-body" style="font-size:.92rem">
+          <div class="line"><b>Sept retro</b> · assumption: captains recruit via class WhatsApp — if &lt;15 captains, shrink asks, raise headteacher involvement</div>
+          <div class="line"><b>Mid-Oct check</b> · assumption: supporters outnumber organised objectors — if reversed, trigger contingency + Route B decision</div>
+          <div class="line"><b>Every inference expires</b> · Whittle's position re-verified after each executive meeting; stale inferences auto-downgrade to <span class="ev unknown">unknown</span></div>
+        </div>
+      </div>
+      <div class="disagree" data-anim="3" style="margin-top:1rem">
+        <div class="d-title">Specialist disagreement № 4 — does the factory even belong here?</div>
+        <p class="voice"><b>Tactics:</b> the 412-street factory is the product — replication is the point.</p>
+        <p class="voice"><b>Campaign tech:</b> for THIS campaign the factory is anti-persuasive — it signals the charity scans targets rather than serves this school. Rungs 3–4 (evidence pack, drafter/reviewer) are the product; scale comes after the first win.</p>
+        <p class="res">The plan wins one street first; the playbook, not the factory, is what replicates. The conference demo shows the factory anyway — as the panel's question, not the campaign's answer.</p>
+      </div>
+      <div class="checkin" data-anim="3" style="margin-top:1rem;background:var(--tint-blue)">
+        <div class="clock">📦 Export</div>
+        Export the full campaign pack or any single asset — <b>blocked until:</b> objective approved ✓ · inferred positions confirmed or stripped ⏳ · named-person consents recorded ⏳ · external artifacts individually approved ⏳. <span style="font-weight:600">2 of 5 gates passed.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUESTION + ABOUT ================= -->
+<section class="qsection container">
+  <div class="eyebrow">For the panel</div>
+  <p class="q">Nine agents drafted this plan in minutes. It still cannot win without thirty parents at a school gate. Which half of that sentence <span class="serif">frightens</span> you?</p>
+</section>
+
+<section class="about container" id="about">
+  <h2>About this <span class="serif">prototype</span></h2>
+  <details open>
+    <summary>The frameworks it's built on</summary>
+    <p>From the two workshop decks: <b>Objective / Strategy / Tactics</b> as the spine · three stages (sense-making → tactics &amp; pressure → organising people) · the check-in formula “We want [decision-maker] to [specific action] by [time], even if the outcome is only [limited win]” · 5 whys · SMART · minimum viable win · theory of change · power mapping, pillars of power, stakeholder &amp; resource mapping · pressure = making the status quo costlier than change · ladders of engagement, relational organising, one-to-ones, distributed organising · “It just fails — metrics, retros, iteration” · and the honest punchline “No Tech Needed” where judgement beats machinery.</p>
+  </details>
+  <details>
+    <summary>How the agent factory is used — and where it deliberately isn't</summary>
+    <p>Nine specialist agents (strategy, power, tactics, lobbying, organising, media, digital, campaign-tech, verification) write into one shared structured campaign object, so the objective, stakeholders, narrative, and tactics stay consistent across every asset. Their disagreements are preserved on the record (four shown inline) and resolved by the campaigner, not by consensus-mush. Deterministic code enforces the gates: SMART check before materials, stated/inferred/unknown badges, consent flags, export blocks. The factory drafts and tracks; humans hold every relationship, every send, every escalation trigger.</p>
+  </details>
+  <details>
+    <summary>What is real, seeded, or simulated</summary>
+    <table>
+      <tr><td>Real &amp; verified</td><td>the scheme, orders, dates, window, actors, 59/60 discrepancy, ward politics, school size (all live-checked 11 Jul 2026)</td></tr>
+      <tr><td>Seeded (specialist-authored, realistic)</td><td>objective, power map positions (badged), tactics, funnel percentages, drafts in the packs</td></tr>
+      <tr><td>Simulated / not built</td><td>the working agent runtime, live re-generation, engagement tracking, export — this is a click-through of the intended product</td></tr>
+      <tr><td>Fictional</td><td>“Safe Routes Trust” and its staff; no real campaign is being run</td></tr>
+    </table>
+  </details>
+  <details>
+    <summary>Known risks &amp; limits</summary>
+    <p>Real named officials appear with <em>inferred</em> positions — badged and quarantined from export, but still a live sensitivity for a public demo. The safeguarding rule (no strangers scripting school gates) and the never-auto-send rule are constitutional, not optional. The plan itself is a plausible first draft, not political advice: a real campaign would start by testing its assumptions at the September retro.</p>
+  </details>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · AI &amp; Campaigning conference · 16 July 2026</span>
+    <span>Public data only · read-only tools · humans hold every relationship</span>
+  </div>
+</footer>
+
+<script>window.PROTO = { prev: "option-4-consultation-hunter.html", next: "option-1-scout.html" };</script>
+<script src="awake.js"></script>
+</body>
+</html>

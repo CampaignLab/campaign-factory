@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Scout — Campaign Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a href="campaign-planner.html">Campaign Planner</a>
+      <a class="cur" href="option-1-scout.html">1 · Scout</a>
+      <a href="option-2-ward-machine.html">2 · Ward Machine</a>
+      <a href="option-3-one-street-many-masters.html">3 · One Street</a>
+      <a href="option-4-consultation-hunter.html">4 · Hunter</a>
+    </nav>
+    <a class="pillbtn" href="#about">About this concept</a>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#r1">1</a><a href="#r2">2</a><a href="#r3">3</a><a href="#r4">4</a><a href="#r5">5</a><a href="#r6">6</a>
+</nav>
+
+<!-- ================= HERO ================= -->
+<section class="hero container">
+  <div class="eyebrow">Prototype 1 · Issue advocacy · Leicester LE2</div>
+  <h1>A research department for <span class="serif">one</span> campaigner</h1>
+  <p class="caption"><strong>What it is:</strong> enter a postcode; get the local issue, cited evidence, and a draft campaign. <strong>How it uses an agent factory:</strong> the question fans out to specialist read-only agents — scout, verifier, context, drafter, reviewer — coordinated by an orchestrator that runs whole batches in the cloud and returns finished packs to a human inbox. This page walks the six rungs from a chat answer to a 412-run factory.</p>
+  <a class="cta" href="#r1">Walk the ladder <span class="chip">↓</span></a>
+  <div class="keys"><kbd>→</kbd> next rung · <kbd>←</kbd> back · <kbd>1</kbd>–<kbd>6</kbd> jump · <kbd>[</kbd> <kbd>]</kbd> other prototypes</div>
+</section>
+
+<!-- ================= R1 ================= -->
+<section class="rung" id="r1">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">1</div>
+      <h2>One <span class="serif">chat</span></h2>
+      <p class="whatsnew">Text in, text out. The model answers from memory.</p>
+      <div class="agents-chip">1 model · 0 agents</div>
+      <p class="limit">No fresh data, no actions, no sources. It cannot know what Leicester City Council did in May.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> chat</div>
+        <div class="wire-body">
+          <div class="bubble-u">What should a road-safety charity campaign on around LE2 1TE?</div>
+          <div class="bubble-m">Leicester has seen ongoing discussion about traffic in residential areas. It is widely felt that school-run congestion is a growing concern…</div>
+          <p class="note-bad">0 sources · plausible for anywhere, checkable nowhere</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow"><span class="node">You</span><span class="arrow">→</span><span class="node model">Model</span><span class="arrow">→</span><span class="node">Answer</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= R2 ================= -->
+<section class="rung" id="r2">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">2</div>
+      <h2>+ <span class="serif">Tools</span></h2>
+      <p class="whatsnew">The same model can now touch the world — read-only.</p>
+      <div class="agents-chip">1 agent · 3 tools</div>
+      <p class="limit">One-shot: a human still drives every turn, and errors compound without checks.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> scout — single agent</div>
+        <div class="wire-body">
+          <div class="row">
+            <div class="minicard"><div class="k">Ward</div><div class="v">Castle</div></div>
+            <div class="minicard"><div class="k">Constituency</div><div class="v">Leicester South</div></div>
+            <div class="minicard"><div class="k">MP</div><div class="v">S. Adam (Ind)</div></div>
+          </div>
+          <div class="line" style="margin-top:.75rem"><span class="status d">found</span> School street trial · St John the Baptist CofE Primary <em style="color:var(--muted-foreground)">council news, 28 May</em></div>
+          <div class="line"><span class="status d">found</span> Queens Road junction safety review <em style="color:var(--muted-foreground)">committee minutes</em></div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — the bubble grows arms</div>
+        <div class="flow">
+          <span class="node model">Agent</span><span class="arrow">⇄</span>
+          <span class="node tool">postcodes.io</span>
+          <span class="node tool">Parliament API</span>
+          <span class="node tool">council records</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= R3 ================= -->
+<section class="rung" id="r3">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">3</div>
+      <h2>A <span class="serif">workflow</span></h2>
+      <p class="whatsnew">A fixed pipeline: every claim must find a source before anything downstream may use it.</p>
+      <div class="agents-chip">1 agent · 4 coded steps</div>
+      <p class="limit">Rigid by design — it breaks on inputs the designer didn't foresee. That's a feature for evidence, a ceiling for judgement.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> evidence pack</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">supported</span> Experimental order in force 2 Jun 2026 – 1 Dec 2027 <em style="color:var(--muted-foreground)">traffic order PDF</em></div>
+          <div class="line"><span class="status d">supported</span> Followed requests from residents and school community <em style="color:var(--muted-foreground)">council news</em></div>
+          <div class="line"><span class="status r">mixed</span> Support 59% — press release says “over 60%” <em style="color:var(--muted-foreground)">two official sources disagree</em></div>
+          <div class="line"><span class="status f">failed</span> Local press fetch — leicestermercury.co.uk unreachable · excluded, not guessed</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — a conveyor, not a conversation</div>
+        <div class="flow">
+          <span class="node store">Fetch 7 docs</span><span class="arrow">→</span>
+          <span class="node store">Extract 13 claims</span><span class="arrow">→</span>
+          <span class="node store">Bind citations</span><span class="arrow">→</span>
+          <span class="node store">Rank issues</span>
+        </div>
+        <p class="dg-note"><b>Deterministic code</b> does the proving; the model only fills the judgement slots.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= R4 ================= -->
+<section class="rung" id="r4">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">4</div>
+      <h2>Specialist <span class="serif">agents</span></h2>
+      <p class="whatsnew">Roles split: each agent has its own prompt, tools, and context window. The reviewer doesn't share the drafter's context — that separation is what catches the lie.</p>
+      <div class="agents-chip">5 specialist agents</div>
+      <p class="limit">Specialists can lose shared context; the pipeline passes structured evidence, not vibes, to compensate.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> drafter output → reviewer</div>
+        <div class="wire-body">
+          <p style="margin:0;font-size:1rem"><span class="flag">“Parents have demanded the road be closed for good.”</span></p>
+          <p class="note-bad">Reviewer agent: unsupported — no source says “demanded”. Sent back.</p>
+          <p style="margin:.5rem 0 0;font-size:1rem"><span class="fix">“Residents and the school community asked the council to act.”</span> <em style="color:var(--muted-foreground);font-size:.85rem">council news · 28 May</em></p>
+          <p class="note-good">Re-checked · citation bound · released downstream</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — named roles, separate contexts</div>
+        <div class="flow" style="gap:1.4rem">
+          <span class="agent c1"><span class="a-face">🔍</span>Scout</span>
+          <span class="agent c2"><span class="a-face">⚖️</span>Verifier</span>
+          <span class="agent c4"><span class="a-face">📊</span>Context</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Drafter</span>
+          <span class="agent c2"><span class="a-face">🛡️</span>Reviewer</span>
+        </div>
+        <p class="dg-note"><b>Why split?</b> Reviewer/generator separation — the agent that checks must not share the head of the agent that wrote.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= R5 ================= -->
+<section class="rung" id="r5">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">5</div>
+      <h2>An <span class="serif">orchestrator</span></h2>
+      <p class="whatsnew">A lead agent decomposes the job, runs specialists in parallel, and synthesises the pack. This is where “an agent” becomes “a system”.</p>
+      <div class="agents-chip">1 orchestrator + 5 specialists, parallel</div>
+      <p class="limit">Honest economics: multi-agent runs burn ~15× the tokens of a chat. Worth it for parallel research; theatre for a tweet.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> run trace — one Leicester run</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">done · 41s</span> scout — 3 candidates from 14 sources</div>
+          <div class="line"><span class="status d">done · 38s</span> verifier — 13 claims, 1 reworded</div>
+          <div class="line"><span class="status d">done · 22s</span> context — census, collisions, school data</div>
+          <div class="line"><span class="status d">done · 55s</span> drafter — press release, email, briefing</div>
+          <div class="line"><span class="status nr">needs review</span> reviewer — pack held for human approval</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — fan out, fan in</div>
+        <div class="flow" style="justify-content:center"><span class="node model">Orchestrator</span></div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↙</span><span class="arrow">↓</span><span class="arrow">↘</span></div>
+        <div class="flow" style="justify-content:center;gap:1.2rem">
+          <span class="agent c1"><span class="a-face">🔍</span>Scout</span>
+          <span class="agent c2"><span class="a-face">⚖️</span>Verifier</span>
+          <span class="agent c4"><span class="a-face">📊</span>Context</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Drafter</span>
+        </div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↘</span><span class="arrow">↓</span><span class="arrow">↙</span></div>
+        <div class="flow" style="justify-content:center"><span class="node">Synthesis</span><span class="arrow">→</span><span class="node human">Human review</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= R6 ================= -->
+<section class="rung" id="r6">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">6</div>
+      <h2>The <span class="serif">factory</span></h2>
+      <p class="whatsnew">Add a queue, cloud workers, and an inbox — and it runs without anyone typing. Input arrives (a seed list of 412 schools), packs return, humans approve or reject, and rejections re-enter the queue with notes.</p>
+      <div class="agents-chip">orchestrator × N runs · in the cloud · overnight</div>
+      <p class="limit">The gate holds — but at 412 approvals, human review becomes the bottleneck. That tension is the demo's point.</p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">The factory floor</div>
+        <div class="floor">
+          <div class="bay intake"><div class="b-t">📥 Intake</div><ul><li>GIAS seed list<span class="status q">412</span></li><li>trigger: nightly</li></ul></div>
+          <div class="bay"><div class="b-t">🗂 Queue</div><ul><li>Leicester<span class="status d">done</span></li><li>Sheffield<span class="status r">running</span></li><li>+410<span class="status q">queued</span></li></ul></div>
+          <div class="bay"><div class="b-t">☁️ Worker bays</div><ul><li>run #041 · 5 agents</li><li>run #042 · 5 agents</li><li>isolated sandboxes</li></ul></div>
+          <div class="bay"><div class="b-t">🧪 Evaluator</div><ul><li>citations resolve?</li><li>claims supported?</li><li>cost within cap?</li></ul></div>
+          <div class="bay gate"><div class="b-t">👤 Human inbox</div><ul><li>approve</li><li>edit</li><li>reject · respond</li></ul></div>
+          <div class="bay out"><div class="b-t">📦 Returned</div><ul><li>38 packs shipped</li><li>0 auto-published</li></ul></div>
+        </div>
+        <div class="feedback">↩ rejected runs re-enter the queue with the reviewer's notes — feedback is part of the machine</div>
+      </div>
+      <div class="tiles3" style="margin-top:1rem" data-anim="2">
+        <div class="ptile y"><div class="big">412</div><div class="s">candidate school streets scanned overnight</div></div>
+        <div class="ptile b"><div class="big">£0.61</div><div class="s">per campaign pack, at ~15× chat token cost</div></div>
+        <div class="ptile p"><div class="big">1</div><div class="s">human approving them all. Is that a gate or a rubber stamp?</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUESTION + ABOUT ================= -->
+<section class="qsection container">
+  <div class="eyebrow">For the panel</div>
+  <p class="q">A volunteer could research one street. The factory researched <span class="serif">all of them</span> before lunch. What happens to the other 409 campaigns?</p>
+  <p style="margin-top:2rem"><a class="cta" href="campaign-planner.html">Research isn't a campaign — continue into the Campaign Planner <span class="chip">→</span></a></p>
+  <p style="font-size:.9rem;color:var(--muted-foreground);margin-top:.75rem">The Scout feeds the planner's stages 1–2: issue, evidence, and sense-making.</p>
+</section>
+
+<section class="about container" id="about">
+  <h2>About this <span class="serif">concept</span></h2>
+  <details open>
+    <summary>User &amp; problem</summary>
+    <p>Sam, the sole campaigner at a two-person road-safety charity. Finding a genuine local issue takes a week of council-website archaeology; the factory compresses it to minutes, with citations, at national scale.</p>
+  </details>
+  <details>
+    <summary>Where the agents multiply — and why it isn't theatre</summary>
+    <p>Rungs 1–3 are one model with better plumbing. Agents genuinely multiply at rung 4 for three defensible reasons: <b>parallelism</b> (read-heavy research over separable sources), <b>context isolation</b> (each specialist burns its own window on its own documents), and <b>reviewer/generator separation</b> (the checker must not share the writer's context). Rung 6 adds the factory properties: queue, triggers, cloud sandboxes, evaluator, human-in-the-loop gate with approve/edit/reject/respond, and a trace per run.</p>
+  </details>
+  <details>
+    <summary>What's real on stage</summary>
+    <table>
+      <tr><td>Live</td><td>postcode/MP resolution, claim re-check, draft synthesis (replayed from cache on stage)</td></tr>
+      <tr><td>Cached</td><td>council documents, context datasets, national scan — all sources verified open, 11 Jul 2026</td></tr>
+      <tr><td>Deterministic</td><td>geography joins, fetch/parse, citation binding, approval state</td></tr>
+      <tr><td>Agentic</td><td>issue ranking, contradiction finding, drafting, review flags</td></tr>
+      <tr><td>Simulated</td><td>the 412-run factory execution (real seed places, labelled simulation)</td></tr>
+    </table>
+  </details>
+  <details>
+    <summary>Risks &amp; tensions</summary>
+    <p>Gentlest reveal of the four prototypes — capacity, not menace; the panel supplies the unease. Approval-at-scale is the honest worry: the gate is real, but attention doesn't scale like compute.</p>
+  </details>
+  <details>
+    <summary>Build complexity &amp; 10-minute fit</summary>
+    <p>Medium: full pipeline, one location, all critical sources keyless. Clearest teaching version of the ladder; weakest closing note — consider the hybrid ending. UI mirrors shadcn (Awake template tokens); production would use shadcn/ui React components directly.</p>
+  </details>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · AI &amp; Campaigning conference · 16 July 2026</span>
+    <span>All data sources verified 11 Jul 2026 · public data only · read-only tools</span>
+  </div>
+</footer>
+
+<script>window.PROTO = { prev: "option-4-consultation-hunter.html", next: "option-2-ward-machine.html" };</script>
+<script src="awake.js"></script>
+</body>
+</html>

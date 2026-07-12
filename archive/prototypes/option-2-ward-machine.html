@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ward Machine — Campaign Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="awake.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory</span>
+    <nav class="links">
+      <a href="campaign-planner.html">Campaign Planner</a>
+      <a href="option-1-scout.html">1 · Scout</a>
+      <a class="cur" href="option-2-ward-machine.html">2 · Ward Machine</a>
+      <a href="option-3-one-street-many-masters.html">3 · One Street</a>
+      <a href="option-4-consultation-hunter.html">4 · Hunter</a>
+    </nav>
+    <a class="pillbtn" href="#about">About this concept</a>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#r1">1</a><a href="#r2">2</a><a href="#r3">3</a><a href="#r4">4</a><a href="#r5">5</a><a href="#r6">6</a>
+</nav>
+
+<section class="hero container">
+  <div class="eyebrow">Prototype 2 · Electoral · Castle ward, Leicester</div>
+  <h1>Local knowledge, <span class="serif">without</span> locals</h1>
+  <p class="caption"><strong>What it is:</strong> give it a target ward; it builds the electoral brief, finds the most useful local issue, and writes the doorstep script. <strong>How it uses an agent factory:</strong> head office feeds a target list in at one end; an orchestrator fans each ward out to electoral-analysis, research, drafting, and review agents running in parallel in the cloud; locally-flavoured campaigns come out the other, each held for one human's approval. This page walks the six rungs from a chat answer to a 120-ward battleground.</p>
+  <a class="cta" href="#r1">Walk the ladder <span class="chip">↓</span></a>
+  <div class="keys"><kbd>→</kbd> next rung · <kbd>←</kbd> back · <kbd>1</kbd>–<kbd>6</kbd> jump · <kbd>[</kbd> <kbd>]</kbd> other prototypes</div>
+</section>
+
+<!-- R1 -->
+<section class="rung" id="r1">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">1</div>
+      <h2>One <span class="serif">chat</span></h2>
+      <p class="whatsnew">Ask a plain model about a ward and you get horoscope-grade advice.</p>
+      <div class="agents-chip">1 model · 0 agents</div>
+      <p class="limit">Plausible for every ward in Britain, specific to none. No election data, no records, no dates.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> chat</div>
+        <div class="wire-body">
+          <div class="bubble-u">How should we campaign in Castle ward, Leicester?</div>
+          <div class="bubble-m">Castle ward is a diverse inner-city area. Residents are likely to care about housing, potholes and antisocial behaviour. A strong ground game is widely considered effective…</div>
+          <p class="note-bad">0 sources · could describe any ward in Britain</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow"><span class="node">You</span><span class="arrow">→</span><span class="node model">Model</span><span class="arrow">→</span><span class="node">Guess</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R2 -->
+<section class="rung" id="r2">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">2</div>
+      <h2>+ <span class="serif">Tools</span></h2>
+      <p class="whatsnew">Real electoral ground: results, incumbents, dates — and a boundary detail no model would know.</p>
+      <div class="agents-chip">1 agent · 3 tools</div>
+      <p class="limit">Still one-shot; a human drives every question.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> ward brief — single agent</div>
+        <div class="wire-body">
+          <div class="row">
+            <div class="minicard"><div class="k">Held by</div><div class="v">Green</div></div>
+            <div class="minicard"><div class="k">2023 turnout</div><div class="v">30.4%</div></div>
+            <div class="minicard"><div class="k">All seats up</div><div class="v">May 2027</div></div>
+          </div>
+          <div class="line" style="margin-top:.75rem"><span class="status nr">note</span> School street straddles the Castle–Knighton boundary: Green ward one side, Labour ward the other; the fronting councillor sits for Knighton.</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node model">Agent</span><span class="arrow">⇄</span>
+          <span class="node tool">ward results</span>
+          <span class="node tool">councillor register</span>
+          <span class="node tool">postcodes.io</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R3 -->
+<section class="rung" id="r3">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">3</div>
+      <h2>A <span class="serif">workflow</span></h2>
+      <p class="whatsnew">Scan the public record, score each issue against the ward profile, rank by usefulness — to the campaign, not to residents.</p>
+      <div class="agents-chip">1 agent · 4 coded steps</div>
+      <p class="limit">The “resonance” score is synthetic and the product says so — pretending it's science would be the real deception.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> issues, ranked for electoral use</div>
+        <div class="wire-body">
+          <div class="line"><span class="status nr">8.7†</span> School street trial · Clarendon Park — live decision window, divides incumbent's base</div>
+          <div class="line"><span class="status q">6.2†</span> Student HMO licensing row</div>
+          <div class="line"><span class="status q">4.1†</span> Victoria Park events noise</div>
+          <div class="line" style="color:var(--muted-foreground)">† synthetic score · methodology unproven · disclosed in-product</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture</div>
+        <div class="flow">
+          <span class="node store">Scan records</span><span class="arrow">→</span>
+          <span class="node store">Ward profile</span><span class="arrow">→</span>
+          <span class="node store">Score issues</span><span class="arrow">→</span>
+          <span class="node store">Rank</span>
+        </div>
+        <p class="dg-note"><b>Nobody in this ward asked for help.</b> The machine chose the issue for its usefulness, not its importance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R4 -->
+<section class="rung" id="r4">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">4</div>
+      <h2>Specialist <span class="serif">agents</span></h2>
+      <p class="whatsnew">The drafter invents supporters mid-sentence. The reviewer — a separate agent with separate context — catches it. A human decides.</p>
+      <div class="agents-chip">5 specialist agents</div>
+      <p class="limit">The catch works because the reviewer doesn't share the drafter's context. Merge them and the lie sails through.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> doorstep script → reviewer</div>
+        <div class="wire-body">
+          <p style="margin:0;font-size:1rem"><span class="flag">“Some neighbours told us they weren't properly consulted.”</span></p>
+          <p class="note-bad">Reviewer agent: no source. No resident contact has occurred. Sent back.</p>
+          <p style="margin:.5rem 0 0;font-size:1rem"><span class="fix">“The council's own consultation had 59% support — we want to hear the other 41% too.”</span> <em style="color:var(--muted-foreground);font-size:.85rem">scheme page</em></p>
+          <p class="note-good">Sourced door-opener · released to frames</p>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — named roles, separate contexts</div>
+        <div class="flow" style="gap:1.4rem">
+          <span class="agent c1"><span class="a-face">🔍</span>Scout</span>
+          <span class="agent c4"><span class="a-face">🗳️</span>Electoral analyst</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Script drafter</span>
+          <span class="agent c1"><span class="a-face">🎯</span>Audience frames</span>
+          <span class="agent c2"><span class="a-face">🛡️</span>Reviewer</span>
+        </div>
+        <p class="dg-note"><b>Frames stay broad:</b> parents, boundary-road residents, renters — geography and life-stage only, nothing sensitive, nothing individual.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R5 -->
+<section class="rung" id="r5">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">5</div>
+      <h2>An <span class="serif">orchestrator</span></h2>
+      <p class="whatsnew">One lead agent runs the whole ward: brief, issue, script, frames, review — in parallel where the work separates.</p>
+      <div class="agents-chip">1 orchestrator + 5 specialists, parallel</div>
+      <p class="limit">~15× the tokens of a chat. For one ward, arguably theatre. For 120, the economics invert.</p>
+    </aside>
+    <div>
+      <div class="wire" data-anim="1">
+        <div class="wire-bar"><span class="dots"><i></i><i></i><i></i></span> run trace — Castle ward</div>
+        <div class="wire-body">
+          <div class="line"><span class="status d">done · 18s</span> electoral analyst — brief, boundary note</div>
+          <div class="line"><span class="status d">done · 44s</span> scout — 3 issues ranked</div>
+          <div class="line"><span class="status d">done · 31s</span> drafter — script v2 after reviewer flag</div>
+          <div class="line"><span class="status d">done · 12s</span> frames — 3 broad audiences</div>
+          <div class="line"><span class="status nr">needs review</span> 3 scripts held for human approval</div>
+        </div>
+      </div>
+      <div class="diagram" data-anim="2">
+        <div class="dg-label">Architecture — fan out, fan in</div>
+        <div class="flow" style="justify-content:center"><span class="node model">Orchestrator</span></div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↙</span><span class="arrow">↓</span><span class="arrow">↘</span></div>
+        <div class="flow" style="justify-content:center;gap:1.2rem">
+          <span class="agent c4"><span class="a-face">🗳️</span>Analyst</span>
+          <span class="agent c1"><span class="a-face">🔍</span>Scout</span>
+          <span class="agent c3"><span class="a-face">✍️</span>Drafter</span>
+          <span class="agent c1"><span class="a-face">🎯</span>Frames</span>
+        </div>
+        <div class="flow" style="justify-content:center;margin:.6rem 0"><span class="arrow">↘</span><span class="arrow">↓</span><span class="arrow">↙</span></div>
+        <div class="flow" style="justify-content:center"><span class="node">Ward pack</span><span class="arrow">→</span><span class="node human">Human review</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- R6 -->
+<section class="rung" id="r6">
+  <div class="container rung-grid">
+    <aside>
+      <div class="n">6</div>
+      <h2>The <span class="serif">factory</span></h2>
+      <p class="whatsnew">Head office drops a target list in the hopper. Overnight, every ward gets its own found issue and its own script. Rejections return to the queue with notes.</p>
+      <div class="agents-chip">orchestrator × 120 wards · in the cloud</div>
+      <p class="limit">“Strategy centrally, agents locally.” The gate holds — but who reads 120 approvals before breakfast?</p>
+    </aside>
+    <div>
+      <div class="diagram" style="margin-top:0" data-anim="1">
+        <div class="dg-label">The factory floor</div>
+        <div class="floor">
+          <div class="bay intake"><div class="b-t">📥 Intake</div><ul><li>target ward list<span class="status q">120</span></li><li>trigger: head office</li></ul></div>
+          <div class="bay"><div class="b-t">🗂 Queue</div><ul><li>Castle · Leicester<span class="status d">done</span></li><li>Walkley · Sheffield<span class="status r">running</span></li><li>+118<span class="status q">queued</span></li></ul></div>
+          <div class="bay"><div class="b-t">☁️ Worker bays</div><ul><li>run #007 · 5 agents</li><li>run #008 · 5 agents</li><li>isolated sandboxes</li></ul></div>
+          <div class="bay"><div class="b-t">🧪 Evaluator</div><ul><li>sources resolve?</li><li>banned tactics?</li><li>frames broad?</li></ul></div>
+          <div class="bay gate"><div class="b-t">👤 Human inbox</div><ul><li>approve</li><li>edit</li><li>reject · respond</li></ul></div>
+          <div class="bay out"><div class="b-t">📦 Returned</div><ul><li>ward packs shipped</li><li>0 auto-published</li></ul></div>
+        </div>
+        <div class="feedback">↩ a rejected script returns to the queue carrying the organiser's notes — the factory learns the campaign's voice</div>
+      </div>
+      <div class="tiles3" style="margin-top:1rem" data-anim="2">
+        <div class="ptile y"><div class="big">120</div><div class="s">target wards, each with its own found issue and script</div></div>
+        <div class="ptile b"><div class="big">0</div><div class="s">local volunteers consulted anywhere in the pipeline</div></div>
+        <div class="ptile p"><div class="big">1</div><div class="s">organiser approving all of it. The gate is real. Is the attention?</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="qsection container">
+  <div class="eyebrow">For the panel</div>
+  <p class="q">Local knowledge without locals. Strategy centrally, agents locally. What are local members <span class="serif">for</span>, now?</p>
+  <p style="margin-top:2rem"><a class="cta" href="campaign-planner.html#s4">See the accountable version in the Campaign Planner <span class="chip">→</span></a></p>
+  <p style="font-size:.9rem;color:var(--muted-foreground);margin-top:.75rem">The Ward Machine's electoral analysis feeds the planner's stages 4–5 — power mapping and pressure — with stated/inferred badges and consent gates it lacks here on purpose.</p>
+</section>
+
+<section class="about container" id="about">
+  <h2>About this <span class="serif">concept</span></h2>
+  <details open>
+    <summary>User &amp; problem</summary>
+    <p>Jo, a party field organiser (party unnamed) assigned a target ward with no local members. The factory substitutes for local knowledge — which is exactly the capability and exactly the threat. Built on fully verified real terrain: Castle ward's 2023 results, the Castle–Knighton boundary fault line, live traffic orders.</p>
+  </details>
+  <details>
+    <summary>Where the agents multiply — and why it isn't theatre</summary>
+    <p>The electoral analyst, scout, and frames agents do separable read-heavy work in parallel (context isolation); the reviewer is deliberately a separate agent so invented social proof gets caught by fresh eyes (generator/reviewer separation). The factory rung adds queue, cloud sandboxes, evaluator checks (including banned-tactic rules), the approve/edit/reject/respond inbox, and per-run traces.</p>
+  </details>
+  <details>
+    <summary>What's real on stage</summary>
+    <table>
+      <tr><td>Live</td><td>ward/electoral resolution, ranking, script drafting (replayed from cache on stage)</td></tr>
+      <tr><td>Cached</td><td>council documents, 2023 ward results, CC0 councillor data — verified open 11 Jul 2026</td></tr>
+      <tr><td>Deterministic</td><td>joins, citation binding, approval state, banned-tactic checks</td></tr>
+      <tr><td>Agentic</td><td>issue ranking, frame selection, drafting, the reviewer's catch</td></tr>
+      <tr><td>Simulated</td><td>“resonance” methodology (disclosed) and the 120-ward execution (real ward names)</td></tr>
+    </table>
+  </details>
+  <details>
+    <summary>Risks &amp; tensions</summary>
+    <p>Ethically hottest of the four: a real school's safety scheme instrumentalised for electoral gain, real incumbents named. Party stays unnamed; staged as “look straight at what's coming”, never a pitch. Requires Ed + Hannah's explicit sign-off. Volunteer displacement is the native fear — no bolting on required.</p>
+  </details>
+  <details>
+    <summary>Build complexity &amp; 10-minute fit</summary>
+    <p>Medium-high: prototype 1's spine plus the electoral layer (all verified open). Highest stage impact and panel fit of the four. UI mirrors shadcn (Awake template tokens); production would use shadcn/ui React components directly.</p>
+  </details>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Campaign Factory · AI &amp; Campaigning conference · 16 July 2026</span>
+    <span>All data sources verified 11 Jul 2026 · public data only · read-only tools</span>
+  </div>
+</footer>
+
+<script>window.PROTO = { prev: "option-1-scout.html", next: "option-3-one-street-many-masters.html" };</script>
+<script src="awake.js"></script>
+</body>
+</html>

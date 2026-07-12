@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option 4 · The Consultation Hunter</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Option 4 of 4</div>
+  <h1>The Consultation Hunter</h1>
+  <p class="lede">Democracy runs on deadlines nobody hears about. The machine hears all of them. The outlier option: about <em>timing and attention</em>, not issue discovery.</p>
+
+  <div class="chips">
+    <div class="chip">User: <strong>sole campaigner at any advocacy org</strong></div>
+    <div class="chip">Issue: <strong>every open public consultation, ranked</strong></div>
+    <div class="chip">Factory axis: <strong>one org × every decision window in the country</strong></div>
+    <div class="chip">Framing: <strong>machine-speed participation</strong></div>
+  </div>
+  <div class="fear"><span class="label">Fear</span>
+    <span class="track"><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg"></span></span>
+    <span class="label">Message: consultation flooding · evidentiary laundering at scale</span>
+  </div>
+
+  <div class="note"><strong>Research finding that makes this option real:</strong> there is <em>no aggregator of UK local-authority consultations</em> — verified. GOV.UK lists national ones (71 open today, keyless JSON API), and the three dominant council platforms are all machine-readable (Citizen Space: open JSON API · Go Vocal: open undocumented API · Commonplace: embedded JSON). The thing this demo shows off <em>does not currently exist</em>. That is simultaneously the pitch and the warning.</div>
+
+  <!-- ============ BEAT 1 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 1 · minutes 0–3</span><h2 style="margin:0">The feed nobody has</h2></div>
+    <div class="script"><span class="who">Presenter</span>“Right now, across the UK, public bodies are formally asking for your opinion — with statutory deadlines. Nobody — no charity, no party, no journalist — has a complete list. It took this system one afternoon to build one.”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — Consultation radar</span>
+        <span class="right"><span class="badge live">Live</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="tiles">
+          <div class="tile"><div class="t-label">GOV.UK open consultations</div><div class="t-value">71</div><div class="t-sub">live via keyless JSON API</div></div>
+          <div class="tile"><div class="t-label">Council platforms watched</div><div class="t-value">3</div><div class="t-sub">Citizen Space · Go Vocal · Commonplace</div></div>
+          <div class="tile"><div class="t-label">Closing within 14 days</div><div class="t-value">19</div><div class="t-sub">deadline pressure, ranked</div></div>
+          <div class="tile"><div class="t-label">Matched to your org's goals</div><div class="t-value">6</div><div class="t-sub">agent-ranked relevance</div></div>
+        </div>
+        <div class="panel">
+          <div class="p-title">Incoming — ranked for a road-safety org <span class="badge agentic">Agent ranking</span> <span class="badge live">Live feeds</span></div>
+          <div class="card" style="border-color:rgba(57,135,229,.5)">
+            <div class="c-title">Leicester · school street objection window — St John the Baptist</div>
+            <div class="c-body">Experimental orders in force to Dec 2027; objections to permanent orders accepted for 6 months.</div>
+            <div class="c-meta"><span class="cite">TRO deposit PDF · leicester.gov.uk</span><span class="status good">● OPEN</span></div>
+          </div>
+          <div class="card">
+            <div class="c-title">DfT · national consultation (transport)</div>
+            <div class="c-meta"><span class="cite">gov.uk/api/search.json</span><span class="status good">● OPEN</span></div>
+          </div>
+          <div class="card">
+            <div class="c-title">RBKC · streetscape consultation</div>
+            <div class="c-meta"><span class="cite">consult.rbkc.gov.uk/api/2.4</span><span class="status good">● OPEN</span></div>
+          </div>
+        </div>
+        <div class="ribbon"><span>Sources polled: <b>GOV.UK API · 4 Citizen Space sites · Go Vocal API · TfL hub</b></span><span>All keyless, all public — verified 11 Jul 2026</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BEAT 2 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 2 · minutes 3–7</span><h2 style="margin:0">The one you missed — and the one you won't</h2></div>
+    <div class="script"><span class="who">Presenter</span>“This consultation — a school street in Brent, five named roads — closed four days ago. Hands up who knew it existed. That silence is how local democracy actually works. Now watch the machine make sure it never happens to its owner again — and draft the response.”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — Deadline triage</span>
+        <span class="right"><span class="badge live">Live</span><span class="badge cached">Cached docs</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="cols two">
+          <div>
+            <div class="panel" style="border-left:3px solid var(--status-critical)">
+              <div class="p-title">MISSED — closed 7 July 2026</div>
+              <div class="asset">
+                <p><b style="color:var(--text-primary)">Brent · Harris Primary Academy school street</b></p>
+                <p>Norval Rd, Spencer Rd, Nathans Rd, Abbotts Dr, The Link · survey ran 15 Jun – 7 Jul</p>
+                <p class="status critical">✗ No alert existed. Nobody who cared was told.</p>
+                <p style="font-size:11px;color:var(--text-muted)">source: haveyoursay.brent.gov.uk web_api (verified)</p>
+              </div>
+            </div>
+            <div class="panel" style="border-left:3px solid var(--status-good)">
+              <div class="p-title">CAUGHT — open now</div>
+              <div class="asset">
+                <p><b style="color:var(--text-primary)">Leicester · St John the Baptist objection window</b></p>
+                <p>Formal objections to permanent orders accepted by the council's traffic team</p>
+                <p class="status good">✓ 112 days remaining · evidence pack ready</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <div class="p-title">Drafted response <span class="badge agentic">Agent</span> <span class="badge approval">Awaiting approval</span></div>
+              <div class="asset">
+                <p>“We write in support of making orders TMP1029/TMP2013 permanent. The council's own consultation found <mark>59% support</mark> <span class="cite">choosehowyoumove.co.uk</span> — note: the press release claims ‘over 60%’ <span class="cite">news release, 28 May</span>. We cite the lower, sourced figure.”</p>
+                <p class="status warning">◐ Discrepancy between official sources surfaced and handled — this is the trust moment</p>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="p-title">Submission</div>
+              <p style="font-size:13px;margin:0" class="status serious">⏸ BLOCKED — read-only system. A human downloads, signs, and submits. The machine never touches the submit button.</p>
+            </div>
+          </div>
+        </div>
+        <div class="ribbon"><span>Real discrepancy, found in real sources: 59% (scheme page) vs “over 60%” (press release) vs 90% (problem recognition)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BEAT 3 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 3 · minutes 7–10</span><h2 style="margin:0">The reveal: machine-speed participation</h2></div>
+    <div class="script"><span class="who">Presenter</span>“One org, never missing a deadline: obviously good. Now — every org. Every consultation. Thousands of fluent, cited, machine-drafted responses, each approved by one human click. The council officer reading them can't tell which represent people. Consultation was the one channel where showing up meant something. What does it mean now?”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — National participation view</span>
+        <span class="right"><span class="badge simulated">Simulated</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="tiles">
+          <div class="tile"><div class="t-label">Consultations tracked</div><div class="t-value">1,400†</div><div class="t-sub">national + local, all platforms</div></div>
+          <div class="tile"><div class="t-label">Responses drafted</div><div class="t-value">1,400</div><div class="t-sub">one per org per consultation</div></div>
+          <div class="tile"><div class="t-label">Time per response</div><div class="t-value">40s</div><div class="t-sub">vs ~3 hrs by hand</div></div>
+          <div class="tile"><div class="t-label">Officers reading them</div><div class="t-value">same</div><div class="t-sub">the asymmetry, in one word</div></div>
+        </div>
+        <div class="panel">
+          <div class="p-title">Deadline board <span class="badge simulated">Simulated on real feed structure</span></div>
+          <div class="factory">
+            <div class="cell done"><b>Leicester TRO</b><span class="st status good">✓ drafted</span></div>
+            <div class="cell done"><b>DfT national</b><span class="st status good">✓ drafted</span></div>
+            <div class="cell running"><b>RBKC streets</b><span class="st status warning">● drafting</span></div>
+            <div class="cell running"><b>Edinburgh LEZ</b><span class="st status warning">● drafting</span></div>
+            <div class="cell queued"><b>Defra bathing waters</b>queued</div>
+            <div class="cell queued"><b>Westminster CPZ</b>queued</div>
+            <div class="cell queued"><b>+1,394 more</b>queued</div>
+          </div>
+        </div>
+        <div class="ribbon"><span>† national count simulated — per-platform feeds are real, the crawl across all 317 councils is not built</span><span>Exports: <b>0 without a human signature</b></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DETAILS ============ -->
+  <h2>Data spine — fully verified 11 July 2026</h2>
+  <table class="data">
+    <tr><th>Source</th><th>Used for</th><th>Access</th><th>Verification</th></tr>
+    <tr><td>GOV.UK search API</td><td>national open consultations (71 today)</td><td>keyless JSON — <code>gov.uk/api/search.json?filter_content_store_document_type=open_consultation</code></td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Citizen Space sites (Delib)</td><td>council consultations incl. Leicester's own hub</td><td>open JSON API <code>/api/2.4/json_search_results?st=open</code> — verified on 4 sites</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Go Vocal / CitizenLab (Brent)</td><td>the “missed” Brent school street, phase dates</td><td>open undocumented JSON <code>/web_api/v1/</code></td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Commonplace (Westminster etc.)</td><td>additional council coverage</td><td>parse embedded <code>__NEXT_DATA__</code> JSON</td><td><span class="status warning">◐ scrapeable with effort</span></td></tr>
+    <tr><td>TfL EngagementHQ hub</td><td>Barnes bus lifecycle example (closed → decided → implementing Aug 2026)</td><td>server-rendered HTML scrape</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Leicester TRO deposit PDF</td><td>the live objection window</td><td>direct PDF, text-extractable</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+  </table>
+
+  <h2>Boundary of what's real</h2>
+  <table class="data">
+    <tr><th>Layer</th><th>On stage</th></tr>
+    <tr><td><span class="badge live">Live</span></td><td>GOV.UK + Citizen Space + Go Vocal feed pulls · relevance ranking · one response drafted live with the 59%-vs-60% discrepancy surfaced</td></tr>
+    <tr><td><span class="badge cached">Pre-cached</span></td><td>Brent project record · TfL Barnes lifecycle · Leicester TRO documents</td></tr>
+    <tr><td><span class="badge deterministic">Deterministic</span></td><td>platform adapters/polling · deadline arithmetic · citation binding · submission blocking</td></tr>
+    <tr><td><span class="badge agentic">Agent</span></td><td>relevance ranking against org goals · response drafting · discrepancy handling</td></tr>
+    <tr><td><span class="badge simulated">Simulated</span></td><td>the 1,400-consultation national board (real per-platform feeds; the 317-council crawl is not built)</td></tr>
+  </table>
+
+  <h2>Honest assessment</h2>
+  <div class="note"><strong>Strengths:</strong> the most defensible live layer of any option — three keyless JSON APIs verified today, no scraping fragility in the critical path. The Brent “you missed it” beat is emotionally precise and 100% true. Fills a verified real gap (no consultation aggregator exists), so it's genuinely useful beyond the conference. The closing question — what is participation worth at machine speed — is arguably the sharpest of the four.</div>
+  <div class="note warn"><strong>Weaknesses:</strong> weakest on “meaningful agent behaviour” — the impressive part is feeds and deadlines (deterministic plumbing); the agent only ranks and drafts. No power map, no strategy, no doorstep — less of Randi's wish-list on screen. “Consultation” is a lower-blood-pressure word than “election”; the first 3 minutes must work hard to make the audience feel the stakes. Factory reveal needs the honest † caveat or it overclaims.</div>
+
+  <div class="pagenav">
+    <a href="option-3-one-street-many-masters.html">← Option 3: One Street, Many Masters</a>
+    <a href="compare.html">Compare all four →</a>
+  </div>
+
+</div>
+</body>
+</html>

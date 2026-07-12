@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Consultation Hunter — Campaign Factory</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Campaign Factory</span>
+  <span class="proto">Prototype 4 · The Consultation Hunter</span>
+  <span class="spacer"></span>
+  <span class="mode"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:var(--good);display:inline-block"></span> Feeds live · 11 Jul</span>
+  <button class="iconbtn" data-drawer-toggle>i&nbsp; About</button>
+</header>
+
+<main class="stage">
+
+  <!-- S0 -->
+  <section class="state" data-label="Title" data-notes="Democracy runs on deadlines nobody hears about. Right now, public bodies are formally asking for opinions, with statutory deadlines — and no one, anywhere, has a complete list. This machine hears all of them.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">Prototype 4</div>
+      <h1 class="h-display">The Consultation Hunter</h1>
+      <p style="font-size:32px;max-width:30ch;color:var(--ink-2)">Tracks every open UK consultation and drafts responses before deadlines.</p>
+      <div class="who"><span class="avatar">S</span> Sam · sole campaigner, Safe Routes Trust (fictional)</div>
+      <button class="btn primary big" data-next>Start →</button>
+    </div>
+  </section>
+
+  <!-- S1 -->
+  <section class="state" data-label="1 · Model only" data-notes="Ask a plain model what's open right now and it guesses. Confidently. Two of these closed last year. One never existed. Deadlines are exactly what a model without tools cannot know.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 1 of 6 · Model only</div>
+      <h2 class="h-state">The question, asked cold</h2>
+    </div>
+    <div class="chat">
+      <div class="msg user" data-step="1">Which open consultations should a road-safety charity respond to this month?</div>
+      <div class="msg model" data-step="2" data-type>You may wish to consider the Department for Transport's consultation on pavement parking, which is currently open, as well as local authority engagement exercises on school streets and active travel in your area…</div>
+      <div class="nosrc" data-step="3">0 sources · the pavement-parking consultation closed in 2020 · “currently open” is a guess</div>
+    </div>
+    <div class="actions mt-auto" data-step="3"><button class="btn primary" data-next>Give it the feeds →</button></div>
+  </section>
+
+  <!-- S2 -->
+  <section class="state" data-label="2 · + Tools" data-notes="Machine two polls the actual feeds — three keyless public APIs we verified this week. Note what's also true: no aggregator of these exists anywhere in the UK. This screen doesn't exist outside this room.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 2 of 6 · + Live feeds</div>
+      <h2 class="h-state">The feed nobody has</h2>
+    </div>
+    <div class="panel p-real" data-step="1" style="margin-bottom:32px">
+      <span class="prov"><span class="dot"></span>Live</span>
+      <div class="tasks" data-tasks>
+        <div class="task" data-dur="700"><span class="t-ic"></span>GOV.UK search API <span class="t-status">71 open consultations</span></div>
+        <div class="task" data-dur="700"><span class="t-ic"></span>Citizen Space councils <span class="t-status">4 sites · JSON API</span></div>
+        <div class="task" data-dur="600"><span class="t-ic"></span>Go Vocal councils <span class="t-status">Brent · web API</span></div>
+        <div class="task" data-dur="600" data-fail><span class="t-ic"></span>Commonplace councils <span class="t-status">JS-rendered · adapter not built · skipped</span></div>
+      </div>
+    </div>
+    <div class="tilerow" data-step="2">
+      <div class="tile"><div class="t-label">Open now</div><div class="t-value">83</div><div class="t-sub">national + tracked councils</div></div>
+      <div class="tile"><div class="t-label">Closing in 14 days</div><div class="t-value" style="color:var(--warn)">19</div><div class="t-sub">deadline-ranked</div></div>
+      <div class="tile"><div class="t-label">Match org goals</div><div class="t-value">6</div><div class="t-sub">agent-ranked for road safety</div></div>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Triage the deadlines →</button></div>
+  </section>
+
+  <!-- S3 -->
+  <section class="state" data-label="3 · + Workflow" data-notes="Before the catch, the miss. This consultation — five named roads, a school street in Brent — closed four days ago. Hands up who knew it existed. [pause] That silence is how local democracy works today. Now the same machine, pointed forward.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 3 of 6 · + Deadline triage</div>
+      <h2 class="h-state">The one you missed. The one you won't.</h2>
+    </div>
+    <div class="panel" data-step="1" style="border-left:4px solid var(--bad);max-width:1100px">
+      <span class="prov">Cached · Go Vocal API</span>
+      <div class="kicker" style="color:var(--bad);margin-bottom:12px">Missed · closed 7 Jul 2026 — 4 days ago</div>
+      <p style="font-size:26px;color:var(--ink);margin:0 0 8px">Brent · Harris Primary Academy school street</p>
+      <p style="font-size:22px;margin:0">Norval Rd, Spencer Rd, Nathans Rd, Abbotts Dr, The Link · survey ran 15 Jun – 7 Jul <span class="cite" data-pop="brent">consultation record</span></p>
+      <p style="font-size:20px;color:var(--ink-3);margin:12px 0 0">No alert existed for this consultation.</p>
+    </div>
+    <div class="panel" data-step="2" style="border-left:4px solid var(--good);max-width:1100px;margin-top:32px">
+      <span class="prov"><span class="dot"></span>Live</span>
+      <div class="kicker" style="color:var(--good);margin-bottom:12px">Caught · 112 days remaining</div>
+      <p style="font-size:26px;color:var(--ink);margin:0 0 8px">Leicester · St John the Baptist — objection window on permanent orders</p>
+      <p style="font-size:22px;margin:0">Formal objections accepted for six months from May 2026 <span class="cite" data-pop="tro">traffic order</span></p>
+    </div>
+    <div class="actions mt-auto" data-step="2"><button class="btn primary" data-next>Draft the response →</button></div>
+  </section>
+
+  <!-- S4 -->
+  <section class="state" data-label="4 · + Specialists" data-notes="Machine four drafts the response — and does something most humans don't: it notices the council's own sources disagree about the support figure, cites the lower one, and says so. Note the submit button. It doesn't work. It will never work.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 4 of 6 · + Specialist agents</div>
+      <h2 class="h-state">Drafted, checked, not sent</h2>
+    </div>
+    <div class="panel p-gen" data-step="1" style="max-width:1150px">
+      <span class="prov">Generated · 3 citations</span>
+      <p class="draft" data-type>We write in support of making orders TMP1029 and TMP2013 permanent. The council's consultation found 59% support for the scheme. We note the 28 May press release states “over 60%”; we cite the published figure. The experimental period has operated since June without reported incident…</p>
+    </div>
+    <div data-step="2">
+      <p class="fixnote">Source discrepancy found and disclosed: 59% <span class="cite" data-pop="consult">scheme page</span> vs “over 60%” <span class="cite" data-pop="news">press release</span> — lower figure cited.</p>
+    </div>
+    <div class="actions mt-auto" data-step="2">
+      <button class="btn locked" disabled title="Read-only system — a human signs and submits">Submit to council</button>
+      <button class="btn primary" data-next>Send for review →</button>
+    </div>
+  </section>
+
+  <!-- S5 -->
+  <section class="state" data-label="5 · Approval" data-gate="on" data-notes="The machine never touches a submit button — anywhere, ever. A human reads, approves, downloads, signs, sends. That's the whole constitution of this system, and it's about to come under pressure.">
+    <div class="statehead" data-step="1">
+      <div class="kicker">Layer 5 of 6 · Human approval</div>
+      <h2 class="h-state">A human signs</h2>
+    </div>
+    <div class="panel p-gen" data-step="1" style="max-width:1100px">
+      <span class="prov">Generated · awaiting review</span>
+      <p class="draft" style="font-size:24px">Response to Leicester City Council · TMP1029/TMP2013 · 240 words · 3 citations · discrepancy disclosed</p>
+      <p class="elide">Show full response</p>
+    </div>
+    <div class="actions" data-step="2" style="margin-top:32px">
+      <button class="btn primary big" data-open-dialog="#dlg-approve">Review before download</button>
+      <button class="btn locked" disabled data-needs-approval data-noop-export>Download for signature</button>
+    </div>
+  </section>
+
+  <!-- S6 -->
+  <section class="state" data-label="6 · Factory" data-notes="Machine six. Now every organisation runs one of these. Thousands of fluent, cited, machine-drafted responses — each approved by one human click. The officers reading them: the same number as before. Consultation was the channel where showing up meant something.">
+    <div class="wall-wrap" data-step="1">
+      <div class="wall" data-wall></div>
+      <div class="wall-overlay">
+        <div class="kicker">Layer 6 of 6 · Simulated · real consultation types</div>
+        <div class="hero-num" data-count="1400">0</div>
+        <div style="font-size:32px;color:var(--ink)">open consultations tracked · one drafted response each</div>
+        <div style="font-size:22px;color:var(--ink-2)">drafting time: 40 seconds each · officers reading them: unchanged</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 -->
+  <section class="state" data-label="Question" data-notes="Leave this on screen for the panel.">
+    <div class="centercard" data-step="1">
+      <div class="kicker">For the panel</div>
+      <p class="qcard">When every organisation can respond to everything, what does a consultation response prove?</p>
+    </div>
+  </section>
+
+</main>
+
+<div class="gatebar">
+  <div class="g-blocked" style="display:flex;align-items:center;gap:20px"><span class="g-ic">⏸</span> Download blocked · 1 response awaiting review</div>
+  <div class="g-approved" style="display:none;align-items:center;gap:20px"><span class="g-ic g-ok">✓</span> Approved · ready for signature</div>
+</div>
+
+<nav class="stepper"></nav>
+
+<div class="scrim" id="dlg-approve">
+  <div class="dialog">
+    <h2>Review before download</h2>
+    <p style="font-size:22px">Consultation response · 240 words · 3 citations, all resolving · source discrepancy disclosed in the text</p>
+    <div class="claim"><span class="ok">✓</span> Order references correct <span class="cite" data-pop="tro">traffic order</span></div>
+    <div class="claim"><span class="ok">✓</span> Support figure: published 59% used <span class="cite" data-pop="consult">scheme page</span></div>
+    <div class="claim"><span class="mix">◐</span> “Without reported incident” — no incident data published either way; consider removing</div>
+    <div class="d-actions">
+      <button class="btn" data-close-dialog>Reject</button>
+      <button class="btn" data-close-dialog>Request changes</button>
+      <button class="btn approve" data-approve>Approve</button>
+    </div>
+  </div>
+</div>
+
+<div class="pop"><button class="p-x" onclick="this.parentNode.classList.remove('show')">✕</button><div class="p-src"></div><div class="p-meta"></div><blockquote></blockquote></div>
+
+<div class="notes"><span class="n-k">Presenter</span><span class="n-body"></span></div>
+
+<aside class="drawer">
+  <button class="iconbtn" data-drawer-close style="float:right">✕</button>
+  <h2>About this concept</h2>
+  <p>The Consultation Hunter — tracks every open UK consultation and drafts responses before deadlines.</p>
+  <h3>User &amp; problem</h3>
+  <p>Any small advocacy org. Statutory decision windows open and close without the people affected ever hearing — verified: no aggregator of UK local-authority consultations exists. This machine is the thing that's missing, which is both the pitch and the warning.</p>
+  <h3>Central demonstration idea</h3>
+  <p>Timing, not content. The emotional engine is a true story: a school-street consultation in Brent closed four days before this research ran, unannounced. Then the machine catches Leicester's live objection window with 112 days to spare.</p>
+  <h3>Main flow</h3>
+  <p>Model guesses (wrong) → live feeds polled (3 keyless APIs) → deadline triage: the miss, then the catch → drafted response with a disclosed source discrepancy → human approval → 1,400-consultation national view.</p>
+  <h3>What's real</h3>
+  <table>
+    <tr><td>Live</td><td>GOV.UK, Citizen Space and Go Vocal feed pulls; ranking; drafting — the most defensible live layer of the four options</td></tr>
+    <tr><td>Cached</td><td>Brent record, TfL Barnes lifecycle, Leicester TRO documents</td></tr>
+    <tr><td>Deterministic</td><td>platform adapters, deadline arithmetic, citation binding, submission blocking</td></tr>
+    <tr><td>Agentic</td><td>relevance ranking against org goals; drafting; discrepancy handling</td></tr>
+    <tr><td>Simulated</td><td>the 1,400 national board (per-platform feeds real; the 317-council crawl is not built — labelled on screen)</td></tr>
+  </table>
+  <h3>Benefits</h3>
+  <p>Strongest verified data spine; genuinely useful after the conference; the sharpest closing question about participation.</p>
+  <h3>Risks &amp; tensions</h3>
+  <p>Least agentic — the power is plumbing, and the demo says so honestly. “Consultation” needs its first 90 seconds to make the audience feel stakes; the Brent miss does that job.</p>
+  <h3>Build complexity</h3>
+  <p>Medium-low: three adapters + triage + drafting. Kit mirrors Base UI; production swaps to @base-ui-components/react.</p>
+  <h3>In a 10-minute demo</h3>
+  <p>Very reliable, quietly devastating. If rehearsal audiences don't react to the Brent miss, the standalone story fails — fold the radar into the winning option as one panel.</p>
+</aside>
+
+<script>
+window.PROTO = { prev: "option-3-one-street-many-masters.html", next: "option-1-scout.html" };
+window.CITES = {
+  brent:   { src: "Brent Council — Have Your Say (Go Vocal API)", meta: "haveyoursay.brent.gov.uk/web_api/v1 · verified 11 Jul 2026", quote: "Harris Primary Academy School Street — native survey phase 15 June – 7 July 2026, 23:59. Roads: Norval Road, Spencer Road, Nathans Road, Abbotts Drive, The Link." },
+  tro:     { src: "Experimental Traffic Orders TME 1028 / TME 2012", meta: "leicester.gov.uk · cached PDF", quote: "Objections to the permanent orders (TMP1029 / TMP 2013) may be made within six months of 6 May 2026." },
+  consult: { src: "Choose How You Move — scheme page", meta: "choosehowyoumove.co.uk · cached", quote: "59% of respondents supported the introduction of a school street." },
+  news:    { src: "Leicester City Council — news", meta: "news.leicester.gov.uk · 28 May 2026 · cached", quote: "More than 60% supported the introduction of a trial school street." }
+};
+window.WALL = {
+  total: 1400, animate: 18, runLabel: "drafting", doneLabel: "drafted",
+  names: ["Defra · bathing waters","DfT · road safety","DfE · SEND reform","Leicester · TRO objections","RBKC · streetscape","Edinburgh · LEZ","Westminster · CPZ","Brent · school street","TfL · bus network","Manchester · active travel","Sheffield · bus gate","Cardiff · 20mph","Bristol · liveable streets","Leeds · station access","Newcastle · clean air","Glasgow · avenues","Defra · flood strategy","MHCLG · local plans","DHSC · dentistry","Home Office · ASB powers"]
+};
+</script>
+<script src="ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Factory — Prototypes</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { overflow: auto; }
+  .home { max-width: 1400px; margin: 0 auto; padding: 96px 96px 120px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 64px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  .pcard {
+    display: block; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; text-decoration: none; color: var(--ink-2);
+    transition: border-color .15s ease;
+  }
+  .pcard:hover { border-color: var(--real); }
+  .pcard h2 { font-size: 36px; margin: 8px 0 12px; }
+  .pcard p { font-size: 22px; margin: 0 0 20px; }
+  .pcard .meta { font-size: 18px; color: var(--ink-3); display: flex; gap: 16px; flex-wrap: wrap; }
+  .keys { margin-top: 64px; font-size: 20px; color: var(--ink-2); }
+  .keys kbd {
+    background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 3px;
+    border-radius: 6px; padding: 2px 10px; font-family: var(--font); font-size: 18px; color: var(--ink);
+  }
+  .links { margin-top: 40px; font-size: 20px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .links a { color: var(--real); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="home">
+  <div class="kicker">AI &amp; Campaigning conference · agents demo · 16 July 2026</div>
+  <h1 class="h-display" style="margin-top:12px">Campaign Factory</h1>
+  <p style="font-size:28px;max-width:52ch;color:var(--ink-2);margin-top:24px">
+    Four prototypes, one format: the same question asked of six increasingly capable machines,
+    ending at a factory. Pick a prototype, then drive it with the keyboard like a slide deck.
+  </p>
+
+  <div class="grid">
+    <a class="pcard" href="option-1-scout.html">
+      <div class="kicker">Prototype 1 · advocacy · fear 2/5</div>
+      <h2>The Scout</h2>
+      <p>Enter a postcode. Get the local issue, evidence, and campaign draft.</p>
+      <div class="meta"><span>Ends: 412 school streets</span><span>Build: medium</span></div>
+    </a>
+    <a class="pcard" href="option-2-ward-machine.html">
+      <div class="kicker">Prototype 2 · electoral · fear 5/5</div>
+      <h2>The Ward Machine</h2>
+      <p>Builds a ward brief and doorstep script for any target ward.</p>
+      <div class="meta"><span>Ends: 120 battleground wards</span><span>Needs Ed + Hannah sign-off</span></div>
+    </a>
+    <a class="pcard" href="option-3-one-street-many-masters.html">
+      <div class="kicker">Prototype 3 · pluralism · fear 4/5</div>
+      <h2>One Street, Many Masters</h2>
+      <p>One evidence pack, four organisations, four opposing campaigns.</p>
+      <div class="meta"><span>Ends: any street, any master</span><span>Build: lowest</span></div>
+    </a>
+    <a class="pcard" href="option-4-consultation-hunter.html">
+      <div class="kicker">Prototype 4 · participation · fear 4/5</div>
+      <h2>The Consultation Hunter</h2>
+      <p>Tracks every open UK consultation and drafts responses before deadlines.</p>
+      <div class="meta"><span>Ends: 1,400 drafted responses</span><span>Most useful afterwards</span></div>
+    </a>
+  </div>
+
+  <div class="keys">
+    <strong style="color:var(--ink)">Driving a prototype:</strong>&nbsp;
+    <kbd>→</kbd> / <kbd>space</kbd> advance · <kbd>←</kbd> back · <kbd>1</kbd>–<kbd>8</kbd> jump to state ·
+    <kbd>[</kbd> <kbd>]</kbd> same state, different prototype · <kbd>i</kbd> about this concept ·
+    <kbd>s</kbd> speaker notes · <kbd>Esc</kbd> close
+  </div>
+  <p style="font-size:18px;color:var(--ink-3);margin-top:16px">Reviewing rather than presenting? Append <code style="background:var(--surface-2);padding:2px 8px;border-radius:4px">?all</code> to any prototype URL to reveal every step without animation.</p>
+
+  <div class="links">
+    <a href="_v1/compare.html">Decision matrix (scores &amp; tie-break)</a>
+    <a href="../writeups/option-1-scout.md">Long-form write-ups</a>
+    <a href="REBUILD-SPEC.md">Design spec</a>
+    <a href="_v1/index.html">v1 storyboards (archived)</a>
+  </div>
+</div>
+</body>
+</html>

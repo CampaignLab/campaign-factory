@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Chat transcripts / extracted session notes
+assets/*.txt
+
+# Secrets — both contain the Anthropic API key
+app/.env
+app/local-key.js

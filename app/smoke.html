@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Factory — smoke-test review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300..700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">Campaign Factory <small>UK local &amp; public-policy campaigns</small></span>
+    <nav class="links">
+      <button id="nav-new" class="cur">New campaign</button>
+      <button id="nav-camp" disabled>Campaign</button>
+    </nav>
+    <span style="display:flex;gap:.6rem;align-items:center">
+      <span class="livechip off" id="livechip"><i></i><span id="livechip-t">Simulated mode</span></span>
+      <button class="toolbtn" id="btn-settings">⚙ Setup</button>
+    </span>
+  </div>
+</header>
+
+<!-- settings -->
+<div class="settings" id="settings">
+  <h3 style="font-size:1.05rem;margin-bottom:.4rem">Live generation setup</h3>
+  <p>Paste an Anthropic API key to enable live research and generation (model: <code>claude-opus-4-8</code> with web search). The key is stored only in this browser's localStorage — use a disposable, spend-capped key on a machine you control.</p>
+  <input id="in-key" type="password" placeholder="sk-ant-...">
+  <p>Without a key, the factory runs in clearly-labelled <b>simulated mode</b> — the reliable emergency backup for the demo.</p>
+  <div style="display:flex;gap:.6rem;justify-content:flex-end">
+    <button class="toolbtn" id="btn-key-clear">Clear key</button>
+    <button class="toolbtn" id="btn-key-save" style="background:var(--ink);color:#fff">Save</button>
+  </div>
+</div>
+
+<!-- ============ LANDING ============ -->
+<section class="view active" id="view-landing">
+  <div class="hero container">
+    <div class="eyebrow">From a local problem to a working campaign — live</div>
+    <h1>Campaign <span class="serif">Factory</span></h1>
+    <p class="sub">Describe the local or public-policy problem you want to change. Campaign Factory researches it, verifies what it can, and turns it into a campaign objective, power analysis, strategy, organising plan, and a set of practical campaign resources.</p>
+
+    <div class="intake">
+      <textarea id="in-problem" placeholder="I want [decision-maker or organisation, if known] to [specific change] in [location] by [timeframe, if known], because [problem or reason]. This affects [people or community]. We already know [evidence, context, allies, or constraints]."></textarea>
+      <div class="tmpl"><b>Don't know who decides?</b> That's fine — try: “I want to change [problem] in [location]. The outcome I want is [desired change]. This matters because [reason]. Help me identify who has the power to make the decision and how a campaign could influence them.” Imperfect prompts are expected; the research stage fills gaps and says what it couldn't establish.</div>
+      <div class="optgrid">
+        <input id="in-org" placeholder="Campaign / organisation name (optional)">
+        <input id="in-location" placeholder="Location or postcode (optional)">
+        <input id="in-outcome" placeholder="Desired outcome (optional)">
+        <input id="in-dm" placeholder="Known decision-maker or institution (optional)">
+        <input id="in-timeframe" placeholder="Timeframe (optional)">
+        <input id="in-affected" placeholder="People affected (optional)">
+        <input id="in-evidence" placeholder="Known evidence or context (optional)">
+        <input id="in-resources" placeholder="Available campaign resources (optional)">
+      </div>
+      <div class="go">
+        <button class="cta" id="btn-build">Build campaign <span class="chip">→</span></button>
+        <button class="example" id="btn-example"><b>Prepared example — Lime bikes in the Olympic Park</b>“I want Lime bikes to be allowed to enter Queen Elizabeth Olympic Park in Stratford…” · emergency backup: library closure</button>
+      </div>
+    </div>
+  </div>
+  <p class="scopenote">Optimised for UK local government, public bodies, transport, planning, environment, education, health, public services, constituency issues and consultations. The factory follows: problem → research → objective → decision-maker → power → pressure → strategy → tactics → organising → drafted resources.</p>
+</section>
+
+<!-- ============ PROCESSING ============ -->
+<section class="view" id="view-processing">
+  <div class="proc">
+    <div class="eyebrow" id="proc-mode">Building your campaign</div>
+    <h2 id="proc-title">—</h2>
+    <p class="p-sub">Research first, then one shared campaign plan drives every stage and all nine documents.</p>
+    <div class="pbar"><i id="pbar-fill"></i></div>
+    <div class="stages" id="proc-stages"></div>
+    <div class="procfail" id="procfail">
+      <b id="procfail-title">A stage failed</b>
+      <p id="procfail-msg" style="margin:.3rem 0 0"></p>
+      <div class="actions">
+        <button class="toolbtn" id="procfail-retry" style="background:var(--ink);color:#fff">Retry this stage</button>
+        <button class="toolbtn" id="procfail-skip">Continue without it (labelled)</button>
+      </div>
+    </div>
+    <p class="hint" id="proc-note">Drafts, not decisions: everything produced here needs human review, local knowledge, and verification before use.</p>
+  </div>
+</section>
+
+<!-- ============ JOURNEY ============ -->
+<section class="view" id="view-journey">
+  <div id="journey"></div>
+  <footer class="footer"><div class="container">
+    <span>Campaign Factory — proof of concept · Newspeak House × Campaign Lab</span>
+    <span>Nothing invented is presented as verified · human judgement and local knowledge required</span>
+  </div></footer>
+</section>
+
+<!-- ============ DOCUMENT EDITOR ============ -->
+<section class="view" id="view-doc">
+  <div class="docview container">
+    <div class="doc-toolbar">
+      <button class="toolbtn" id="btn-back">← Back to campaign</button>
+      <span style="font-size:.9rem;color:var(--muted-foreground)" id="doc-pos">—</span>
+      <span class="spacer"></span>
+      <div class="doc-nav">
+        <button class="toolbtn" id="btn-prev">← Prev</button>
+        <button class="toolbtn" id="btn-next">Next →</button>
+      </div>
+      <button class="toolbtn" id="btn-edit">✎ Edit</button>
+      <button class="toolbtn" id="btn-copy">⧉ Copy</button>
+      <div class="exportmenu">
+        <button class="toolbtn" id="btn-export">↓ Export</button>
+        <div class="menu" id="export-menu">
+          <button id="exp-md">Markdown (.md)</button>
+          <button id="exp-txt">Plain text (.txt)</button>
+          <button id="exp-pdf">Print / save as PDF</button>
+        </div>
+      </div>
+    </div>
+    <article class="docsheet" id="docsheet"></article>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="local-key.js"></script><!-- optional: window.CF_LOCAL_KEY = "sk-ant-..." — missing file is fine -->
+<script src="data/authorities.data.js"></script>
+<script src="data/media.data.js"></script>
+<script src="js/adapters.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/docs.js"></script>
+<script src="js/export.js"></script>
+<script src="js/live.js"></script>
+<script src="js/journey.js"></script>
+<script src="smoke-campaign.data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

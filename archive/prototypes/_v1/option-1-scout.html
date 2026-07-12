@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option 1 · The Scout</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Option 1 of 4</div>
+  <h1>The Scout</h1>
+  <p class="lede">One under-resourced campaigner gets a research department. The warmest story of the four — capability first, unease last.</p>
+
+  <div class="chips">
+    <div class="chip">User: <strong>sole campaigner, small road-safety charity</strong></div>
+    <div class="chip">Issue: <strong>Leicester school street (Clarendon Park)</strong></div>
+    <div class="chip">Factory axis: <strong>one org × many places</strong></div>
+    <div class="chip">Framing: <strong>issue advocacy</strong></div>
+  </div>
+  <div class="fear"><span class="label">Fear</span>
+    <span class="track"><span class="seg on"></span><span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span></span>
+    <span class="label">Message: capacity — “the little org gets a research department”</span>
+  </div>
+
+  <!-- ============ BEAT 1 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 1 · minutes 0–2</span><h2 style="margin:0">One person, one postcode</h2></div>
+    <div class="script"><span class="who">Presenter</span>“This is Sam. Sam is the entire campaigns team of a two-person road-safety charity. Sam has heard something is happening in Leicester. That's all Sam knows — a postcode.”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — Scout</span>
+        <span class="right"><span class="badge live">Live</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="panel">
+          <div class="p-title">Place lookup <span class="badge deterministic">Deterministic</span></div>
+          <div style="font-size:20px;color:var(--text-primary)">🔍 LE2 3__ <span style="color:var(--text-muted);font-size:13px">— resolving…</span></div>
+        </div>
+        <div class="cols four">
+          <div class="tile"><div class="t-label">Ward</div><div class="t-value" style="font-size:18px">Castle</div><div class="t-sub">Leicester City · E05010463</div></div>
+          <div class="tile"><div class="t-label">Constituency</div><div class="t-value" style="font-size:18px">Leicester South</div><div class="t-sub">MP: Shockat Adam (Ind) · via Parliament API</div></div>
+          <div class="tile"><div class="t-label">Local authority</div><div class="t-value" style="font-size:18px">Leicester City Council</div><div class="t-sub">Unitary</div></div>
+          <div class="tile"><div class="t-label">Sources in reach</div><div class="t-value">14</div><div class="t-sub">council portal, police, ONS, consultations…</div></div>
+        </div>
+        <div class="panel">
+          <div class="p-title">Pipeline</div>
+          <div class="pipeline">
+            <div class="node done">Geo Resolver<span class="n-status status good">✓ done</span></div><span class="arrow">→</span>
+            <div class="node running">Public-Data Scout<span class="n-status status warning">● running</span></div><span class="arrow">→</span>
+            <div class="node waiting">Evidence Verifier<span class="n-status">waiting</span></div><span class="arrow">→</span>
+            <div class="node waiting">Strategy<span class="n-status">waiting</span></div><span class="arrow">→</span>
+            <div class="node gate waiting">Human approval<span class="n-status status serious">⏸ gate</span></div>
+          </div>
+        </div>
+        <div class="ribbon"><span>Mode: <b>LIVE</b></span><span>Sources fetched: <b>3</b></span><span>Tokens: <b>2.1k</b></span><span>Cost this run: <b>£0.04</b></span><span>Approvals pending: <b>0</b></span></div>
+      </div>
+    </div>
+    <p style="font-size:14px;color:var(--text-muted);margin-top:10px">All geography facts verified live 11 Jul 2026: LE2 1TE → Castle ward, Leicester South, MP Shockat Adam (Ind). School confirmed in GIAS: URN 120230, 602 pupils.</p>
+  </div>
+
+  <!-- ============ BEAT 2 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 2 · minutes 2–6</span><h2 style="margin:0">The scout finds the fight — and we challenge it</h2></div>
+    <div class="script"><span class="who">Presenter</span>“One agent, read-only tools, public records only. It comes back with something a human would have needed a week of council-website archaeology to find. And because you shouldn't trust it — let's challenge a claim, live.”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — Scout results</span>
+        <span class="right"><span class="badge live">Live synthesis</span><span class="badge cached">Cached index</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="cols two">
+          <div>
+            <div class="panel">
+              <div class="p-title">Issue candidates <span class="badge agentic">Agent</span></div>
+              <div class="card" style="border-color:rgba(57,135,229,.5)">
+                <div class="c-title">① Experimental school street — St John the Baptist CofE Primary</div>
+                <div class="c-body">Council trialling timed traffic restriction on school-run roads; resident- and school-community-led; experimental order = live decision window.</div>
+                <div class="c-meta"><span class="cite">leicester.gov.uk · May 2026</span><span class="cite">democracy portal · agenda item</span><span>confidence 0.88</span></div>
+              </div>
+              <div class="card">
+                <div class="c-title">② Junction safety review — Queens Road corridor</div>
+                <div class="c-meta"><span class="cite">council minutes</span><span>confidence 0.61</span></div>
+              </div>
+              <div class="card">
+                <div class="c-title">③ 20mph zone extension petition</div>
+                <div class="c-meta"><span class="cite">petition register</span><span>confidence 0.44</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="panel">
+              <div class="p-title">Evidence check — claim challenged from the stage <span class="badge live">Live</span></div>
+              <div class="asset">
+                <p>“<mark>Parents have demanded the road be closed</mark>”</p>
+                <p class="status critical">✗ UNSUPPORTED — source says “requests from residents and the school community”; no quantified parental demand in any cached document.</p>
+                <p class="status good">✓ Rewritten to match source · citation attached</p>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="p-title">Claim × source matrix</div>
+              <table class="data" style="font-size:12px;margin-top:2px">
+                <tr><td>Scheme is experimental, time-limited</td><td><span class="status good">✓ supported</span></td><td><span class="cite">council news</span></td></tr>
+                <tr><td>Follows school-community request</td><td><span class="status good">✓ supported</span></td><td><span class="cite">council news</span></td></tr>
+                <tr><td>Casualty history at site</td><td><span class="status warning">◐ mixed</span></td><td><span class="cite">STATS19</span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="ribbon"><span>Mode: <b>LIVE against cached index</b></span><span>Claims verified: <b>11 / 13</b></span><span>Contradictions flagged: <b>1</b></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BEAT 3 ============ -->
+  <div class="beat">
+    <div class="beat-head"><span class="beat-num">Beat 3 · minutes 6–10</span><h2 style="margin:0">The reveal: every school street in England</h2></div>
+    <div class="script"><span class="who">Presenter</span>“Sam just did a week of work in four minutes. Now the uncomfortable part: nothing about this was specific to Leicester. Sam's charity has three campaigns a year in it. This machine has four hundred.”</div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="app">Campaign Factory — National view</span>
+        <span class="right"><span class="badge simulated">Simulated</span><span class="badge cached">Pre-cached sample</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="cols two">
+          <div class="mapmock" style="min-height:260px">
+            <span class="pin hot" style="left:52%;top:48%"></span><span class="map-label" style="left:52%;top:48%">Leicester · running</span>
+            <span class="pin sm" style="left:44%;top:30%"></span><span class="pin sm" style="left:48%;top:26%"></span><span class="pin sm" style="left:56%;top:34%"></span>
+            <span class="pin sm" style="left:38%;top:44%"></span><span class="pin sm" style="left:60%;top:56%"></span><span class="pin sm" style="left:64%;top:62%"></span>
+            <span class="pin sm" style="left:57%;top:70%"></span><span class="pin sm" style="left:49%;top:66%"></span><span class="pin sm" style="left:41%;top:58%"></span>
+            <span class="pin sm" style="left:35%;top:66%"></span><span class="pin sm" style="left:68%;top:44%"></span><span class="pin sm" style="left:53%;top:20%"></span>
+            <span class="pin sm" style="left:45%;top:76%"></span><span class="pin sm" style="left:59%;top:80%"></span><span class="pin sm" style="left:63%;top:24%"></span>
+          </div>
+          <div>
+            <div class="tiles">
+              <div class="tile"><div class="t-label">Candidate school-street sites found</div><div class="t-value">412</div><div class="t-sub">from cached national scan</div></div>
+              <div class="tile"><div class="t-label">Live decision windows</div><div class="t-value">38</div><div class="t-sub">consultations &amp; experimental orders open now</div></div>
+              <div class="tile"><div class="t-label">Est. cost per campaign pack</div><div class="t-value">£0.61</div><div class="t-sub">model + infra, per place</div></div>
+              <div class="tile"><div class="t-label">Human approvals required</div><div class="t-value">412</div><div class="t-sub">every export still gated</div></div>
+            </div>
+            <div class="panel">
+              <div class="p-title">Factory queue <span class="badge simulated">Simulated</span></div>
+              <div class="factory">
+                <div class="cell done"><b>Leicester</b><span class="st status good">✓ pack ready</span></div>
+                <div class="cell running"><b>Sheffield</b><span class="st status warning">● evidence</span></div>
+                <div class="cell running"><b>Cardiff</b><span class="st status warning">● scout</span></div>
+                <div class="cell queued"><b>Bristol</b>queued</div>
+                <div class="cell queued"><b>Bradford</b>queued</div>
+                <div class="cell queued"><b>+407 more</b>queued</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ribbon"><span>Exports: <b>0 — all blocked pending human approval</b></span><span>“A volunteer could inspect one place. A factory can inspect them all.”</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DETAILS ============ -->
+  <h2>Data spine</h2>
+  <table class="data">
+    <tr><th>Source</th><th>Used for</th><th>Access</th><th>Verification</th></tr>
+    <tr><td>Leicester CC news + democracy portal</td><td>the issue itself; agendas, minutes, order docs</td><td>plain HTML (ModernGov, no auth/JS) + text-extractable TRO PDFs</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>postcodes.io / NSPL (May 2026)</td><td>postcode → ward/constituency/LSOA</td><td>keyless API / direct 179MB zip, no auth</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Parliament Members API</td><td>current MP</td><td>keyless JSON (the .uk website 403s bots; API doesn't)</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>data.police.uk · STATS19 · ONS/Nomis/Fingertips</td><td>context pack (safety, demographics, health)</td><td>keyless APIs / bulk CSV (STATS19 through 2024; Fingertips ward-level thin — use LSOA/LA)</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>GIAS schools register</td><td>national scan seed list for factory view</td><td>daily bulk CSV, keyless (web UI blocks bots — use the CSV)</td><td><span class="status good">✓ OPEN — verified live</span></td></tr>
+    <tr><td>Local press (Leicester Mercury)</td><td>—</td><td>robots-blocks AI crawlers; no article on this scheme found</td><td><span class="status serious">△ do not cite in demo</span></td></tr>
+  </table>
+
+  <h2>Boundary of what's real</h2>
+  <table class="data">
+    <tr><th>Layer</th><th>On stage</th></tr>
+    <tr><td><span class="badge live">Live</span></td><td>postcode resolution · scout synthesis over cached index · the claim-challenge rewrite</td></tr>
+    <tr><td><span class="badge cached">Pre-cached</span></td><td>all council documents · context datasets · national scan results behind the 412 figure</td></tr>
+    <tr><td><span class="badge deterministic">Deterministic</span></td><td>geography joins · document fetch/parse · citation binding · approval state</td></tr>
+    <tr><td><span class="badge agentic">Agent</span></td><td>issue ranking · contradiction finding · strategy + content drafting</td></tr>
+    <tr><td><span class="badge simulated">Simulated</span></td><td>the national factory queue animation (real seed data, fake execution)</td></tr>
+  </table>
+
+  <h2>Honest assessment</h2>
+  <div class="note"><strong>Strengths:</strong> instantly legible; sympathetic protagonist; lowest ethical risk; the pipeline is the report's recommended build almost exactly.</div>
+  <div class="note warn"><strong>Weaknesses:</strong> the reveal is the <em>least</em> frightening of the four — “a charity does more good, faster” doesn't fully deliver Hannah's “the audience should be a bit afraid.” Risk of reading as a familiar research-and-content workflow with better plumbing. The panel would have to manufacture its own unease.</div>
+
+  <div class="pagenav">
+    <a href="index.html">← All options</a>
+    <a href="option-2-ward-machine.html">Option 2: The Ward Machine →</a>
+  </div>
+
+</div>
+</body>
+</html>
