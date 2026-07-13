@@ -1,0 +1,1360 @@
+{
+"id": "2c3a2fcb-a192-4bea-bf7f-6b2bd0982e38",
+"name": "Save Highfields Library Hours",
+"input": {
+"problem": "I want Leicester City Council to reverse the planned closure of the branch library in Highfields and keep it open with its current opening hours.",
+"org": "Save Highfields Library",
+"location": "Leicester LE2 1TH",
+"outcome": "Keep the library open"
+},
+"sources": [
+{
+"claim": "LE2 1TH \u2192 ward Castle, constituency Leicester South, local authority Leicester",
+"status": "Verified public information",
+"sourceTitle": "postcodes.io postcode lookup",
+"sourceOrg": "postcodes.io (ONS data)",
+"url": "https://api.postcodes.io",
+"date": "",
+"accessDate": "2026-07-13",
+"evidence": "admin_ward=Castle; constituency=Leicester South; district=Leicester",
+"confidence": "High",
+"usedFor": "Researched context; Power & Stakeholder Map"
+},
+{
+"claim": "Leicester City Council's original April 2025 proposals identified Highfields as one of 12 sites to be retained and rebranded as a library 'hub', with potential for 40 staffed hours a week \u2014 not as a site proposed for closure.",
+"status": "Verified public information",
+"sourceTitle": "Views sought on proposals to reshape libraries and community services",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2025/april/views-sought-on-proposals-to-reshape-libraries-and-community-services/",
+"date": "2025-04-02",
+"accessDate": "2026-07-13",
+"evidence": "Of the 12 sites the council proposed to keep as multi-service hubs, five (including Beaumont Leys and Highfields) could have staffed opening for 40 hours a week.",
+"confidence": "High",
+"usedFor": "Correcting the campaign's closure premise / reframing the ask"
+},
+{
+"claim": "The Council's public consultation on library and community centre proposals ran from 2 April to 29 June 2025.",
+"status": "Verified public information",
+"sourceTitle": "Issue details - Future Provision of Libraries and Community Centres",
+"sourceOrg": "Leicester City Council (cabinet.leicester.gov.uk)",
+"url": "https://cabinet.leicester.gov.uk/mgIssueHistoryHome.aspx?IId=133449&PlanId=418&RPID=0",
+"date": "2025-10-03",
+"accessDate": "2026-07-13",
+"evidence": "Full public consultation April \u2013 June 2025; Culture and Neighbourhoods Scrutiny Committee November 2025.",
+"confidence": "High",
+"usedFor": "Establishing the consultation timeline"
+},
+{
+"claim": "A decision on the future of libraries and community centres was formally taken on 11 March 2026, but was called-in under the Council's Constitution and considered by full Council on 26 March 2026, which upheld and revived the original decision in full.",
+"status": "Verified public information",
+"sourceTitle": "Decision - Future Provision of Libraries and Community Centres",
+"sourceOrg": "Leicester City Council (cabinet.leicester.gov.uk)",
+"url": "https://cabinet.leicester.gov.uk/ieDecisionDetails.aspx?Id=1519",
+"date": "2026-03-11",
+"accessDate": "2026-07-13",
+"evidence": "This decision was Called-In under Rule 12 of Part 4D of the Council's Constitution; the Call-In was considered by the Council at its meeting on 26 March 2026 where it was supported, and the original decision is deemed revived in its entirety.",
+"confidence": "High",
+"usedFor": "Establishing the decision-making and appeal/call-in process, and current status of the decision"
+},
+{
+"claim": "The approved March 2026 model confirms the Council will continue to directly run 15 libraries and three neighbourhood centres (Belgrave, Rushey Mead, Thurnby Lodge), alongside a \u00a32.5m investment in neighbourhood buildings.",
+"status": "Verified public information",
+"sourceTitle": "Decision set for future of city's libraries and community centres",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2026/march/decision-set-for-future-of-city-s-libraries-and-community-centres/",
+"date": "2026-03-06",
+"accessDate": "2026-07-13",
+"evidence": "Proposals for the city council to continue to run 15 of Leicester's libraries, and three busy neighbourhood centres... are set to be formally approved, with the council making a \u00a32.5m investment in the neighbourhood buildings.",
+"confidence": "High",
+"usedFor": "Establishing that Highfields (as a continuing library) falls within the retained/funded set of sites"
+},
+{
+"claim": "Fosse Neighbourhood Centre and Library will close due to low usage and the poor condition of the building; the Council will help the affected community group (Alice Hawkins Community Projects) relocate nearby.",
+"status": "Verified public information",
+"sourceTitle": "Decision set for future of city's libraries and community centres",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2026/march/decision-set-for-future-of-city-s-libraries-and-community-centres/",
+"date": "2026-03-06",
+"accessDate": "2026-07-13",
+"evidence": "Fosse Neighbourhood Centre and Library will close due to the low usage of the facility and poor condition of the building... the city council will work in partnership with Alice Hawkins Community Projects... to support them to relocate nearby.",
+"confidence": "High",
+"usedFor": "Confirming the specific site actually being closed is not Highfields"
+},
+{
+"claim": "Revised proposals (after consultation) deliver savings of \u00a31.57m a year instead of the originally targeted \u00a32.1m a year, via a smaller reduction in library/community centre staff numbers.",
+"status": "Verified public information",
+"sourceTitle": "City council announces U-turn on library cuts",
+"sourceOrg": "leicester.news",
+"url": "https://www.leicester.news/city-council-announces-u-turn-on-library-cuts/",
+"date": "2025-11-26",
+"accessDate": "2026-07-13",
+"evidence": "The cost-cutting measures... looked to save \u00a32.1m a year, but the authority has now 'significantly changed' its proposals following consultation... Revised proposals are now set to deliver savings of \u00a31.57m per year instead.",
+"confidence": "High",
+"usedFor": "Financial/savings context for the programme"
+},
+{
+"claim": "The Assistant City Mayor for Libraries and Community Centres, Cllr Vi Dempster, has stated the programme was framed internally as protecting services under budget pressure rather than as a closure programme.",
+"status": "Verified public information",
+"sourceTitle": "City council announces U-turn on library cuts",
+"sourceOrg": "leicester.news",
+"url": "https://www.leicester.news/city-council-announces-u-turn-on-library-cuts/",
+"date": "2025-11-26",
+"accessDate": "2026-07-13",
+"evidence": "\"As the council has always said, this was never a closure programme, it was about finding ways to protect these services in the face of ongoing budget cuts\" \u2014 Cllr Vi Dempster, assistant city mayor for libraries and community centres.",
+"confidence": "High",
+"usedFor": "Understanding the council's official framing/rationale, useful for anticipating their public messaging"
+},
+{
+"claim": "UNISON Leicester City branch publicly opposed the original 2025 cuts proposals, describing them as 'ill-judged and short-sighted' and citing the Council's statutory duty under the Public Libraries and Museums Act 1964 to provide a comprehensive and efficient library service.",
+"status": "Verified public information",
+"sourceTitle": "Plans to close libraries and community centres 'ill-judged and short-sighted' says UNISON",
+"sourceOrg": "UNISON Leicester City branch",
+"url": "https://leicestercity.unison.site/2025/04/24/plans-to-close-libraries-and-community-centres-ill-judged-and-short-sighted-says-unison/",
+"date": "2025-04-24",
+"accessDate": "2026-07-13",
+"evidence": "UNISON Leicester City branch... is completely opposed to these ill-judged and short-sighted cuts to jobs and services... The City Council itself acknowledges that it has a statutory duty under the Public Libraries and Museum Act 1964 'to provide a comprehensive and efficient library service for all persons'.",
+"confidence": "High",
+"usedFor": "Identifying a potential ally and the legal/statutory duty argument"
+},
+{
+"claim": "Leicester Conservatives ran a 'Protect Our Libraries' campaign opposing the Labour-run council's proposed library and community centre cuts, including a petition and encouragement to respond to the consultation.",
+"status": "Verified public information",
+"sourceTitle": "Conservatives Stand Against Labour's Plan to Close Leicester Libraries",
+"sourceOrg": "Leicester Conservatives",
+"url": "https://www.leicesterconservatives.com/campaigns/protect-our-libraries",
+"date": "Undated (referenced 2025 consultation deadline of 29 June)",
+"accessDate": "2026-07-13",
+"evidence": "We are launching a campaign to protect these vital spaces and stop Labour's cuts... We've launched a petition calling for the protection of our libraries and community centres.",
+"confidence": "Medium",
+"usedFor": "Identifying a potential (politically-aligned) ally/campaign precedent; note this is a party-political campaign rather than neutral journalism"
+},
+{
+"claim": "Highfields Library operates from 98 Melbourne Road, Leicester, LE2, matching the postcode area supplied for this campaign, and a site-specific 'building pack' document with current staffed hours was produced by the Council as part of the 2026 decision process.",
+"status": "Verified public information",
+"sourceTitle": "Highfields library building pack",
+"sourceOrg": "Leicester City Council",
+"url": "https://www.leicester.gov.uk/sites/default/files/2026-02/Highfields%20library%20building%20pack.pdf",
+"date": "2026-02",
+"accessDate": "2026-07-13",
+"evidence": "Current Staffed Hours \u00b7 98 Melbourne Rd, Leicester, LE2 [building pack document, produced February 2026 as part of decision-making materials].",
+"confidence": "Medium",
+"usedFor": "Confirming location and that Highfields was part of the decision documentation as a continuing site; exact hours figures not fully retrieved"
+},
+{
+"claim": "The Council undertook one of its most extensive consultation exercises, with 4,989 main surveys and 1,366 young people's surveys completed, around 1,053 attendees across 12 open public meetings, and meetings with 41 stakeholder and community groups.",
+"status": "Verified public information",
+"sourceTitle": "The future provision of libraries and community centres",
+"sourceOrg": "Leicester City Council",
+"url": "https://www.leicester.gov.uk/culture-and-sport/libraries-and-community-centres-leicester/future-provision-libraries-and-community-centres",
+"date": "Undated (post-March 2026 update)",
+"accessDate": "2026-07-13",
+"evidence": "4,989 surveys were completed along with 1,366 young people's surveys. Approximately 1,053 people attended one of the 12 open public meetings across the city... We also met with 41 stakeholder and community groups.",
+"confidence": "High",
+"usedFor": "Understanding the scale/legitimacy of the consultation process the council will point to"
+},
+{
+"claim": "It has not been possible in this research to confirm the name of the current City Mayor of Leicester or any Highfields ward councillor from an official page.",
+"status": "Verification incomplete",
+"sourceTitle": "N/A",
+"sourceOrg": "N/A",
+"url": "",
+"date": "",
+"accessDate": "2026-07-13",
+"evidence": "Searches focused on the libraries decision did not surface an official leicester.gov.uk page naming the current City Mayor or Highfields ward councillors within the time budget.",
+"confidence": "Low",
+"usedFor": "Flagging a gap for the campaign to fill before naming individuals"
+}
+],
+"completed": {
+"research": true,
+"plan": true,
+"drafts": true,
+"lint": true
+},
+"createdAt": "2026-07-13T13:06:47.717Z",
+"research": {
+"refinedProblem": "Contrary to the campaign's original premise, verified council records show Highfields Library was not on Leicester City Council's closure list. Following a 2025 consultation on library and community centre cuts, the Council's March 2026 decision confirms Highfields Library continues to be run by the Council as a 'library hub' with staffed opening hours, while a different site (Fosse Neighbourhood Centre and Library) is the one being closed. The real, verifiable issue for campaigners is therefore whether Highfields Library's revised staffed opening hours and service model (self-access hours, reduced staff numbers) match its 'current' pre-2025 hours, not an outright closure.",
+"campaignName": "Save Highfields Library Hours",
+"location": {
+"area": "Highfields, Leicester",
+"authority": "Leicester City Council (unitary authority)",
+"geography": "Highfields Library, 98 Melbourne Road, Leicester, LE2 \u2014 inner-city Leicester neighbourhood"
+},
+"interpretation": "The user wants Leicester City Council to reverse a 'planned closure' of Highfields branch library and restore/keep current opening hours. Research shows the premise needs correcting: Council documents describe Highfields as one of the sites retained as a library 'hub' under the 2025-26 restructuring, not one proposed for closure or community transfer. The user's underlying concern is best understood as opposing any reduction in staffed opening hours or service level at Highfields as part of the Council's approved savings programme.",
+"missingInfo": [
+"The exact 'current' (pre-2025) staffed opening hours at Highfields Library, to compare against the approved future hours",
+"The exact future staffed/self-access hours confirmed for Highfields in the 11 March 2026 decision (vs. the 40 hrs/week floated in the April 2025 proposal)",
+"Name of the current elected City Mayor of Leicester (not confirmed via an official page in this research)",
+"Whether any Highfields ward councillors or local resident/community groups have made public statements specifically about Highfields (as opposed to the citywide programme)",
+"Whether a formal Council petition or further scrutiny opportunity remains open at implementation stage"
+],
+"researchQuestions": [
+"What were Highfields Library's staffed opening hours immediately before the 2025 consultation, and what will they be after implementation?",
+"Does the 11 March/26 March 2026 decision notice specify Highfields' final staffed hours, or only the citywide 30\u201340 hrs/week banding?",
+"Is there a local Highfields-specific campaign or user group distinct from the citywide anti-cuts campaigns identified?",
+"What is the timeline for implementing the approved model at Highfields specifically, and is there a further public/scrutiny stage before hours change?"
+],
+"context": {
+"situation": "Leicester City Council ran a citywide consultation (April\u2013June 2025) on proposals to restructure library and community centre provision to meet budget savings targets, initially covering withdrawal of funding from 11 sites and reduced staffed hours at a further 13. Highfields was one of 12 sites proposed to continue as a council-run 'library hub' with 40 staffed hours a week, not one proposed for closure or community transfer.",
+"currentPolicy": "Following consultation, revised proposals were approved: the Council continues to directly run 15 libraries (including Highfields) and 3 neighbourhood centres, delivering reduced savings of \u00a31.57m/year (down from an initial \u00a32.1m/year target) via smaller staff reductions, self-service access hours at some sites, and Community Asset Transfer for other community centres. Fosse Neighbourhood Centre and Library \u2014 not Highfields \u2014 is the site confirmed to close, due to low usage and poor building condition.",
+"affected": [
+"Highfields Library users and residents",
+"Library and community centre staff facing reduced staff numbers/redeployment",
+"Community groups considering Community Asset Transfer of other (non-Highfields) sites",
+"Fosse Neighbourhood Centre/Library users and Alice Hawkins Community Projects (the group being relocated from that closing site)"
+],
+"keyDates": [
+"2 April \u2013 29 June 2025: full public consultation on library/community centre proposals",
+"November 2025: Culture and Neighbourhoods Scrutiny Committee considered assessment/recommendations report",
+"11 March 2026: original portfolio holder decision taken",
+"26 March 2026: Full Council considered a call-in of the decision and upheld it, reviving the original decision in full",
+"Implementation described as beginning 'in the next few months' after March 2026"
+],
+"institutions": [
+"Leicester City Council (library authority)",
+"Leicester City Council Cabinet / Assistant City Mayor for Libraries and Community Centres",
+"Culture and Neighbourhoods Scrutiny Committee",
+"UNISON Leicester City branch",
+"Alice Hawkins Community Projects (affected by Fosse closure, not Highfields)"
+],
+"howItChanged": "The original campaign brief assumed Highfields Library faced closure. Research found no evidence of this: council consultation and decision documents consistently list Highfields as a retained 'hub' site with staffed hours, while a different library (Fosse) is the one being closed. This substantially reframes the campaign from 'reverse a closure' to 'scrutinise/challenge any reduction in Highfields' staffed opening hours or service level' as the approved model is implemented."
+},
+"decisionMaker": {
+"formal": "Leicester City Council, as the statutory library authority under the Public Libraries and Museums Act 1964",
+"implementer": "Assistant City Mayor for Libraries and Community Centres (Cllr Vi Dempster), supported by the Council's Neighbourhood Services team",
+"practical": "Decisions are taken via portfolio-holder decision notices, informed by consultation findings reports and Equality Impact Assessments, and can be reviewed via the Council's call-in/scrutiny process before being revived if upheld",
+"processes": [
+"Public consultation (surveys, drop-ins, public meetings, stakeholder meetings) April\u2013June 2025",
+"Culture and Neighbourhoods Scrutiny Committee review, November 2025",
+"Portfolio-holder decision notice, 11 March 2026",
+"Call-in under Rule 12 of the Council's Constitution, considered and upheld by full Council, 26 March 2026",
+"Community Asset Transfer process for sites being offered to community groups (not applicable to Highfields, which remains council-run)"
+],
+"interventionPoints": [
+"Engagement with the Assistant City Mayor for Libraries and Community Centres and local ward councillors as implementation proceeds",
+"Monitoring of building-specific implementation plans (a 'Highfields library building pack' document exists on the council's decision-support pages) for confirmed final hours",
+"Formal Council petition or public questions at Full Council/Scrutiny meetings",
+"Continued alliance with UNISON Leicester City branch and citywide campaign groups opposing cuts"
+],
+"deadlines": [
+"No further public consultation window identified; the decision was upheld on 26 March 2026 and implementation is described as starting within a few months of that date"
+],
+"unresolved": [
+"Whether Highfields' final approved staffed hours match, exceed, or fall short of its pre-2025 hours",
+"Whether any site-specific (Highfields-only) decision point remains open for campaigners to influence"
+]
+},
+"claims": [
+{
+"claim": "Leicester City Council's original April 2025 proposals identified Highfields as one of 12 sites to be retained and rebranded as a library 'hub', with potential for 40 staffed hours a week \u2014 not as a site proposed for closure.",
+"status": "Verified public information",
+"sourceTitle": "Views sought on proposals to reshape libraries and community services",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2025/april/views-sought-on-proposals-to-reshape-libraries-and-community-services/",
+"date": "2025-04-02",
+"accessDate": "2026-07-13",
+"evidence": "Of the 12 sites the council proposed to keep as multi-service hubs, five (including Beaumont Leys and Highfields) could have staffed opening for 40 hours a week.",
+"confidence": "High",
+"usedFor": "Correcting the campaign's closure premise / reframing the ask"
+},
+{
+"claim": "The Council's public consultation on library and community centre proposals ran from 2 April to 29 June 2025.",
+"status": "Verified public information",
+"sourceTitle": "Issue details - Future Provision of Libraries and Community Centres",
+"sourceOrg": "Leicester City Council (cabinet.leicester.gov.uk)",
+"url": "https://cabinet.leicester.gov.uk/mgIssueHistoryHome.aspx?IId=133449&PlanId=418&RPID=0",
+"date": "2025-10-03",
+"accessDate": "2026-07-13",
+"evidence": "Full public consultation April \u2013 June 2025; Culture and Neighbourhoods Scrutiny Committee November 2025.",
+"confidence": "High",
+"usedFor": "Establishing the consultation timeline"
+},
+{
+"claim": "A decision on the future of libraries and community centres was formally taken on 11 March 2026, but was called-in under the Council's Constitution and considered by full Council on 26 March 2026, which upheld and revived the original decision in full.",
+"status": "Verified public information",
+"sourceTitle": "Decision - Future Provision of Libraries and Community Centres",
+"sourceOrg": "Leicester City Council (cabinet.leicester.gov.uk)",
+"url": "https://cabinet.leicester.gov.uk/ieDecisionDetails.aspx?Id=1519",
+"date": "2026-03-11",
+"accessDate": "2026-07-13",
+"evidence": "This decision was Called-In under Rule 12 of Part 4D of the Council's Constitution; the Call-In was considered by the Council at its meeting on 26 March 2026 where it was supported, and the original decision is deemed revived in its entirety.",
+"confidence": "High",
+"usedFor": "Establishing the decision-making and appeal/call-in process, and current status of the decision"
+},
+{
+"claim": "The approved March 2026 model confirms the Council will continue to directly run 15 libraries and three neighbourhood centres (Belgrave, Rushey Mead, Thurnby Lodge), alongside a \u00a32.5m investment in neighbourhood buildings.",
+"status": "Verified public information",
+"sourceTitle": "Decision set for future of city's libraries and community centres",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2026/march/decision-set-for-future-of-city-s-libraries-and-community-centres/",
+"date": "2026-03-06",
+"accessDate": "2026-07-13",
+"evidence": "Proposals for the city council to continue to run 15 of Leicester's libraries, and three busy neighbourhood centres... are set to be formally approved, with the council making a \u00a32.5m investment in the neighbourhood buildings.",
+"confidence": "High",
+"usedFor": "Establishing that Highfields (as a continuing library) falls within the retained/funded set of sites"
+},
+{
+"claim": "Fosse Neighbourhood Centre and Library will close due to low usage and the poor condition of the building; the Council will help the affected community group (Alice Hawkins Community Projects) relocate nearby.",
+"status": "Verified public information",
+"sourceTitle": "Decision set for future of city's libraries and community centres",
+"sourceOrg": "Leicester City Council (news.leicester.gov.uk)",
+"url": "https://news.leicester.gov.uk/news-articles/2026/march/decision-set-for-future-of-city-s-libraries-and-community-centres/",
+"date": "2026-03-06",
+"accessDate": "2026-07-13",
+"evidence": "Fosse Neighbourhood Centre and Library will close due to the low usage of the facility and poor condition of the building... the city council will work in partnership with Alice Hawkins Community Projects... to support them to relocate nearby.",
+"confidence": "High",
+"usedFor": "Confirming the specific site actually being closed is not Highfields"
+},
+{
+"claim": "Revised proposals (after consultation) deliver savings of \u00a31.57m a year instead of the originally targeted \u00a32.1m a year, via a smaller reduction in library/community centre staff numbers.",
+"status": "Verified public information",
+"sourceTitle": "City council announces U-turn on library cuts",
+"sourceOrg": "leicester.news",
+"url": "https://www.leicester.news/city-council-announces-u-turn-on-library-cuts/",
+"date": "2025-11-26",
+"accessDate": "2026-07-13",
+"evidence": "The cost-cutting measures... looked to save \u00a32.1m a year, but the authority has now 'significantly changed' its proposals following consultation... Revised proposals are now set to deliver savings of \u00a31.57m per year instead.",
+"confidence": "High",
+"usedFor": "Financial/savings context for the programme"
+},
+{
+"claim": "The Assistant City Mayor for Libraries and Community Centres, Cllr Vi Dempster, has stated the programme was framed internally as protecting services under budget pressure rather than as a closure programme.",
+"status": "Verified public information",
+"sourceTitle": "City council announces U-turn on library cuts",
+"sourceOrg": "leicester.news",
+"url": "https://www.leicester.news/city-council-announces-u-turn-on-library-cuts/",
+"date": "2025-11-26",
+"accessDate": "2026-07-13",
+"evidence": "\"As the council has always said, this was never a closure programme, it was about finding ways to protect these services in the face of ongoing budget cuts\" \u2014 Cllr Vi Dempster, assistant city mayor for libraries and community centres.",
+"confidence": "High",
+"usedFor": "Understanding the council's official framing/rationale, useful for anticipating their public messaging"
+},
+{
+"claim": "UNISON Leicester City branch publicly opposed the original 2025 cuts proposals, describing them as 'ill-judged and short-sighted' and citing the Council's statutory duty under the Public Libraries and Museums Act 1964 to provide a comprehensive and efficient library service.",
+"status": "Verified public information",
+"sourceTitle": "Plans to close libraries and community centres 'ill-judged and short-sighted' says UNISON",
+"sourceOrg": "UNISON Leicester City branch",
+"url": "https://leicestercity.unison.site/2025/04/24/plans-to-close-libraries-and-community-centres-ill-judged-and-short-sighted-says-unison/",
+"date": "2025-04-24",
+"accessDate": "2026-07-13",
+"evidence": "UNISON Leicester City branch... is completely opposed to these ill-judged and short-sighted cuts to jobs and services... The City Council itself acknowledges that it has a statutory duty under the Public Libraries and Museum Act 1964 'to provide a comprehensive and efficient library service for all persons'.",
+"confidence": "High",
+"usedFor": "Identifying a potential ally and the legal/statutory duty argument"
+},
+{
+"claim": "Leicester Conservatives ran a 'Protect Our Libraries' campaign opposing the Labour-run council's proposed library and community centre cuts, including a petition and encouragement to respond to the consultation.",
+"status": "Verified public information",
+"sourceTitle": "Conservatives Stand Against Labour's Plan to Close Leicester Libraries",
+"sourceOrg": "Leicester Conservatives",
+"url": "https://www.leicesterconservatives.com/campaigns/protect-our-libraries",
+"date": "Undated (referenced 2025 consultation deadline of 29 June)",
+"accessDate": "2026-07-13",
+"evidence": "We are launching a campaign to protect these vital spaces and stop Labour's cuts... We've launched a petition calling for the protection of our libraries and community centres.",
+"confidence": "Medium",
+"usedFor": "Identifying a potential (politically-aligned) ally/campaign precedent; note this is a party-political campaign rather than neutral journalism"
+},
+{
+"claim": "Highfields Library operates from 98 Melbourne Road, Leicester, LE2, matching the postcode area supplied for this campaign, and a site-specific 'building pack' document with current staffed hours was produced by the Council as part of the 2026 decision process.",
+"status": "Verified public information",
+"sourceTitle": "Highfields library building pack",
+"sourceOrg": "Leicester City Council",
+"url": "https://www.leicester.gov.uk/sites/default/files/2026-02/Highfields%20library%20building%20pack.pdf",
+"date": "2026-02",
+"accessDate": "2026-07-13",
+"evidence": "Current Staffed Hours \u00b7 98 Melbourne Rd, Leicester, LE2 [building pack document, produced February 2026 as part of decision-making materials].",
+"confidence": "Medium",
+"usedFor": "Confirming location and that Highfields was part of the decision documentation as a continuing site; exact hours figures not fully retrieved"
+},
+{
+"claim": "The Council undertook one of its most extensive consultation exercises, with 4,989 main surveys and 1,366 young people's surveys completed, around 1,053 attendees across 12 open public meetings, and meetings with 41 stakeholder and community groups.",
+"status": "Verified public information",
+"sourceTitle": "The future provision of libraries and community centres",
+"sourceOrg": "Leicester City Council",
+"url": "https://www.leicester.gov.uk/culture-and-sport/libraries-and-community-centres-leicester/future-provision-libraries-and-community-centres",
+"date": "Undated (post-March 2026 update)",
+"accessDate": "2026-07-13",
+"evidence": "4,989 surveys were completed along with 1,366 young people's surveys. Approximately 1,053 people attended one of the 12 open public meetings across the city... We also met with 41 stakeholder and community groups.",
+"confidence": "High",
+"usedFor": "Understanding the scale/legitimacy of the consultation process the council will point to"
+},
+{
+"claim": "It has not been possible in this research to confirm the name of the current City Mayor of Leicester or any Highfields ward councillor from an official page.",
+"status": "Verification incomplete",
+"sourceTitle": "N/A",
+"sourceOrg": "N/A",
+"url": "",
+"date": "",
+"accessDate": "2026-07-13",
+"evidence": "Searches focused on the libraries decision did not surface an official leicester.gov.uk page naming the current City Mayor or Highfields ward councillors within the time budget.",
+"confidence": "Low",
+"usedFor": "Flagging a gap for the campaign to fill before naming individuals"
+}
+],
+"possibleAllies": [
+"UNISON Leicester City branch (opposed the original cuts programme on statutory-duty and jobs grounds)",
+"Leicester Conservatives 'Protect Our Libraries' campaign (opposition-party campaign against the cuts programme)",
+"Highfields residents, library users, and any local community/faith/voluntary groups that use the library (not yet individually identified)",
+"Parents/young people's groups, given the council's own young people's survey (1,366 responses) shows youth usage/interest"
+],
+"possibleOpponents": [
+"Leicester City Council Cabinet, specifically the Assistant City Mayor for Libraries and Community Centres (Cllr Vi Dempster), who is implementing the approved savings model",
+"Council officers managing the budget-savings requirement (\u00a320m package cited by UNISON as the wider context) who may resist reopening a decision already upheld via call-in"
+],
+"localMedia": [
+"leicester.news (covered the consultation U-turn and cuts programme)",
+"news.leicester.gov.uk (the Council's own news channel, primary source for decision announcements)"
+],
+"searched": [
+"Leicester City Council Highfields library closure",
+"Leicester City Council libraries strategy consultation 2025 2026 closure",
+"Highfields library Leicester multiservice centre opening hours 2026",
+"Save Highfields Library Leicester campaign petition"
+],
+"unresolvedQuestions": [
+"What exactly were Highfields Library's staffed hours before the 2025 proposals, versus what has now been confirmed for after implementation?",
+"Is there any Highfields-specific opposition group or petition distinct from the citywide UNISON/Conservative campaigns found?",
+"What is the current City Mayor's name and position on this issue, and who are the Highfields ward councillors, for direct campaign targeting?",
+"Is there a further implementation-stage decision point (e.g., building works, staffing changes) where public comment could still influence the outcome at Highfields specifically?"
+]
+},
+"refinedProblem": "Contrary to the campaign's original premise, verified council records show Highfields Library was not on Leicester City Council's closure list. Following a 2025 consultation on library and community centre cuts, the Council's March 2026 decision confirms Highfields Library continues to be run by the Council as a 'library hub' with staffed opening hours, while a different site (Fosse Neighbourhood Centre and Library) is the one being closed. The real, verifiable issue for campaigners is therefore whether Highfields Library's revised staffed opening hours and service model (self-access hours, reduced staff numbers) match its 'current' pre-2025 hours, not an outright closure.",
+"interpretation": "The user wants Leicester City Council to reverse a 'planned closure' of Highfields branch library and restore/keep current opening hours. Research shows the premise needs correcting: Council documents describe Highfields as one of the sites retained as a library 'hub' under the 2025-26 restructuring, not one proposed for closure or community transfer. The user's underlying concern is best understood as opposing any reduction in staffed opening hours or service level at Highfields as part of the Council's approved savings programme.",
+"plan": {
+"objective": {
+"dm": "Assistant City Mayor for Libraries and Community Centres, Cllr Vi Dempster, acting for Leicester City Council as statutory library authority",
+"action": "publicly confirm Highfields Library's final staffed opening hours and commit that they will be maintained at no less than the pre-2025 staffed level, with a formal usage-based review point after 12 months before any further reduction",
+"by": "before the approved 'library hub' model is implemented at Highfields (implementation described as starting within a few months of the 26 March 2026 decision \u2014 target end of autumn 2026)",
+"mvw": "the Council publishes Highfields' confirmed staffed vs self-access hours side-by-side with the pre-2025 baseline and agrees a monitored 12-month review, even if the initial hours figure is not yet improved",
+"success": "a written commitment from the Assistant City Mayor or Neighbourhood Services confirming Highfields staffed hours and a review mechanism, evidenced in a decision-support document or letter to the campaign",
+"constraints": [
+"The core decision was taken 11 March 2026 and upheld on call-in 26 March 2026 \u2014 the campaign is operating at implementation stage, not consultation stage",
+"Highfields is a retained/funded site, not a closure \u2014 the 'reverse the closure' framing is false and must be dropped",
+"Exact pre-2025 and post-implementation staffed hours are not yet confirmed and must be established before any numerical demand is fixed",
+"\u00a31.57m/year savings target is approved council policy under wider budget pressure"
+],
+"smart": [
+{
+"test": "Specific",
+"assessment": "Targets a single named site (Highfields Library, 98 Melbourne Road), a single service dimension (staffed opening hours vs self-access), and a named decision-holder"
+},
+{
+"test": "Measurable",
+"assessment": "Success is a published hours comparison plus a written review commitment \u2014 both binary, checkable outputs"
+},
+{
+"test": "Achievable",
+"assessment": "Realistic because implementation detail is still being finalised and a building pack exists; a transparency-and-review ask is far cheaper for the Council than reopening the whole savings decision"
+},
+{
+"test": "Relevant",
+"assessment": "Directly addresses the verified real issue (staffed-hours reduction at a retained hub), not the disproven closure premise"
+},
+{
+"test": "Time-bound",
+"assessment": "Tied to the implementation window beginning within months of March 2026, giving a concrete autumn 2026 deadline"
+}
+]
+},
+"stakeholders": [
+{
+"name": "Cllr Vi Dempster",
+"org": "Leicester City Council",
+"role": "Assistant City Mayor for Libraries and Community Centres (portfolio decision-holder)",
+"tier": "decides",
+"power": "High",
+"position": "Frames the programme as protecting services under budget pressure, 'never a closure programme'; likely to resist reopening an upheld decision but may accept transparency/review asks",
+"positionStatus": "Verified public information",
+"relationship": "Not yet engaged by this campaign",
+"cares": "Defending the consultation's legitimacy, delivering \u00a31.57m savings, being seen to protect not cut services, avoiding a reputational fight in an inner-city ward",
+"ask": "Confirm Highfields' final staffed hours publicly and commit to a 12-month usage review before any further reduction",
+"approach": "Private letter and meeting first, using her own 'protecting services' framing to hold her to a no-reduction commitment",
+"evidence": "Quoted in leicester.news 26 Nov 2025 that this 'was never a closure programme, it was about finding ways to protect these services'",
+"confidence": "High"
+},
+{
+"name": "City Mayor of Leicester (officeholder name unverified)",
+"org": "Leicester City Council",
+"role": "Executive Mayor with overall responsibility for the budget and cabinet decisions",
+"tier": "decides",
+"power": "High",
+"position": "Presumed to back the approved savings programme as council leader; specific view on Highfields hours unknown",
+"positionStatus": "Verification incomplete",
+"relationship": "Not engaged; name must be confirmed before direct contact",
+"cares": "Overall budget delivery, city-wide political standing, avoiding localised campaigns escalating into citywide anti-cuts narrative",
+"ask": "Endorse a transparent Highfields hours commitment as consistent with the 'protecting services' message",
+"approach": "Escalation target only if the Assistant City Mayor route stalls; confirm name via leicester.gov.uk first",
+"evidence": "Research could not surface an official page naming the current City Mayor within time budget",
+"confidence": "Low"
+},
+{
+"name": "Highfields ward councillors (names unverified)",
+"org": "Leicester City Council",
+"role": "Elected members for the ward containing the library",
+"tier": "influences",
+"power": "Medium",
+"position": "Unknown; inner-city ward members plausibly sympathetic to protecting a local service but unconfirmed",
+"positionStatus": "Verification incomplete",
+"relationship": "Not engaged; identities to be confirmed via council website",
+"cares": "Ward casework, visible local wins, resident satisfaction ahead of elections",
+"ask": "Champion the Highfields hours case internally and table questions/support a petition",
+"approach": "Early one-to-one meetings; position them as the campaign's inside advocates",
+"evidence": "Research did not confirm ward councillor names from an official source",
+"confidence": "Low"
+},
+{
+"name": "Culture and Neighbourhoods Scrutiny Committee",
+"org": "Leicester City Council",
+"role": "Scrutiny body that reviewed the proposals (Nov 2025) and can revisit implementation",
+"tier": "influences",
+"power": "Medium-High",
+"position": "Reviewed and did not block the programme; potential route for public questions at implementation",
+"positionStatus": "Verified public information",
+"relationship": "Not engaged",
+"cares": "Proper implementation, equality impact, accountability of the executive",
+"ask": "Request an implementation-monitoring item on Highfields hours and equality impact",
+"approach": "Submit public questions and a written deputation via the committee clerk",
+"evidence": "Committee considered the assessment/recommendations report in November 2025 per council issue history",
+"confidence": "High"
+},
+{
+"name": "UNISON Leicester City branch",
+"org": "UNISON",
+"role": "Trade union representing library/community centre staff",
+"tier": "mobilises",
+"power": "Medium",
+"position": "Publicly opposed the original cuts as 'ill-judged and short-sighted' and cited the 1964 statutory duty",
+"positionStatus": "Verified public information",
+"relationship": "Natural ally, not yet approached",
+"cares": "Protecting staffed jobs and hours, statutory service standards, member redeployment concerns",
+"ask": "Co-sign the statutory-duty argument and share the staff-hours impact of the Highfields model",
+"approach": "Early coalition meeting; align on staffed-hours (not closure) framing",
+"evidence": "UNISON branch statement 24 April 2025 opposing cuts and citing Public Libraries and Museums Act 1964",
+"confidence": "High"
+},
+{
+"name": "Leicester Conservatives 'Protect Our Libraries' campaign",
+"org": "Leicester Conservatives (opposition group)",
+"role": "Opposition-party campaign that ran a libraries petition",
+"tier": "mobilises",
+"power": "Low-Medium",
+"position": "Opposed the Labour-run council's library cuts; useful precedent and reach but party-political",
+"positionStatus": "Verified public information",
+"relationship": "Not engaged; requires careful, non-partisan handling",
+"cares": "Political opportunity to attack the administration on cuts",
+"ask": "Amplify the Highfields-specific ask without capturing the campaign into a party narrative",
+"approach": "Keep at arm's length; accept amplification but retain the campaign's cross-party, resident-led identity",
+"evidence": "Leicester Conservatives 'Protect Our Libraries' campaign page with petition against Labour's plans",
+"confidence": "Medium"
+},
+{
+"name": "Highfields Library users and residents",
+"org": "Save Highfields Library Hours (self-organised)",
+"role": "Direct beneficiaries and the campaign's base",
+"tier": "mobilises",
+"power": "Low-Medium",
+"position": "Presumed to want current staffed hours retained",
+"positionStatus": "Supported inference",
+"relationship": "Core membership to be built",
+"cares": "Keeping accessible, staffed hours especially for children, older and non-digital users in a deprived inner-city area",
+"ask": "Sign the petition, log usage, attend meetings, give testimony",
+"approach": "Relational organising through the library, schools, faith venues and shops",
+"evidence": "Council's own consultation drew 1,366 young people's survey responses citywide, indicating youth usage/interest",
+"confidence": "Medium"
+},
+{
+"name": "Neighbourhood Services team officers",
+"org": "Leicester City Council",
+"role": "Officers producing building packs and delivering implementation",
+"tier": "resists",
+"power": "Medium",
+"position": "Focused on delivering approved savings; may resist reopening figures but hold the exact hours data",
+"positionStatus": "Supported inference",
+"relationship": "Not engaged",
+"cares": "Delivering the model on budget and to timetable, avoiding rework",
+"ask": "Release the Highfields building pack final hours and baseline comparison",
+"approach": "FOI / information request and constructive officer-level dialogue",
+"evidence": "A 'Highfields library building pack' (Feb 2026) exists among decision-support materials",
+"confidence": "Medium"
+},
+{
+"name": "Local faith and community groups in Highfields",
+"org": "Various (not individually identified)",
+"role": "Community anchors serving library user demographics",
+"tier": "mobilises",
+"power": "Low-Medium",
+"position": "Unknown; plausibly supportive of retaining a local staffed service",
+"positionStatus": "Verification incomplete",
+"relationship": "Not yet mapped",
+"cares": "Community access, youth provision, language and literacy support",
+"ask": "Endorse the campaign and mobilise members to log usage and sign the petition",
+"approach": "One-to-one meetings with named group leaders identified through local outreach",
+"evidence": "No Highfields-specific groups were identified in research; council met 41 stakeholder groups citywide",
+"confidence": "Low"
+},
+{
+"name": "leicester.news",
+"org": "Local news outlet",
+"role": "Local media covering the cuts programme",
+"tier": "influences",
+"power": "Medium",
+"position": "Has reported critically on the cuts and the council U-turn",
+"positionStatus": "Verified public information",
+"relationship": "Not engaged",
+"cares": "Local public-interest stories, community impact, accountability angles",
+"ask": "Cover the Highfields hours comparison and resident testimony",
+"approach": "Offer an exclusive with verified data and human stories once evidence is gathered",
+"evidence": "leicester.news covered the consultation U-turn and \u00a31.57m revised savings",
+"confidence": "Medium"
+},
+{
+"name": "Parents and young people's groups",
+"org": "Local schools / youth provision (not identified)",
+"role": "Represent a high-usage user segment",
+"tier": "mobilises",
+"power": "Low",
+"position": "Presumed supportive of retaining staffed after-school access",
+"positionStatus": "Supported inference",
+"relationship": "Not engaged",
+"cares": "Safe, staffed study and reading space for children after school",
+"ask": "Provide testimony on after-school usage and mobilise parents",
+"approach": "Outreach via schools near Melbourne Road and youth organisations",
+"evidence": "Council's separate youth survey (1,366 responses) signals youth stake in the service",
+"confidence": "Low"
+}
+],
+"pressures": [
+{
+"type": "Legal / statutory",
+"on": "Leicester City Council as library authority",
+"why": "Reducing staffed hours in a deprived inner-city area risks challenge over the duty to provide a 'comprehensive and efficient' service and the adequacy of the Equality Impact Assessment",
+"whoApplies": "UNISON, campaign, potentially residents via public questions",
+"channel": "Statutory-duty and EIA arguments in correspondence and scrutiny questions",
+"evidence": "Public Libraries and Museums Act 1964 duty cited by UNISON; council relied on an EIA in its decision process",
+"action": "Request the Highfields-specific EIA and test whether staffed-hours reduction was equality-assessed for this ward"
+},
+{
+"type": "Reputational / consistency",
+"on": "Cllr Vi Dempster",
+"why": "She publicly stated this 'was never a closure programme' and was about 'protecting these services' \u2014 a visible cut to staffed hours at Highfields contradicts her own framing",
+"whoApplies": "Campaign and local media",
+"channel": "Direct quotation back to her in correspondence and press",
+"evidence": "Her 26 Nov 2025 statement to leicester.news",
+"action": "Frame the ask as helping her keep her own promise: publish hours and guarantee no reduction below baseline"
+},
+{
+"type": "Democratic legitimacy",
+"on": "Leicester City Council",
+"why": "The Council heavily invested in one of its 'most extensive' consultations; ignoring evidenced local usage at implementation would undermine that legitimacy claim",
+"whoApplies": "Campaign presenting fresh usage data",
+"channel": "Usage counts and testimony submitted to scrutiny",
+"evidence": "4,989 surveys, 1,053 meeting attendees, 41 stakeholder groups cited by council",
+"action": "Produce independent Highfields usage evidence and demand it inform implementation"
+},
+{
+"type": "Electoral / local political",
+"on": "Highfields ward councillors and the administration",
+"why": "A visible local service reduction in an inner-city ward creates casework and electoral exposure the majority group prefers to avoid",
+"whoApplies": "Residents, coalition, opposition amplification",
+"channel": "Ward councillor meetings, petition, public meeting turnout",
+"evidence": "Inner-city ward with active community groups; Conservatives already campaigning on libraries",
+"action": "Secure ward councillors as internal advocates and demonstrate resident numbers"
+},
+{
+"type": "Transparency / information",
+"on": "Neighbourhood Services officers",
+"why": "The exact final hours are not yet public; withholding a simple comparison looks evasive and fuels the campaign",
+"whoApplies": "Campaign via information requests",
+"channel": "FOI / information request and building-pack scrutiny",
+"evidence": "Highfields building pack (Feb 2026) exists but exact hours were not retrieved",
+"action": "Force publication of the baseline-vs-future hours comparison as the campaign's factual anchor"
+}
+],
+"statusQuoCost": "For Cllr Vi Dempster and the Council, quietly implementing reduced staffed hours at Highfields is currently low-cost because the decision is legally settled and the closure narrative is (correctly) disproven. The campaign's job is to raise that cost precisely at implementation: by pinning her own 'protecting services' words to a measurable Highfields commitment, exposing any staffed-hours reduction against a published baseline, testing the equality assessment for a deprived inner-city ward, and generating visible local resident and union backing \u2014 so that publishing the hours and agreeing a review becomes cheaper and safer than being seen to cut a service she promised to protect.",
+"strategy": {
+"narrative": "Highfields Library is not closing \u2014 and that is exactly why this fight is winnable. The Council chose to keep it as a staffed 'library hub'. Now Highfields residents simply want the Council to keep its word: tell us the hours in black and white, and guarantee our staffed library does not lose the hours our children, elders and job-seekers rely on. We are holding Cllr Dempster to her own promise that this was about protecting services, not cutting them.",
+"audiences": [
+"Cllr Vi Dempster and Neighbourhood Services officers (decision and data holders)",
+"Highfields residents, parents and young people (base to mobilise)",
+"Ward councillors and the Scrutiny Committee (internal advocates and accountability route)",
+"Local media and the wider Leicester public (legitimacy and pressure amplifiers)"
+],
+"route": "Implementation-stage influence, not decision reversal: information request \u2192 private engagement with the portfolio holder and ward councillors \u2192 evidence-building (usage + EIA scrutiny) \u2192 public petition and scrutiny questions \u2192 escalation to Full Council deputation only if a reduction below baseline is confirmed and unaddressed",
+"coalition": "A resident-led core (Save Highfields Library Hours) anchored by library users, working with UNISON on the statutory-duty and staffing case, local faith/community and parents' groups for reach, and accepting arm's-length amplification from opposition campaigns without becoming party-political",
+"phases": [
+{
+"name": "Correct, verify and engage",
+"when": "Weeks 1\u20134 (from campaign start, post-March 2026)",
+"focus": "Reset the campaign onto the real 'staffed hours' issue; obtain the baseline-vs-future hours via information request and building pack; open private dialogue with the Assistant City Mayor and confirm/meet ward councillors"
+},
+{
+"name": "Evidence and internal scrutiny",
+"when": "Weeks 4\u20138",
+"focus": "Build independent Highfields usage evidence, obtain and scrutinise the Highfields EIA, align with UNISON, and submit public questions to the Culture and Neighbourhoods Scrutiny Committee"
+},
+{
+"name": "Public case and petition",
+"when": "Weeks 8\u201314",
+"focus": "Launch a formal Council petition, publish the hours comparison, run resident testimony and a creative 'hours we could lose' visibility action, and place a local media story"
+},
+{
+"name": "Escalation and lock-in",
+"when": "Weeks 14+ / before implementation completes",
+"focus": "If no acceptable commitment, escalate to a Full Council deputation and public question; if commitment achieved, secure it in writing and set up the 12-month review monitoring"
+}
+],
+"resources": [
+"A small coordinating group of 5\u20138 committed residents",
+"Access to the library building for petitioning and usage counts",
+"Volunteer time for one-to-ones and outreach in multiple community languages",
+"Basic digital tools: petition platform, shared spreadsheet for usage logging, social media"
+],
+"constraints": [
+"Decision legally settled and upheld on call-in \u2014 no formal reversal route",
+"Exact hours figures unconfirmed, so the numerical demand cannot be finalised until data is obtained",
+"Key individuals (City Mayor, ward councillors) unnamed and must be verified before targeting",
+"Volunteer-only capacity in a diverse inner-city community"
+],
+"risks": [
+"Council dismisses campaign as based on a false closure premise unless framing is corrected up front",
+"Being captured into a party-political anti-cuts narrative that alienates the administration",
+"Data may show hours are in fact maintained, requiring the campaign to pivot to a watchdog/monitoring role",
+"Volunteer burnout and low turnout"
+],
+"tradeoffs": [
+"Accepting a transparency-and-review MVW rather than an hours increase, to secure a realistic, verifiable win",
+"Working with opposition amplifiers at arm's length risks perception costs but adds reach",
+"Prioritising private engagement first may feel slow to activists wanting immediate visible action"
+],
+"escalation": "Escalation from private engagement to public petition, and from petition to Full Council deputation, is never automatic: each step is triggered only at a named review meeting where the coordinating group weighs the Council's latest response against the objective and explicitly decides to proceed.",
+"avoid": [
+"Repeating the disproven 'closure' claim in any public material",
+"Naming the City Mayor or ward councillors before their identities are verified",
+"Overstating unverified hours figures \u2014 always cite the baseline source",
+"Personal attacks on Cllr Dempster rather than holding her to her stated commitment"
+],
+"indicators": [
+"Written response from the Assistant City Mayor or officers on Highfields hours",
+"Publication of the baseline-vs-future hours comparison",
+"Number of verified petition signatures from Highfields residents",
+"Ward councillors publicly backing the ask",
+"Scrutiny Committee agreeing to a monitoring item"
+]
+},
+"tactics": [
+{
+"name": "Information/FOI request for Highfields hours and EIA",
+"phase": 1,
+"type": "Tech-enabled / research",
+"purpose": "Establish the factual anchor: exact pre-2025 staffed hours vs approved future staffed/self-access hours, plus the Highfields Equality Impact Assessment",
+"target": "Neighbourhood Services officers / Council FOI team",
+"owner": "Campaign research lead",
+"pressure": "Transparency / information",
+"resources": "One volunteer, access to the WhatDoTheyKnow/FOI process and the published building pack",
+"timing": "Week 1\u20132, response due within 20 working days",
+"dependencies": "Locating the Highfields building pack URL already identified in research",
+"expected": "Disclosure of the hours comparison and EIA, or a refusal that itself becomes evidence of evasiveness",
+"success": "A documented, sourced hours comparison the campaign can quote",
+"next": "Feeds the private engagement letter and the public hours comparison",
+"escalation": "If refused or incomplete, internal review request \u2014 decided at the week-4 review meeting",
+"approval": "Coordinating group signs off request wording before submission"
+},
+{
+"name": "Private letter and meeting with the Assistant City Mayor",
+"phase": 1,
+"type": "Conventional engagement",
+"purpose": "Put the transparency-and-no-reduction ask directly, using her own 'protecting services' framing",
+"target": "Cllr Vi Dempster",
+"owner": "Campaign chair",
+"pressure": "Reputational / consistency",
+"resources": "Drafted letter, 2\u20133 spokespeople, meeting prep",
+"timing": "Week 2\u20134",
+"dependencies": "Initial hours data or at least the building pack; correct portfolio contact details",
+"expected": "A meeting and an initial (possibly non-committal) response",
+"success": "A written acknowledgement engaging with the specific Highfields ask",
+"next": "Informs whether to proceed to scrutiny/public phase",
+"escalation": "If no substantive reply within 3 weeks, move to scrutiny questions \u2014 decided at week-4 review",
+"approval": "Coordinating group approves letter and meeting mandate"
+},
+{
+"name": "Confirm and recruit ward councillors as inside advocates",
+"phase": 1,
+"type": "Conventional / relational",
+"purpose": "Secure elected champions to raise the issue internally",
+"target": "Highfields ward councillors",
+"owner": "Campaign chair",
+"pressure": "Electoral / local political",
+"resources": "Verified councillor contact details, one-to-one meetings",
+"timing": "Week 2\u20134",
+"dependencies": "Verifying councillor identities via leicester.gov.uk",
+"expected": "At least one councillor agrees to support and ask questions",
+"success": "A councillor publicly or internally backs the hours ask",
+"next": "Enables scrutiny questions and petition presentation",
+"escalation": "If unresponsive, raise via surgeries and public meeting \u2014 decided at review",
+"approval": "Coordinating group confirms names verified before approach"
+},
+{
+"name": "Highfields usage count and resident testimony collection",
+"phase": 2,
+"type": "Creative / tech-enabled",
+"purpose": "Generate independent evidence of demand to counter any 'low usage' rationale",
+"target": "Evidence base for Scrutiny Committee and media",
+"owner": "Volunteer coordinator",
+"pressure": "Democratic legitimacy",
+"resources": "Volunteer counters, shared spreadsheet/form, multilingual testimony sheets",
+"timing": "Weeks 4\u20138, over several typical weekdays and Saturdays",
+"dependencies": "Library access permission or on-street counting",
+"expected": "Quantified footfall snapshot plus 15\u201330 testimonies",
+"success": "A credible usage dataset and story bank",
+"next": "Submitted with scrutiny questions and to media",
+"escalation": "If data shows strong after-school/elder demand, use to demand hours protection at those times \u2014 decided at review",
+"approval": "Coordinating group agrees counting method to keep it credible"
+},
+{
+"name": "Public questions and written deputation to Scrutiny Committee",
+"phase": 2,
+"type": "Conventional / institutional",
+"purpose": "Force implementation monitoring of Highfields hours and the EIA onto the record",
+"target": "Culture and Neighbourhoods Scrutiny Committee",
+"owner": "Campaign chair with UNISON support",
+"pressure": "Legal / statutory + democratic legitimacy",
+"resources": "Question drafting, one speaker, committee clerk deadlines",
+"timing": "Aligned to next committee cycle in weeks 6\u20138",
+"dependencies": "FOI/EIA outcome and usage data; UNISON co-signing",
+"expected": "Questions answered on record; possible monitoring commitment",
+"success": "Committee agrees to monitor Highfields hours or officers commit to publish them",
+"next": "Feeds petition messaging and any escalation decision",
+"escalation": "If brushed off, escalate to Full Council public question \u2014 decided at week-8 review",
+"approval": "Coordinating group approves question wording and speaker"
+},
+{
+"name": "Formal Council petition and hours comparison launch",
+"phase": 3,
+"type": "Conventional / tech-enabled",
+"purpose": "Demonstrate resident numbers and publish the verified baseline-vs-future hours",
+"target": "Leicester City Council / Assistant City Mayor",
+"owner": "Petition lead",
+"pressure": "Electoral / local political",
+"resources": "Online + paper petition, the verified hours graphic, canvassing volunteers",
+"timing": "Weeks 8\u201312",
+"dependencies": "Confirmed hours data; petition threshold/rules checked",
+"expected": "Signatures reaching the threshold that triggers a council response/debate",
+"success": "Petition threshold met with majority Highfields signatories",
+"next": "Presented at Full Council, tied to the ask",
+"escalation": "If threshold met and ignored, escalate to deputation \u2014 decided at review",
+"approval": "Coordinating group signs off petition text and target figure"
+},
+{
+"name": "Local media story with resident and staff testimony",
+"phase": 3,
+"type": "Conventional / earned media",
+"purpose": "Raise the reputational cost of a quiet hours reduction",
+"target": "leicester.news and wider public",
+"owner": "Media lead",
+"pressure": "Reputational / consistency",
+"resources": "Press release, hours graphic, willing case-study residents",
+"timing": "Weeks 9\u201313, timed with petition milestone",
+"dependencies": "Verified data and consenting spokespeople",
+"expected": "Published article contrasting Dempster's promise with the hours reality",
+"success": "Coverage prompting a council statement or commitment",
+"next": "Amplifies petition and strengthens escalation leverage",
+"escalation": "If no council movement, sustained follow-up coverage \u2014 decided at review",
+"approval": "Coordinating group approves lines; case studies give informed consent"
+},
+{
+"name": "'Hours we could lose' visibility action at the library",
+"phase": 3,
+"type": "Creative",
+"purpose": "Make the potential staffed-hours loss tangible and shareable",
+"target": "Public, media and passing councillors",
+"owner": "Volunteer coordinator",
+"pressure": "Democratic legitimacy",
+"resources": "Simple display (clock/timetable board), photos, social media",
+"timing": "Weeks 10\u201313, on a busy library day",
+"dependencies": "Verified hours; any permission needed for the space",
+"expected": "Strong local imagery and social sharing",
+"success": "Visible turnout and media pickup",
+"next": "Feeds momentum into deputation if needed",
+"escalation": "Repeat with larger turnout if unresolved \u2014 decided at review",
+"approval": "Coordinating group approves action and checks it stays accurate and lawful"
+},
+{
+"name": "Full Council deputation and public question",
+"phase": 4,
+"type": "Conventional / escalation",
+"purpose": "Directly demand the hours commitment and review at the highest public forum",
+"target": "Full Council / City Mayor / Cllr Dempster",
+"owner": "Campaign chair",
+"pressure": "Reputational + electoral",
+"resources": "Deputation slot booking, speech, petition handover, supporter turnout",
+"timing": "Weeks 14+, before implementation completes",
+"dependencies": "Petition delivered; prior routes exhausted; City Mayor name verified",
+"expected": "Public response from the administration on the record",
+"success": "A public commitment to publish hours and a review, or clear political cost incurred",
+"next": "If commitment secured, move to written lock-in and monitoring",
+"escalation": "This is the top conventional escalation; further steps (e.g. legal advice on statutory duty) only if reduction confirmed \u2014 decided at review",
+"approval": "Coordinating group explicitly decides to escalate to deputation at the phase-4 review"
+}
+],
+"organising": {
+"whoActs": "Highfields library users \u2014 parents, older residents, young people, job-seekers and students \u2014 plus library and community-centre staff via UNISON, organised as the resident-led group Save Highfields Library Hours",
+"whyParticipate": "Because a staffed local library is a shared everyday resource; protecting its hours is a concrete, winnable ask that residents can influence at implementation stage, unlike a done-deal closure",
+"asks": [
+"Sign and share the petition",
+"Log your library visits for the usage count",
+"Give a short testimony about why staffed hours matter to you",
+"Attend a one-to-one or the public meeting",
+"Take a role: counting, translating, canvassing or speaking"
+],
+"roles": [
+{
+"role": "Campaign chair / spokesperson",
+"what": "Leads engagement with councillors and media, fronts the deputation"
+},
+{
+"role": "Research lead",
+"what": "Runs the FOI/EIA request and maintains the verified hours comparison"
+},
+{
+"role": "Volunteer coordinator",
+"what": "Organises usage counts, the visibility action and rotas"
+},
+{
+"role": "Petition lead",
+"what": "Runs online and paper petition and tracks signatures against the threshold"
+},
+{
+"role": "Media lead",
+"what": "Manages press relationships and consent from case studies"
+},
+{
+"role": "Outreach/community liaison",
+"what": "Builds relationships with faith, parent and community groups in multiple languages"
+}
+],
+"coalition": [
+"UNISON Leicester City branch on the statutory-duty and staffing case",
+"Local faith and community groups serving Highfields (to be identified)",
+"Parents' and youth groups near Melbourne Road",
+"Arm's-length amplification from opposition library campaigns, without party capture"
+],
+"oneToOne": [
+"Sit down with regular library users to hear what specific hours they depend on and turn that into testimony",
+"Meet each identified ward councillor to ask directly whether they will champion the hours ask",
+"Meet UNISON reps to align framing on staffed hours and staffing impact",
+"Meet leaders of local community and faith groups to secure endorsements and turnout"
+],
+"outreach": "Reach residents where they already are: inside and outside the library on busy days, at school gates near Melbourne Road, at places of worship and community centres, and via multilingual leaflets and WhatsApp/social groups \u2014 always leading with the accurate 'protect the hours' message, not closure",
+"event": "A public meeting at or near Highfields Library where residents see the verified hours comparison, hear testimony, sign the petition and choose roles \u2014 used to launch the petition phase and recruit up the ladder",
+"ladder": [
+{
+"rung": "Aware",
+"action": "Reads a leaflet or social post and understands the real hours issue"
+},
+{
+"rung": "Supporter",
+"action": "Signs the petition and shares it"
+},
+{
+"rung": "Contributor",
+"action": "Logs usage or gives a testimony"
+},
+{
+"rung": "Active volunteer",
+"action": "Counts, canvasses, translates or staffs the visibility action"
+},
+{
+"rung": "Organiser",
+"action": "Takes a named role and runs one-to-ones and outreach"
+},
+{
+"rung": "Leader",
+"action": "Joins the coordinating group, speaks publicly, meets councillors"
+}
+],
+"channels": [
+"Face-to-face at the library and community venues",
+"WhatsApp and community social media groups",
+"Multilingual paper leaflets and petition sheets",
+"Email list for supporters",
+"Local media via the media lead"
+],
+"followup": "Every signer and attendee is contacted within a week with a specific next ask; testimonies and contacts are logged in the shared spreadsheet and matched to roles up the ladder",
+"sustain": "Rotate tasks to avoid burnout, celebrate small wins (each disclosure or councillor backing), keep the coordinating group meeting fortnightly with clear review points, and, if a commitment is won, convert the group into a light-touch watchdog for the 12-month review",
+"metrics": [
+"Number of active volunteers and named role-holders",
+"Number of one-to-ones completed",
+"Petition signatures, especially verified Highfields residents",
+"Usage-count sessions completed and testimonies collected",
+"Coalition partners formally endorsing"
+],
+"humanEssential": [
+"Deciding at each review point whether to escalate",
+"Confirming councillor and City Mayor identities before naming or targeting them",
+"Securing informed consent from residents giving testimony",
+"Judging the arm's-length relationship with party-political amplifiers",
+"Signing off all public messaging for factual accuracy"
+]
+},
+"risks": [
+"Council publicly rebuts the campaign if any material repeats the false closure claim",
+"Data reveals hours are maintained, requiring a pivot to monitoring rather than restoration",
+"Failure to verify individuals leads to misdirected or reputationally risky targeting",
+"Campaign captured into a party-political fight, alienating the decision-maker",
+"Volunteer capacity in a diverse community proves thin, weakening turnout"
+],
+"assumptions": [
+"Highfields' future staffed hours are in fact lower than pre-2025 (the core grievance) \u2014 unverified until data obtained",
+"An implementation-stage window still exists to influence hours and secure a review",
+"Ward councillors and residents will engage once approached",
+"A formal petition/public-question route remains open at implementation stage"
+],
+"metrics": {
+"campaign": [
+"Verified pre-2025 vs future staffed-hours comparison published",
+"Written commitment from the Assistant City Mayor on hours and a 12-month review",
+"Scrutiny Committee monitoring item secured",
+"Petition threshold met with majority Highfields signatories",
+"Local media coverage of the hours issue"
+],
+"organising": [
+"Size and activity of the volunteer base",
+"Number of one-to-ones and testimonies gathered",
+"Number of coalition endorsements",
+"Ladder progression (supporters converting to organisers)",
+"Retention and turnout across phases"
+]
+},
+"qualityFlags": [
+"City Mayor of Leicester and Highfields ward councillors are unnamed \u2014 identities must be verified before any direct targeting or public naming",
+"The central grievance (that future staffed hours fall below pre-2025 levels) is unverified; exact baseline and future hours were not retrieved and the numerical ask is provisional",
+"Local faith, community, parent and youth groups are described generically because no Highfields-specific group was identified in research",
+"Whether a formal petition threshold, public-question slot or implementation-stage decision point remains open is assumed, not confirmed",
+"The Leicester Conservatives alliance is party-political and could compromise the campaign's cross-party, resident-led framing if not kept at arm's length",
+"Timings are expressed in weeks from campaign start because the precise implementation date at Highfields ('within a few months' of March 2026) is not pinned down"
+]
+},
+"drafts": {
+"lobbying": {
+"briefing": "Highfields Library (98 Melbourne Road, LE2) is NOT closing. Leicester City Council's approved March 2026 decision retains Highfields as one of the libraries it continues to run directly, as part of a 'library hub' model. The site that is closing is Fosse Neighbourhood Centre and Library, due to low usage and building condition \u2014 not Highfields. This means the correct campaign issue is staffed opening hours at Highfields under the new hub model, not reversing a closure. The Council's original April 2025 proposals identified Highfields as a hub site with potential for up to 40 staffed hours a week, but the exact pre-2025 baseline and the final confirmed staffed hours under the March 2026 decision have not yet been published or verified by this campaign [VERIFY: exact pre-2025 staffed hours at Highfields] [VERIFY: exact confirmed staffed hours at Highfields post-implementation]. A 'Highfields library building pack' dated February 2026 exists among the Council's own decision-support documents and references 'Current Staffed Hours' for the site, so the data exists \u2014 it simply needs to be made public and compared side by side. Cllr Vi Dempster, Assistant City Mayor for Libraries and Community Centres, told leicester.news on 26 November 2025 that 'this was never a closure programme, it was about finding ways to protect these services.' The campaign's strategy is to hold her to that statement: ask her to publish the Highfields hours comparison and commit to a 12-month usage-based review before any further reduction, rather than to reopen a legally settled decision. UNISON Leicester City branch already opposes the cuts programme on statutory-duty grounds (Public Libraries and Museums Act 1964). The City Mayor's name and the Highfields ward councillors' names could not be verified in research and must not be used in public-facing material until confirmed [VERIFY: current City Mayor of Leicester] [VERIFY: Highfields ward councillor names].",
+"meetingEmail": "Subject: Request for a meeting \u2014 Highfields Library staffed hours\n\nDear Cllr Dempster,\n\nWe write on behalf of Save Highfields Library, a group of residents and library users from the Highfields area (LE2).\n\nWe understand Highfields Library, 98 Melbourne Road, will continue to be run by the Council as a library hub under the decision approved on 11 March 2026 and upheld on call-in on 26 March 2026. We are not asking you to reverse that decision. Our concern is narrower and, we believe, straightforward to address: residents want to know the confirmed staffed opening hours at Highfields once the hub model is implemented, and how these compare with the hours in place before 2025.\n\nYou told leicester.news on 26 November 2025 that this programme 'was never a closure programme, it was about finding ways to protect these services.' We would welcome the opportunity to discuss how that commitment can be made visible and measurable at Highfields specifically, ahead of the hub model going live.\n\nWe would be grateful for a meeting with you or a relevant Neighbourhood Services officer in the coming weeks to discuss:\n1) publishing Highfields' confirmed staffed vs self-access hours alongside the pre-2025 baseline, and\n2) agreeing a monitored 12-month review point before any further reduction in staffed hours.\n\nWe are happy to meet at a time and location convenient to you, including at the library itself.\n\nYours sincerely,\nSave Highfields Library (campaign spokesperson)",
+"agenda": "Meeting: Highfields Library staffed hours \u2014 Save Highfields Library and Cllr Vi Dempster (or delegated officer)\n\n1. Introductions and shared starting point: Highfields is a retained, funded library hub, not a closure (2 mins)\n2. Council's current position: what staffed vs self-access hours are confirmed for Highfields, and against what pre-2025 baseline (10 mins)\n3. Campaign ask: publish the hours comparison publicly (10 mins)\n4. Campaign ask: agree a 12-month usage-based review point before any further reduction (10 mins)\n5. Discussion of the Highfields-specific Equality Impact Assessment and how usage evidence will be considered (10 mins)\n6. Role for ward councillors and the Culture and Neighbourhoods Scrutiny Committee in monitoring (5 mins)\n7. Agreed next steps and timeline for a written response (5 mins)",
+"keyArguments": [
+"Highfields is a retained, Council-run library hub under the decision taken on 11 March 2026 and upheld on 26 March 2026 \u2014 the site facing closure is Fosse Neighbourhood Centre and Library, not Highfields, so this is a staffed-hours issue, not a closure fight.",
+"Cllr Dempster's own public statement \u2014 that the programme 'was never a closure programme, it was about finding ways to protect these services' \u2014 commits the Council to a standard that a simple, published hours comparison and review point would let it demonstrably meet.",
+"The Council's original April 2025 proposals identified Highfields as a hub site with potential for up to 40 staffed hours a week, indicating the Council itself has already modelled a staffed-hours figure for this site that residents are entitled to see confirmed.",
+"A 'Highfields library building pack' dated February 2026, produced by the Council as part of its own decision-making materials, already references current staffed hours for the site \u2014 the data needed to answer this ask already exists internally.",
+"The Council has a statutory duty under the Public Libraries and Museums Act 1964 to provide a comprehensive and efficient library service, cited by UNISON Leicester City branch in opposing the wider cuts programme \u2014 a duty that is easier to demonstrate compliance with if hours are transparently published and reviewed.",
+"The Council itself describes its consultation as one of its most extensive, with 4,989 surveys and 41 stakeholder groups engaged \u2014 a transparency-and-review ask at implementation is a low-cost way of honouring that legitimacy claim for a specific, high-need inner-city site."
+],
+"talkingPoints": [
+"We are not asking the Council to reverse the March 2026 decision or reopen Highfields as it was \u2014 we accept it is being retained as a hub.",
+"Our single, specific ask is: publish Highfields' confirmed staffed hours next to the pre-2025 baseline, and commit to review usage after 12 months before any further reduction.",
+"This is squarely in line with what the Council has already said publicly about protecting services, not cutting them.",
+"The building pack the Council already produced in February 2026 shows this data exists \u2014 we are asking for publication, not new work.",
+"Highfields serves a deprived inner-city ward; residents, especially children, older people and job-seekers, rely on staffed access, not self-service alone.",
+"A review point after 12 months protects both the Council's budget position and residents' interests \u2014 it is a shared-risk mechanism, not a reopening of the savings decision."
+],
+"questionsToAsk": [
+"What are Highfields Library's confirmed staffed opening hours under the approved hub model, and what were staffed hours immediately before 2025?",
+"Will the Council commit to publishing this comparison, and by what date?",
+"Was a Highfields-specific Equality Impact Assessment carried out on the staffed-hours change, and can residents see it?",
+"Who in Neighbourhood Services holds the final building pack data for Highfields, and can it be shared directly with the campaign?",
+"Will the Council agree to a formal 12-month review point, tied to usage data, before any further reduction in Highfields' staffed hours?",
+"Can the Culture and Neighbourhoods Scrutiny Committee be asked to receive a monitoring update on Highfields hours as part of implementation oversight?",
+"Who are the current ward councillors for Highfields, so we can involve them directly in this discussion?"
+],
+"objections": [
+{
+"objection": "This decision was already taken and upheld on call-in on 26 March 2026 \u2014 it isn't up for revisiting.",
+"response": "We agree, and we are not asking you to revisit the decision itself. Our ask is narrower: publish the confirmed Highfields hours against the pre-2025 baseline, and agree a review point. That's implementation transparency, not a reversal."
+},
+{
+"objection": "Highfields was never going to close \u2014 this campaign is based on a false premise.",
+"response": "We accept that and have corrected our own framing: Highfields is retained as a hub, and the site actually closing is Fosse Neighbourhood Centre and Library. Our concern now is specifically about staffed hours at Highfields, which is a separate and legitimate question."
+},
+{
+"objection": "The Council ran one of its most extensive consultations and already accounted for local views.",
+"response": "We recognise that scale of engagement \u2014 4,989 surveys and 41 stakeholder groups is significant. That is exactly why we think publishing the Highfields-specific hours outcome, and monitoring it against real usage for 12 months, is a natural extension of that consultative approach, not a challenge to it."
+},
+{
+"objection": "We can't commit to a review that might reopen budget decisions later.",
+"response": "The review would look at usage evidence, not automatically reopen the savings figure. It gives the Council a chance to show hours are working for residents, or to make an informed, evidenced decision if they are not \u2014 which supports good governance either way."
+},
+{
+"objection": "We don't have the exact figures to hand right now.",
+"response": "That's understood \u2014 the February 2026 building pack indicates this data exists internally. We're not asking for an answer in this meeting, only a commitment to publish it and a realistic timeframe for doing so."
+}
+],
+"contactScript": "Hello, my name is [name] and I'm calling on behalf of Save Highfields Library, a resident group based near the library on Melbourne Road. I wanted to check whether it would be possible to arrange a short meeting with Cllr Dempster or a Neighbourhood Services officer about Highfields Library's staffed opening hours. We understand Highfields is being kept open as a library hub under the March 2026 decision \u2014 we're not disputing that. We simply want to see the confirmed staffed hours published alongside the hours before 2025, and agree a 12-month review point. Could you let me know who the best contact is to arrange this, and whether there's a public meeting or scrutiny committee date coming up where this could also be raised?",
+"doorknockScript": "Hello, sorry to bother you \u2014 I'm from Save Highfields Library, a group of local residents. Just so you know, Highfields Library isn't closing \u2014 the Council is keeping it open as part of a new 'hub' model. What we're not yet sure about is whether the staffed hours \u2014 when there's actually a member of staff on the desk, not just self-service access \u2014 will stay the same as before. We're asking the Council to publish the hours clearly and agree to review them after a year based on how much people actually use the library. If you use the library, or would like to, would you be willing to sign our petition and tell us briefly what times you or your family use it? It only takes a minute, and it helps us show the Council the real demand here in Highfields.",
+"followupEmail": "Subject: Thank you \u2014 Highfields Library hours, next steps\n\nDear Cllr Dempster,\n\nThank you for meeting with us on [date] to discuss Highfields Library's staffed opening hours.\n\nTo confirm what we discussed, we understand [officer name/role \u2014 VERIFY] will look into providing:\n1) the confirmed staffed vs self-access hours for Highfields against the pre-2025 baseline, and\n2) a response on whether the Council will agree a 12-month, usage-based review point before any further reduction in staffed hours.\n\nWe would be grateful for a response by [date, e.g. 3\u20134 weeks from meeting]. In the meantime, we will continue gathering resident usage evidence and would welcome the chance to share this with your team once it is available.\n\nThank you again for your time and for engaging directly with residents on this.\n\nYours sincerely,\nSave Highfields Library (campaign spokesperson)",
+"escalationOptions": [
+"Submit a public question and/or written deputation to the Culture and Neighbourhoods Scrutiny Committee requesting an implementation-monitoring item on Highfields staffed hours and the relevant Equality Impact Assessment.",
+"Submit a formal information request (FOI) for the Highfields building pack's confirmed hours data and the Highfields-specific Equality Impact Assessment if not voluntarily disclosed.",
+"Launch a formal Council petition once verified hours data is published, aiming for the recognised signature threshold to trigger a council response or debate.",
+"Coordinate with UNISON Leicester City branch to jointly raise the statutory-duty (Public Libraries and Museums Act 1964) case if a reduction below baseline is confirmed.",
+"Brief local media (e.g. leicester.news) with the verified hours comparison and resident testimony if the Council does not respond substantively within an agreed timeframe.",
+"Request and secure verified identification of Highfields ward councillors [VERIFY: names] to recruit as internal advocates before any public campaign escalation naming them.",
+"If all other routes are exhausted and a confirmed reduction below baseline is unaddressed, seek a Full Council deputation slot and public question directed at Cllr Dempster and, if appropriate, the City Mayor [VERIFY: name]."
+]
+},
+"media": {
+"pressRelease": "FOR IMMEDIATE RELEASE\n\nHighfields residents call on council to publish library hours pledge and guarantee no cut below current staffed service\n\nLeicester, LE2 \u2014 A resident group, Save Highfields Library, is calling on Leicester City Council to publicly confirm the future staffed opening hours at Highfields Library, 98 Melbourne Road, and to commit that staffed hours will not fall below the level residents currently rely on \u2014 with a 12-month usage review before any further reduction is considered.\n\nHighfields is not among the sites earmarked for closure. The council's own decision confirms it will continue to directly run 15 libraries, including Highfields, as part of a 'library hub' model (Leicester City Council, 6 March 2026). The site actually closing under the approved plan is Fosse Neighbourhood Centre and Library, not Highfields (Leicester City Council, 6 March 2026).\n\nBut residents say the council has not yet published the exact staffed hours that will apply at Highfields once the hub model is implemented, despite a site-specific 'building pack' produced by the council in February 2026 that refers to current staffed hours. [VERIFY: exact pre-2025 and post-implementation staffed hours at Highfields].\n\nThe council's Assistant City Mayor for Libraries and Community Centres, Cllr Vi Dempster, told leicester.news in November 2025 that the changes were \"never a closure programme, it was about finding ways to protect these services in the face of ongoing budget cuts.\" Save Highfields Library says it is holding the council to that promise.\n\n\"We're not asking the council to reverse a decision \u2014 we know Highfields is staying open as a hub,\" said a campaign spokesperson. \"We're asking them to show us, in black and white, what 'protecting services' actually means for our library's staffed hours, and to promise not to quietly cut them further without checking how the community is using the service first.\"\n\nUNISON Leicester City branch, which represents library staff, has previously opposed cuts to the service, citing the council's statutory duty under the Public Libraries and Museums Act 1964 to provide \"a comprehensive and efficient library service for all persons\" (UNISON Leicester City branch, 24 April 2025).\n\nThe council undertook what it describes as one of its most extensive consultations, with 4,989 surveys and 1,053 people attending public meetings (Leicester City Council). Save Highfields Library argues that legitimacy should now extend to transparent implementation at site level.\n\nThe group is asking Cllr Dempster to:\n1. Publish Highfields' confirmed staffed hours alongside the pre-2025 baseline; and\n2. Commit to a monitored 12-month review before any further reduction.\n\nENDS\n\nNotes to editors:\n- Save Highfields Library is a resident-led group based around Highfields Library, 98 Melbourne Road, Leicester LE2.\n- [VERIFY: contact details for Save Highfields Library spokesperson to be added by the group before distribution.]\n- The campaign does not dispute that Highfields will remain open as a staffed library hub; its concern is solely the level of staffed hours and transparency around them.",
+"pitchEmail": "Subject: Highfields Library hours \u2014 residents want the council to show its working\n\nHi [reporter name \u2014 please insert once confirmed],\n\nA quick, locally-specific story for you: residents around Highfields Library on Melbourne Road are asking Leicester City Council to publish the exact staffed opening hours planned for the library once its new 'hub' model goes live \u2014 something the council hasn't yet made public, despite a site-specific document existing since February 2026.\n\nThis isn't a closure story \u2014 Highfields is one of the 15 libraries the council has confirmed it will keep running directly. But the campaign group, Save Highfields Library, says the council's own promise to be \"protecting services, not cutting them\" (Cllr Vi Dempster, quoted in leicester.news, 26 Nov 2025) needs to be tested against a real, published hours figure \u2014 and they want a 12-month review built in before any further reduction.\n\nWe can offer:\n- A campaign spokesperson available for interview\n- Local residents willing to talk about how they use the library (after-school study, older residents, job-seekers)\n- The specific documents referenced (council decision notice, building pack, UNISON statement)\n\nHappy to talk this week. [VERIFY: best contact number/email for spokesperson to be inserted by campaign before sending.]\n\nBest,\n[Media lead name \u2014 insert]\nSave Highfields Library",
+"headline": "Highfields residents demand council publish library hours pledge, not just a promise to 'protect services'",
+"altAngles": [
+"Data angle: 'The council knows the numbers \u2014 residents don't.' Focus on the unpublished February 2026 building pack and call for an information request/FOI response.",
+"Accountability angle: 'Cllr Dempster said it was never about cuts \u2014 so prove it.' Focus on holding a named decision-maker to her own quoted words.",
+"Fairness angle: 'A \u00a32.5m investment, but is Highfields' staffed time being quietly squeezed?' Contrast the council's headline investment figure with the lack of a published site-level hours commitment.",
+"Statutory duty angle: with UNISON, focus on the 1964 Act duty to provide a comprehensive and efficient library service and whether reduced staffed hours in a deprived inner-city ward is consistent with that duty.",
+"Process angle: given the scale of the council's consultation (nearly 5,000 surveys), why hasn't the same transparency been applied to telling residents the actual hours at their own local library?"
+],
+"spokespeople": "All quotes below are drafts to be adapted and attributed by real people who have given informed consent \u2014 for example a 'campaign spokesperson' from Save Highfields Library, or 'a parent' / 'a library user' with direct experience. No named councillor, council officer or journalist should be quoted or invented. Do not attribute quotes to Cllr Vi Dempster, the City Mayor or any ward councillor unless they have actually provided that comment; where their name is used it must be confirmed via an official source first.",
+"quotes": [
+{
+"voice": "campaign spokesperson",
+"quote": "We're not fighting a closure that isn't happening. We're asking the council to do the one thing it hasn't done yet: tell us, in writing, what staffed hours Highfields will actually have \u2014 and promise not to quietly cut them further without checking with the people who use the library.",
+"note": "Anchors the campaign's corrected framing; safe to use as-is or adapt."
+},
+{
+"voice": "a parent",
+"quote": "My kids come here after school because it's staffed, warm and safe. If those hours shrink without anyone telling us, we lose that quietly, one week at a time.",
+"note": "Illustrative testimony draft \u2014 must be replaced with a real parent's own words and consent obtained."
+},
+{
+"voice": "an older library user",
+"quote": "I don't use the self-service machines easily. Staffed hours are the difference between me using this library and not using it at all.",
+"note": "Draft only; needs a genuine resident's voice and explicit consent before use."
+},
+{
+"voice": "UNISON branch representative",
+"quote": "The council has a statutory duty to provide a comprehensive and efficient library service. That duty doesn't disappear once a decision is taken \u2014 it has to be checked at the point services are actually delivered.",
+"note": "Reflects UNISON's verified 24 April 2025 public statement citing the 1964 Act; to be confirmed and re-issued by an actual UNISON rep."
+}
+],
+"qa": [
+{
+"q": "Is Highfields Library closing?",
+"a": "No. The council's approved March 2026 decision confirms it will continue to directly run 15 libraries, including Highfields, as a staffed 'library hub' (Leicester City Council, 6 March 2026). The site closing under this decision is Fosse Neighbourhood Centre and Library, not Highfields."
+},
+{
+"q": "What exactly is the campaign asking for?",
+"a": "Two things: (1) publication of Highfields' confirmed staffed opening hours alongside the pre-2025 baseline hours, and (2) a written commitment to a monitored 12-month review before any further reduction in staffed hours."
+},
+{
+"q": "What are the current or future staffed hours at Highfields?",
+"a": "[VERIFY: exact figures]. A council 'building pack' document from February 2026 refers to current staffed hours at the site, but the specific figures have not yet been made public in a form the campaign can cite. This is precisely the information the campaign is asking the council to release."
+},
+{
+"q": "Why now, if the decision was already taken?",
+"a": "The core decision was taken on 11 March 2026 and upheld on call-in on 26 March 2026. The campaign is not seeking to reopen that decision \u2014 it is focused on the implementation stage, where the exact staffed-hours model for Highfields is still being finalised, expected within a few months of the decision."
+},
+{
+"q": "Who is Save Highfields Library?",
+"a": "A resident-led group of library users, parents and local residents around Highfields Library on Melbourne Road, working alongside UNISON Leicester City branch on the statutory-duty case."
+},
+{
+"q": "Does this campaign support the wider anti-cuts campaigns, e.g. from opposition parties?",
+"a": "The campaign welcomes anyone amplifying the specific Highfields hours ask but is resident-led and cross-party. It is not aligned with any political party's wider campaign."
+}
+],
+"hostileQA": [
+{
+"q": "Isn't this campaign based on a false premise \u2014 Highfields was never going to close?",
+"a": "That's correct, and we've corrected our framing to reflect it. Our concern now is specifically about staffed hours at a site the council itself has chosen to keep open, and about the council publishing that information transparently."
+},
+{
+"q": "The council ran one of its most extensive consultations \u2014 4,989 surveys, over 1,000 meeting attendees. Isn't this decided?",
+"a": "We're not asking the council to redo the citywide decision. We're asking it to apply the same transparency at implementation stage for one specific site \u2014 publishing the actual hours figure it already holds."
+},
+{
+"q": "How do you know staffed hours are even being cut? You admit you don't have the figures.",
+"a": "We don't know yet, and we say so clearly. That's exactly the problem: the council holds a February 2026 document referring to current staffed hours at Highfields but hasn't published a clear before-and-after comparison. Publishing it would resolve this immediately, one way or the other."
+},
+{
+"q": "Are you working with the Conservative 'Protect Our Libraries' campaign?",
+"a": "No. We are a resident-led, cross-party group. Other campaigns are free to amplify our specific ask, but we are not aligned with or coordinated by any political party."
+},
+{
+"q": "Isn't a 12-month review just a way of avoiding the real fight over cuts?",
+"a": "We see it as a realistic, checkable win: if hours are maintained, a review confirms that and reassures residents; if they are quietly reduced, a review gives us and the council evidence to act on before it becomes permanent."
+},
+{
+"q": "Have you named the councillors responsible for this?",
+"a": "We are being deliberately careful here. Some individuals' identities \u2014 such as ward councillors \u2014 have not yet been verified through an official source, and we will not name anyone publicly until that is confirmed."
+}
+],
+"timing": "Hold this release until the FOI/building-pack information request response is in hand or a clear refusal is confirmed (target: within 20 working days of submission), so the story has a verified factual hook rather than resting on unverified figures. Align publication with either (a) a response/non-response from Cllr Dempster's office following the private letter, or (b) the next Culture and Neighbourhoods Scrutiny Committee cycle, whichever comes first \u2014 this maximises the 'council won't say' or 'council has agreed to review' news hook. Avoid launch during school holidays when parent testimony and local media bandwidth are lower.",
+"visual": "A simple, factual 'clock face' or timetable-style graphic showing two columns \u2014 'Hours before 2025' and 'Hours confirmed for Highfields now' \u2014 with the second column marked '[VERIFY: awaiting council confirmation]' until real figures are published, to visually demonstrate the transparency gap without asserting an unverified claim. Photography: residents (with consent) outside Highfields Library at 98 Melbourne Road holding a blank or partially-filled version of this timetable graphic, deliberately avoiding any 'closure' or 'closed' signage/imagery that would misrepresent the site's actual status as a retained, staffed hub."
+},
+"digital": {
+"landingCopy": "Highfields Library, 98 Melbourne Road, is not closing. The Council's own March 2026 decision confirms Highfields as one of 15 libraries it will continue to run directly, as part of a 'library hub' model. But the real question hasn't been answered: what staffed hours will Highfields actually have once the new model starts, and will they be lower than before? The Council's April 2025 proposals said hub sites like Highfields could have up to 40 staffed hours a week \u2014 but the final figure for Highfields has not been published, and a 'building pack' produced by the Council in February 2026 holds that data. Save Highfields Library is asking Assistant City Mayor Cllr Vi Dempster to publish Highfields' confirmed staffed hours next to the hours before 2025, and to commit to a 12-month usage review before any further reduction. Cllr Dempster has said herself that this 'was never a closure programme, it was about finding ways to protect these services.' We're asking her to prove it, in writing, for Highfields.",
+"actionPageCopy": "Add your name to call on Leicester City Council to: 1) Publish Highfields Library's confirmed staffed opening hours side-by-side with the hours before 2025; 2) Commit that staffed hours will not fall below that pre-2025 baseline; 3) Agree a formal, monitored 12-month review before any further reduction is considered. Highfields Library (98 Melbourne Road, LE2) was retained under the Council's own March 2026 decision as a continuing 'library hub' \u2014 this is not a fight to reverse a closure, it's a fight to make sure a service the Council promised to protect is actually protected. [VERIFY: exact pre-2025 and post-implementation staffed hours figures, to be obtained via information request]. Sign below, and tell us if you use Highfields Library and why staffed hours matter to you.",
+"supporterEmail": "Subject: Highfields Library \u2014 the hours question the Council hasn't answered\n\nHi [first name],\n\nHighfields Library isn't closing. Leicester City Council's own March 2026 decision confirms it as one of 15 libraries the Council will continue to run directly, as a 'library hub'.\n\nBut here's what we don't yet know: what staffed hours will Highfields actually have once the hub model starts, compared with before 2025? The Council's original proposals said hub sites like Highfields could have up to 40 staffed hours a week \u2014 but the confirmed figure for Highfields hasn't been made public. A council 'building pack' from February 2026 holds that data.\n\nWe're asking Assistant City Mayor Cllr Vi Dempster \u2014 who has said this 'was never a closure programme, it was about finding ways to protect these services' \u2014 to put that promise in writing for Highfields: publish the hours, guarantee no reduction below the pre-2025 baseline, and agree a 12-month review before any further change.\n\nHere's how you can help right now:\n- Sign the petition: [LINK]\n- Tell us how you use Highfields Library: [LINK]\n- Come to our next meeting at the library: [DATE/VERIFY]\n\nThis is a winnable, specific ask \u2014 not a reopening fight, but a transparency and accountability one. Thank you for standing with us.\n\nSave Highfields Library",
+"volunteerMessage": "Hi [name], thanks for your interest in Save Highfields Library. We're not fighting a closure \u2014 Highfields is staying open as a Council-run 'library hub'. What we're fighting for is clarity and a guarantee on staffed opening hours, and a review point before any further cuts. We need people to: log library usage on set days, collect short testimonies from residents about why staffed hours matter, help translate leaflets for the local community, or join one-to-one conversations with neighbours and, once verified, ward councillors. No experience needed \u2014 we'll brief you fully before any task. Can you join our next volunteer session at the library? Reply and let us know which of these you'd like to help with: counting, testimony-gathering, translation, or outreach.",
+"socialPosts": [
+{
+"platform": "Twitter/X",
+"text": "Highfields Library isn't closing \u2014 Leicester City Council confirmed it stays open as a 'library hub' in its March 2026 decision. The real question: will staffed hours be cut? We're asking @LeicesterCC to publish the hours and guarantee no reduction below pre-2025 levels. #SaveHighfieldsHours"
+},
+{
+"platform": "Facebook",
+"text": "Let's be clear: Highfields Library (98 Melbourne Road) is staying open under the Council's own decision. What hasn't been confirmed is whether staffed opening hours will be cut compared with before 2025. Cllr Vi Dempster has said this programme was about 'protecting services', not cutting them \u2014 we're asking her to prove it for Highfields by publishing the hours and agreeing a 12-month review before any further reduction. Sign our petition and tell us how you use the library: [LINK]"
+},
+{
+"platform": "Instagram",
+"text": "\ud83d\udcda Highfields Library is NOT closing. But we still don't know if staffed hours will be cut. We're asking the Council to publish the numbers and guarantee no reduction below the pre-2025 level. Link in bio to sign and share your library story. #Highfields #Leicester #LibraryHours"
+},
+{
+"platform": "WhatsApp community group",
+"text": "Quick update on Highfields Library: it is staying open, so this is NOT about stopping a closure. It IS about making sure the Council doesn't quietly cut staffed hours once the new 'hub' model starts. We're asking them to publish the hours and agree a 12-month review. Please sign here and share with neighbours who use the library: [LINK]"
+}
+],
+"audienceVariants": [
+{
+"audience": "Parents and young people near Melbourne Road",
+"text": "If your children use Highfields Library after school, this matters to you. The library is staying open, but we don't yet know if the staffed hours your kids rely on for homework and reading will be cut. Add your voice and tell us how your family uses the library: [LINK]"
+},
+{
+"audience": "Older residents and non-digital users",
+"text": "Highfields Library is staying open \u2014 but staffed hours, when real people are there to help you, may be at risk of being cut once the new model starts. If you rely on staff for help finding books, using computers or getting information, please sign our petition and share your story: [LINK]"
+},
+{
+"audience": "UNISON members and library/community centre staff",
+"text": "UNISON has already raised the Council's statutory duty under the Public Libraries and Museums Act 1964 to provide a comprehensive service. At Highfields, we're asking the Council to publish confirmed staffed hours and commit to a 12-month review before any further cuts. Join us in holding the Council to that duty: [LINK]"
+},
+{
+"audience": "Local media / general Leicester public",
+"text": "Highfields Library was retained, not closed, under Leicester City Council's March 2026 decision \u2014 but the confirmed staffed hours for the new 'hub' model have not been published. Residents are asking Cllr Vi Dempster to publish a pre-2025 vs future hours comparison and commit to a 12-month review, holding her to her own statement that the programme was 'about finding ways to protect these services.'"
+}
+],
+"faq": [
+{
+"q": "Is Highfields Library closing?",
+"a": "No. Leicester City Council's own decision, taken 11 March 2026 and upheld on call-in 26 March 2026, confirms Highfields as one of 15 libraries the Council will continue to run directly, as part of a 'library hub' model. Our campaign does not claim it is closing \u2014 that would be inaccurate."
+},
+{
+"q": "What is the campaign actually asking for, if the library isn't closing?",
+"a": "We're asking Assistant City Mayor Cllr Vi Dempster to publicly confirm Highfields' final staffed opening hours, compare them to the hours before 2025, and commit that staffed hours won't be reduced below that pre-2025 level without a formal 12-month usage review first."
+},
+{
+"q": "Do we know if staffed hours will actually be cut?",
+"a": "Not yet confirmed. [VERIFY: exact pre-2025 and post-implementation staffed hours at Highfields]. The Council's original April 2025 proposals said hub sites like Highfields could have up to 40 staffed hours a week, but the final confirmed figure for Highfields has not been published. A council 'building pack' produced in February 2026 is understood to hold this data."
+},
+{
+"q": "Why focus on Highfields specifically?",
+"a": "Highfields Library, 98 Melbourne Road, LE2, is a busy inner-city site. It's a named, specific place where we can get a clear, checkable answer \u2014 unlike a citywide campaign, we can hold one decision-maker to one measurable commitment for one library."
+},
+{
+"q": "Isn't this the same as other libraries campaigns opposing the cuts?",
+"a": "We work alongside other groups, including UNISON, which has raised the Council's statutory duty under the Public Libraries and Museums Act 1964. But we keep our own campaign resident-led and focused specifically on Highfields' staffed hours, not on reversing the wider, already-decided savings programme."
+},
+{
+"q": "What happens if the Council refuses to publish the hours or agree a review?",
+"a": "We'll escalate step by step: information requests, questions to the Culture and Neighbourhoods Scrutiny Committee, a formal petition, and if necessary a deputation to Full Council \u2014 always sticking to verified facts and this specific ask."
+}
+],
+"ctas": [
+"Sign the petition asking the Council to publish Highfields' staffed hours and commit to a 12-month review",
+"Tell us how you use Highfields Library \u2014 share your story",
+"Join a volunteer role: counting library usage, gathering testimony, translating leaflets or outreach",
+"Come to our next public meeting at Highfields Library",
+"Share this campaign with neighbours who use the library"
+],
+"contentSequence": "1) Correct the record: explain clearly that Highfields is staying open, reframing away from 'closure' to 'staffed hours'. 2) Explain the ask: publish pre-2025 vs future staffed hours and commit to a 12-month review. 3) Build the evidence base: invite residents to share usage stories and log visits. 4) Introduce Cllr Dempster's own words ('never a closure programme... about finding ways to protect these services') as the standard we're holding the Council to. 5) Launch and promote the petition, with the hours-comparison graphic once data is confirmed. 6) Share testimony and usage-count results, feeding into scrutiny questions. 7) Report back on Council responses at each stage, and mobilise for a public meeting or deputation if needed.",
+"sharingMessage": "Please share: Highfields Library is staying open, but we still don't know if staffed opening hours will be cut. We're asking Leicester City Council to publish the hours and guarantee a 12-month review before any further reduction. Sign and share: [LINK] #SaveHighfieldsHours",
+"graphicConcepts": [
+"A simple side-by-side bar chart headed 'Highfields Library: Staffed Hours Before 2025 vs Now' with a clearly marked '[VERIFY]' placeholder until the Council confirms figures, ready to update as soon as data is obtained",
+"A quote graphic featuring Cllr Vi Dempster's verified statement ('this was never a closure programme, it was about finding ways to protect these services') set against a simple ask: 'Prove it for Highfields'",
+"A map/photo graphic of 98 Melbourne Road with the caption 'Highfields Library: Staying open. Fighting for its hours.'",
+"A 'clock face' visual showing the hours a staffed librarian could be lost, used for the in-person visibility action and shareable online",
+"A simple timeline graphic: April 2025 consultation \u2192 March 2026 decision \u2192 autumn 2026 implementation \u2192 our ask for hours + review, to help residents understand where we are in the process"
+]
+}
+},
+"lint": {
+"ok": true,
+"flags": [
+{
+"document": "briefing",
+"issue": "Cllr Vi Dempster's title and quote are verified, but the document refers to 'the Council's original April 2025 proposals identified Highfields as a hub site with potential for up to 40 staffed hours a week' \u2014 this specific '40 hours' figure is stated as fact but does not appear verbatim in the verified research. The research says 'five (including Beaumont Leys and Highfields) could have staffed opening for 40 hours a week' but this refers to a subset of five sites, not Highfields specifically. The claim needs [VERIFY: whether Highfields specifically was modelled at 40 hours or whether this was a generic hub potential].",
+"severity": "warn"
+},
+{
+"document": "meetingEmail",
+"issue": "Same issue: 'We understand Highfields Library, 98 Melbourne Road, will continue to be run by the Council as a library hub under the decision approved on 11 March 2026 and upheld on call-in on 26 March 2026' is verified. However, the reference to Cllr Dempster's quote is accurate and attributed correctly. No block-level issue here, but cross-reference with briefing flag.",
+"severity": "warn"
+},
+{
+"document": "keyArguments",
+"issue": "Third bullet point states 'The Council's original April 2025 proposals identified Highfields as a hub site with potential for up to 40 staffed hours a week' \u2014 same issue as briefing: the '40 hours' is attributed to a generic hub model across five sites, not confirmed specifically for Highfields. Needs [VERIFY: Highfields-specific 40-hour modeling].",
+"severity": "warn"
+},
+{
+"document": "pressRelease",
+"issue": "The release states '[VERIFY: exact pre-2025 and post-implementation staffed hours at Highfields]' correctly flagged. However, the statement 'The council's own decision confirms it will continue to directly run 15 libraries, including Highfields, as part of a 'library hub' model (Leicester City Council, 6 March 2026)' cites a date of 6 March 2026 \u2014 the verified research states the decision was formally taken on 11 March 2026. The 6 March date appears to be the news.leicester.gov.uk publication date, not the decision date. This should be clarified or [VERIFY: correct date of decision vs news publication].",
+"severity": "warn"
+},
+{
+"document": "pressRelease",
+"issue": "The release refers to 'Cllr Vi Dempster' and quotes her correctly from the verified 26 November 2025 leicester.news source. However, the release does not verify her full title \u2014 it gives 'Assistant City Mayor for Libraries and Community Centres' which matches the verified research. No flag needed here.",
+"severity": "warn"
+},
+{
+"document": "qa (media Q&A)",
+"issue": "Q&A states 'The council's approved March 2026 decision confirms it will continue to directly run 15 libraries, including Highfields, as a staffed 'library hub' (Leicester City Council, 6 March 2026)' \u2014 same date issue as pressRelease. The decision was on 11 March 2026; 6 March was the news publication. Should be [VERIFY: clarify 11 March decision vs 6 March news date].",
+"severity": "warn"
+},
+{
+"document": "qa (media Q&A)",
+"issue": "Under 'What are the current or future staffed hours at Highfields?' the Q&A correctly flags '[VERIFY: exact figures]' but then states 'The council's original proposals said hub sites like Highfields could have up to 40 staffed hours a week' \u2014 this is stated as fact applying specifically to Highfields, but the research only confirms this as a generic hub model for a subset of five sites. Should be [VERIFY: whether 40 hours applies specifically to Highfields or is a generic hub ceiling].",
+"severity": "warn"
+},
+{
+"document": "hostileQA",
+"issue": "No block-level issues; Q&A items are general and appropriately hedged or verified.",
+"severity": "warn"
+},
+{
+"document": "landingCopy (digital)",
+"issue": "States 'The Council's April 2025 proposals said hub sites like Highfields could have up to 40 staffed hours a week \u2014 but the final figure for Highfields has not been published' \u2014 same '40 hours' specificity issue. The research confirms 40 hours as a generic hub model ceiling for five sites (including Highfields), not as a Highfields-specific proposal. Needs [VERIFY: whether 40 hours was specifically modeled for Highfields or is a generic hub cap].",
+"severity": "warn"
+},
+{
+"document": "actionPageCopy (digital)",
+"issue": "Flags '[VERIFY: exact pre-2025 and post-implementation staffed hours figures, to be obtained via information request]' correctly.",
+"severity": "warn"
+},
+{
+"document": "supporterEmail (digital)",
+"issue": "States 'The Council's original proposals said hub sites like Highfields could have up to 40 staffed hours a week' \u2014 same '40 hours' specificity issue recurring across multiple documents. Consistent flag needed.",
+"severity": "warn"
+},
+{
+"document": "socialPosts (digital)",
+"issue": "No factual claims beyond verified closure/hub status and the ask. Safe.",
+"severity": "warn"
+},
+{
+"document": "faq (digital)",
+"issue": "States 'The Council's original April 2025 proposals said hub sites like Highfields could have up to 40 staffed hours a week, but the final confirmed figure for Highfields has not been published.' Same recurring '40 hours' issue \u2014 needs [VERIFY: Highfields-specific vs. generic hub modeling].",
+"severity": "warn"
+},
+{
+"document": "briefing, meetingEmail, agenda, keyArguments, pressRelease, qa, hostileQA, landingCopy, actionPageCopy, supporterEmail, faq",
+"issue": "Multiple documents reference '[VERIFY: current City Mayor of Leicester]' and '[VERIFY: Highfields ward councillor names]' in relation to escalation options and contact scripts. The briefing correctly notes 'the current City Mayor of Leicester or any Highfields ward councillor' could not be verified. This is correctly flagged in the briefing but the escalation options and later contact scripts do not prominently flag the risks of naming these individuals before verification. The doorknockScript, contactScript, and escalationOptions all reference actions involving ward councillors without pre-verified names \u2014 this is appropriate so long as they are treated as placeholders, which they appear to be.",
+"severity": "warn"
+},
+{
+"document": "contactScript (lobbying)",
+"issue": "References 'Cllr Dempster' by name \u2014 correctly verified. Safe.",
+"severity": "warn"
+},
+{
+"document": "escalationOptions (lobbying)",
+"issue": "Final bullet states 'Request and secure verified identification of Highfields ward councillors [VERIFY: names] to recruit as internal advocates before any public campaign escalation naming them' \u2014 this correctly defers naming until verification. Safe.",
+"severity": "warn"
+}
+]
+}
+}
