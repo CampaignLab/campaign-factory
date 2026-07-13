@@ -1,40 +1,60 @@
 import { randomUUID } from "node:crypto";
 import { initialRunState, runPipeline } from "@/lib/pipeline/run";
+import { saveRun, getRunState } from "@/lib/db/runs";
 import { type RunInput, type RunState } from "@/lib/pipeline/types";
 
-// ---------------------------------------------------------------------------
-// DEV JOB STORE — in-memory. This is a shim, NOT the production architecture.
+// Durable job store. Run state lives in Postgres (source of truth for polling
+// and /c/[id]); the executing instance keeps an in-memory copy and write-through
+// persists it (debounced) on each mutation. Reads always come from the DB, so
+// any instance/route can serve progress.
 //
-// It survives only within a single warm serverless instance, so it works for
-// local dev and single-instance demos but WILL lose runs across cold starts and
-// won't fan out across instances. It is replaced in M4 by Vercel Workflow (WDK)
-// for durable, crash-safe orchestration + Neon Postgres for run/campaign state.
-// runPipeline() is already written as pure stage calls over a mutator so it
-// drops into a Workflow unchanged.
-// ---------------------------------------------------------------------------
+// NOTE (durability, M4b): the pipeline still runs as a fire-and-forget promise.
+// On Vercel a floating promise after the response can be killed — Vercel
+// Workflow (WDK) will drive the run so execution itself survives, but state is
+// already durable here.
 
-const runs = new Map<string, RunState>();
+const mem = new Map<string, RunState>();
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
-export function startRun(input: RunInput): RunState {
+function scheduleSave(id: string) {
+  if (timers.has(id)) return; // debounce: coalesce the burst of mutations
+  timers.set(
+    id,
+    setTimeout(() => {
+      timers.delete(id);
+      const s = mem.get(id);
+      if (s) void saveRun(s).catch(() => {});
+    }, 300),
+  );
+}
+
+export async function startRun(input: RunInput): Promise<RunState> {
   const id = randomUUID();
   const state = initialRunState(id, input);
-  runs.set(id, state);
+  mem.set(id, state);
+  await saveRun(state); // initial persist so the run is pollable immediately
 
-  // Fire-and-forget. In prod this is a Workflow step, not a floating promise.
   void runPipeline(input, (patch) => {
-    const s = runs.get(id);
-    if (s) patch(s);
-  }).catch((e) => {
-    const s = runs.get(id);
-    if (s) {
-      s.status = "failed";
-      s.notes.push(`Run crashed: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  });
+    patch(state);
+    scheduleSave(id);
+  })
+    .catch((e) => {
+      state.status = "failed";
+      state.notes.push(`Run crashed: ${e instanceof Error ? e.message : String(e)}`);
+    })
+    .finally(async () => {
+      const t = timers.get(id);
+      if (t) {
+        clearTimeout(t);
+        timers.delete(id);
+      }
+      await saveRun(state).catch(() => {}); // final flush
+      mem.delete(id);
+    });
 
   return state;
 }
 
-export function getRun(id: string): RunState | undefined {
-  return runs.get(id);
+export async function getRun(id: string): Promise<RunState | undefined> {
+  return (await getRunState(id)) ?? undefined;
 }

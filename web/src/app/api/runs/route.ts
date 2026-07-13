@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { startRun } from "@/lib/jobs/store";
 import { config } from "@/lib/config";
-import { overBudget } from "@/lib/spend/ledger";
-import { SID_COOKIE, parseSid, newSid, runCount, incrRun } from "@/lib/session";
+import { overBudget } from "@/lib/db/spend";
+import { runCount, incrRun } from "@/lib/db/sessions";
+import { SID_COOKIE, parseSid, newSid } from "@/lib/session";
 import { type RunInput } from "@/lib/pipeline/types";
 
 // POST /api/runs — start a campaign run. Gate order (all pre-spend):
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
   }
 
   // 3. Global spend kill-switch
-  if (overBudget()) {
+  if (await overBudget()) {
     return NextResponse.json(
       { capacity: true, reason: "budget", error: "We're at capacity right now. Explore the campaigns others have made while we catch up." },
       { status: 503 },
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
   let sid = parseSid(cookie);
   const isNewSid = !sid;
   if (!sid) sid = newSid();
-  if (runCount(sid) >= config.runCap) {
+  if ((await runCount(sid)) >= config.runCap) {
     return NextResponse.json(
       { error: `You've reached the limit of ${config.runCap} runs for this session.`, capReached: true },
       { status: 429 },
@@ -74,8 +75,8 @@ export async function POST(req: Request) {
   };
 
   try {
-    incrRun(sid);
-    const state = startRun(input);
+    await incrRun(sid);
+    const state = await startRun(input);
     const res = NextResponse.json({ id: state.id, status: state.status }, { status: 202 });
     if (isNewSid) {
       res.cookies.set(SID_COOKIE, sid, {

@@ -4,7 +4,7 @@ import { runPlan } from "./stageB";
 import { runDrafts } from "./stageC";
 import { runLint } from "./lint";
 import { publicInput, errMsg, now } from "./util";
-import { addSpend } from "../spend/ledger";
+import { addSpend } from "../db/spend";
 import { costUSD, WEB_SEARCH_COST_USD, type Usage } from "../spend/pricing";
 import {
   type RunInput,
@@ -43,7 +43,7 @@ export async function runPipeline(input: RunInput, mutate: RunMutator, hooks: Ru
     const c = costUSD(model, usage);
     if (c > 0) {
       mutate((s) => void (s.costUSD += c));
-      addSpend(c);
+      void addSpend(c);
     }
   };
 
@@ -60,7 +60,7 @@ export async function runPipeline(input: RunInput, mutate: RunMutator, hooks: Ru
   try {
     research = await runResearch(input, { onText: hooks.onResearchText, onNote: note, onUsage });
     // approximate the web-search server-tool cost (not in token usage)
-    addSpend(WEB_SEARCH_COST_USD);
+    void addSpend(WEB_SEARCH_COST_USD);
     mutate((s) => void (s.costUSD += WEB_SEARCH_COST_USD));
     mutate((s) => {
       s.campaign.research = research!;
