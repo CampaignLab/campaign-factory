@@ -133,8 +133,8 @@ The product's soul is verification discipline. This principle is load-bearing:
    rehearsal campaigns into the library.
 7. **Launch collateral** — QR, access code, on-stage run-of-show.
 
-## 12. Open build-time verifications (not decisions)
+## 12. Build-time verifications
 
-- Does AI Gateway pass the `web_search` server tool through cleanly? (fallback: direct SDK for A)
-- Actual measured per-run cost → size the kill-switch and session cap.
-- Stage A verification-label quality on Sonnet 5 (fallback: Opus 4.8 for A).
+- Does AI Gateway pass the `web_search` server tool through cleanly? (fallback: direct SDK for A) — *still open; currently direct SDK.*
+- **Per-run cost — MEASURED (M6):** ~**$1/run** at high research effort (not the earlier ~$0.33 estimate). 45-concurrent load test on one standard-tier key: **all 45 research succeeded, 40/45 completed, zero rate-limit failures, ~$48 total.** The single-key load concern is retired. Cost is controlled by usage caps (per-IP `CF_IP_RUN_CAP`, per-session, £150/day kill-switch) — see [[research-quality-over-cost]].
+- **Stage A label quality — VERIFIED (M6):** high effort gives a nuanced, honest label spread. Research JSON truncation at 16k tokens was found and fixed (32k budget + corrective retry); research stays high effort.
