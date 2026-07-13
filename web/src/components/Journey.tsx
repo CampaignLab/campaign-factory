@@ -128,7 +128,7 @@ export function Journey({ campaign, onReset }: { campaign: Campaign; onReset?: (
   return (
     <div className="pb-24">
       {/* sticky section nav */}
-      <nav className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
+      <nav className="sticky top-14 z-10 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-1 overflow-x-auto px-5 py-2 text-sm">
           {nav.map((n) => (
             <a key={n.id} href={`#${n.id}`} className="whitespace-nowrap rounded px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">

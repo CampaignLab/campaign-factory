@@ -48,18 +48,15 @@ export function EntryForm({
   const canSubmit = (form.problem || "").trim().length >= 8 && codeOk && !busy;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:py-16">
-      <header className="mb-8">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium tracking-wide text-muted-foreground">Campaign Factory</p>
-          <a href="/wall" className="text-sm text-brand underline-offset-4 hover:underline">
-            Campaign Gallery →
-          </a>
+    <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
+      <header className="mb-10 text-center sm:mb-12">
+        <div className="text-xs font-medium uppercase tracking-[0.09em] text-muted-foreground">
+          From a local problem to a working campaign — live
         </div>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="mx-auto mt-4 max-w-[18ch] text-4xl font-medium tracking-tight sm:text-6xl">
           Turn a local problem into a <span className="font-serif font-normal italic">whole campaign</span>.
         </h1>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mx-auto mt-5 max-w-[56ch] text-lg text-muted-foreground sm:text-xl">
           Describe a UK local or public-policy problem. Campaign Factory researches it live, builds the
           plan, and drafts the materials — labelling what it can verify and flagging what it can&apos;t.
         </p>

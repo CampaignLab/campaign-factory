@@ -144,9 +144,16 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* awake: larger, more open, easy-to-read base type */
+    font-size: 17px;
+    line-height: 1.55;
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
   }
 }
 /* --- awake-style scroll-reveal choreography --- */
