@@ -10,7 +10,7 @@ export default async function WallPage() {
       <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium tracking-wide text-muted-foreground">Campaign Factory</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">The wall</h1>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Campaign Gallery</h1>
           <p className="mt-2 text-muted-foreground">Campaigns people made here and chose to share.</p>
         </div>
         <div className="flex gap-3 text-sm">

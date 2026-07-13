@@ -23,7 +23,7 @@ export function ProjectorWall() {
 
   return (
     <div className="min-h-dvh bg-background p-10">
-      <h1 className="text-5xl font-semibold tracking-tight">Campaign Factory — live wall</h1>
+      <h1 className="text-5xl font-semibold tracking-tight">Campaign Gallery — live</h1>
       <p className="mt-3 text-2xl text-muted-foreground">
         {items.length} campaign{items.length === 1 ? "" : "s"} and counting
       </p>

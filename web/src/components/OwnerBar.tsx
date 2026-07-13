@@ -52,9 +52,9 @@ export function OwnerBar({ id, onDeleted }: { id: string; onDeleted: () => void 
         </Button>
         {shared ? (
           <>
-            <span className="text-emerald-700">On the wall ✓</span>
+            <span className="text-emerald-700">In the gallery ✓</span>
             <Button size="sm" variant="ghost" onClick={doUnshare} disabled={busy}>
-              Remove from wall
+              Remove from gallery
             </Button>
           </>
         ) : (
@@ -62,11 +62,11 @@ export function OwnerBar({ id, onDeleted }: { id: string; onDeleted: () => void 
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title for the wall (optional)"
+              placeholder="Title for the gallery (optional)"
               className="h-8 w-56"
             />
             <Button size="sm" onClick={doShare} disabled={busy}>
-              Share to the wall
+              Share to the gallery
             </Button>
           </div>
         )}

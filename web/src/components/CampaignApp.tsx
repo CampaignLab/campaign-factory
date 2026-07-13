@@ -5,8 +5,6 @@ import { EntryForm } from "@/components/EntryForm";
 import { RunProgress } from "@/components/RunProgress";
 import { Journey } from "@/components/Journey";
 import { OwnerBar } from "@/components/OwnerBar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   getStatus,
@@ -36,14 +34,15 @@ export function CampaignApp() {
   }, []);
 
   const begin = useCallback(
-    async (input: StartInput) => {
+    async (input: StartInput, submittedCode: string) => {
       setBusy(true);
       setError(null);
       setLastInput(input);
-      const res = await startRun(input, code || undefined);
+      setCode(submittedCode);
+      const res = await startRun(input, submittedCode || undefined);
       setBusy(false);
       if (res.ok && res.id) {
-        if (code) localStorage.setItem(ACCESS_CODE_KEY, code);
+        if (submittedCode) localStorage.setItem(ACCESS_CODE_KEY, submittedCode);
         setRunId(res.id);
         setPhase("running");
         return;
@@ -54,16 +53,16 @@ export function CampaignApp() {
       }
       setError(res.error || "Something went wrong. Please try again.");
     },
-    [code],
+    [],
   );
 
   const retry = useCallback(() => {
     setPhase("form");
     setRunId(null);
     setCampaign(null);
-    // re-run immediately with the same input
-    if (lastInput) void begin(lastInput);
-  }, [lastInput, begin]);
+    // re-run immediately with the same input + code
+    if (lastInput) void begin(lastInput, code);
+  }, [lastInput, begin, code]);
 
   const reset = useCallback(() => {
     setPhase("form");
@@ -118,32 +117,13 @@ export function CampaignApp() {
   }
 
   return (
-    <>
-      {status?.accessRequired ? (
-        <div className="mx-auto w-full max-w-2xl px-5 pt-8">
-          <div className="rounded-lg border bg-card/50 p-4">
-            <Label htmlFor="code" className="text-sm">
-              Conference access code
-            </Label>
-            <div className="mt-2 flex gap-2">
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Enter the code shown on screen"
-                className="max-w-xs"
-              />
-            </div>
-            {status.runsRemaining < status.runCap ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {status.runsRemaining} of {status.runCap} runs left in this session.
-              </p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-      <EntryForm onStart={begin} busy={busy} error={error} />
-    </>
+    <EntryForm
+      onStart={begin}
+      busy={busy}
+      error={error}
+      accessRequired={status?.accessRequired}
+      initialCode={code}
+    />
   );
 }
 
@@ -159,7 +139,7 @@ function Capacity({ reason }: { reason: "closed" | "budget" | null }) {
           : "A lot of campaigns are being built at once. Explore the ones others have made while we catch up, and try again shortly."}
       </p>
       <a href="/wall" className="mt-6 inline-block rounded bg-foreground px-4 py-2 text-sm text-background">
-        Explore the wall
+        Explore the Campaign Gallery
       </a>
     </div>
   );

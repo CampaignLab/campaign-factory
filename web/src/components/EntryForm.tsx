@@ -32,14 +32,20 @@ export function EntryForm({
   onStart,
   busy,
   error,
+  accessRequired = false,
+  initialCode = "",
 }: {
-  onStart: (input: StartInput) => void;
+  onStart: (input: StartInput, code: string) => void;
   busy?: boolean;
   error?: string | null;
+  accessRequired?: boolean;
+  initialCode?: string;
 }) {
   const [form, setForm] = useState<StartInput>({ problem: "" });
+  const [code, setCode] = useState(initialCode);
   const set = (k: keyof StartInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
-  const canSubmit = (form.problem || "").trim().length >= 8 && !busy;
+  const codeOk = !accessRequired || code.trim().length > 0;
+  const canSubmit = (form.problem || "").trim().length >= 8 && codeOk && !busy;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:py-16">
@@ -47,7 +53,7 @@ export function EntryForm({
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium tracking-wide text-muted-foreground">Campaign Factory</p>
           <a href="/wall" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-            See the wall →
+            Campaign Gallery →
           </a>
         </div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -62,7 +68,7 @@ export function EntryForm({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (canSubmit) onStart(normalise(form));
+          if (canSubmit) onStart(normalise(form), code.trim());
         }}
         className="space-y-6"
       >
@@ -104,6 +110,21 @@ export function EntryForm({
             ))}
           </div>
         </details>
+
+        {accessRequired ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="code" className="text-sm">
+              Conference access code
+            </Label>
+            <Input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter the code shown on screen"
+              className="max-w-xs"
+            />
+          </div>
+        ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

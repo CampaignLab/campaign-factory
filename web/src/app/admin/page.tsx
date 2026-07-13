@@ -41,7 +41,7 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Wall admin</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Campaign Gallery admin</h1>
       <div className="mt-4 max-w-xs space-y-1.5">
         <Label htmlFor="k" className="text-sm">
           Admin key
@@ -51,7 +51,7 @@ export default function AdminPage() {
       {msg ? <p className="mt-3 text-sm text-muted-foreground">{msg}</p> : null}
 
       <div className="mt-8 space-y-2">
-        {items.length === 0 ? <p className="text-muted-foreground">Nothing on the wall.</p> : null}
+        {items.length === 0 ? <p className="text-muted-foreground">Nothing in the gallery.</p> : null}
         {items.map((it) => (
           <div key={it.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
             <Link href={`/c/${it.id}`} className="min-w-0 truncate hover:underline">
