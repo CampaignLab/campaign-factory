@@ -158,7 +158,9 @@ function Capacity({ reason }: { reason: "closed" | "budget" | null }) {
           ? "New campaigns aren't being generated anymore, but the campaigns made here are still readable."
           : "A lot of campaigns are being built at once. Explore the ones others have made while we catch up, and try again shortly."}
       </p>
-      {/* The conference wall lands in M5 — link will point here. */}
+      <a href="/wall" className="mt-6 inline-block rounded bg-foreground px-4 py-2 text-sm text-background">
+        Explore the wall
+      </a>
     </div>
   );
 }

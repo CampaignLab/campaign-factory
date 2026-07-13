@@ -44,7 +44,12 @@ export function EntryForm({
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:py-16">
       <header className="mb-8">
-        <p className="text-sm font-medium tracking-wide text-muted-foreground">Campaign Factory</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium tracking-wide text-muted-foreground">Campaign Factory</p>
+          <a href="/wall" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            See the wall →
+          </a>
+        </div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
           Turn a local problem into a whole campaign.
         </h1>
