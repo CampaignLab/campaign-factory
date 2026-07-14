@@ -49,6 +49,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "A campaign problem (at least a sentence) is required." }, { status: 400 });
   }
 
+  // Admin bypass: a valid admin key (header x-cf-admin-key) skips the run caps
+  // and their counters, so we can exercise the pipeline without burning quota.
+  // The budget kill-switch below still applies.
+  const isAdmin = !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
+
   // 3. Global spend kill-switch
   if (await overBudget()) {
     return NextResponse.json(
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
 
   // 4. Per-IP run cap (harder backstop than the cookie session cap)
   const ip = clientIp(req);
-  if ((await runCountByIp(ip)) >= config.ipRunCap) {
+  if (!isAdmin && (await runCountByIp(ip)) >= config.ipRunCap) {
     return NextResponse.json(
       { error: `This network has reached its run limit (${config.ipRunCap}).`, capReached: true },
       { status: 429 },
@@ -71,7 +76,7 @@ export async function POST(req: Request) {
   let sid = parseSid(cookie);
   const isNewSid = !sid;
   if (!sid) sid = newSid();
-  if ((await runCount(sid)) >= config.runCap) {
+  if (!isAdmin && (await runCount(sid)) >= config.runCap) {
     return NextResponse.json(
       { error: `You've reached the limit of ${config.runCap} runs for this session.`, capReached: true },
       { status: 429 },
@@ -92,8 +97,10 @@ export async function POST(req: Request) {
   };
 
   try {
-    await incrRun(sid);
-    await incrIpRun(ip);
+    if (!isAdmin) {
+      await incrRun(sid);
+      await incrIpRun(ip);
+    }
     const { state, work } = await startRun(input, sid);
     after(work); // keep the function alive until the pipeline settles
     const res = NextResponse.json({ id: state.id, status: state.status }, { status: 202 });
