@@ -1,211 +1,154 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { MISSION_CATALOGUE, PURPOSES, VIABILITY_TRIBUNAL, availabilityLabel } from "@/lib/missions/catalogue";
+import { ArrowLeft, ArrowUpRight, CircleAlert, Clock3, FileOutput, ShieldCheck, Wrench } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FUTURE_MISSIONS, getMissionByType, RUNNABLE_MISSIONS } from "@/lib/missions/catalogue";
 import {
   type MissionDefinition,
   type MissionRun,
   type MissionRunSummary,
+  type MissionType,
   type ReviewState,
-  type ViabilityTribunalResult,
 } from "@/lib/missions/types";
 import { type Campaign } from "@/lib/pipeline/types";
+import { MissionSelector } from "./MissionSelector";
+import { AgentTeam, missionIcon } from "./MissionVisuals";
+import { HumanDecisionGate, MissionOutput, SpecialistReports } from "./MissionResult";
 
-const WORKER_KEYS = [
-  ["advocate", "Campaign Advocate"],
-  ["falsifier", "Campaign Falsifier"],
-  ["formal-route", "Formal Route Examiner"],
-  ["capacity", "Capacity Examiner"],
-] as const;
-
-const VERDICT_LABEL: Record<ViabilityTribunalResult["verdict"], string> = {
-  viable: "Viable",
-  viable_with_changes: "Viable with changes",
-  uncertain: "Uncertain",
-  not_currently_viable: "Not currently viable",
-};
-
-const REVIEW_LABEL: Record<ReviewState, string> = {
-  unreviewed: "Awaiting human review",
-  reviewed: "Marked reviewed",
-  rejected: "Findings rejected",
-  needs_local_knowledge: "Needs local knowledge",
-};
-
-function MissionStatus({ run }: { run: MissionRun | null }) {
-  if (!run) return <span className="mb-status available">Available now</span>;
-  if (run.status === "queued") return <span className="mb-status running">Queued</span>;
-  if (run.status === "running") return <span className="mb-status running">Running live</span>;
-  if (run.status === "failed") return <span className="mb-status failed">Stopped without verdict</span>;
-  if (run.status === "partial") return <span className="mb-status partial">Partial verdict</span>;
-  return <span className="mb-status complete">Verdict ready</span>;
+function runStatusLabel(run: MissionRun | null): string {
+  if (!run) return "Ready to run";
+  if (run.status === "queued") return "Queued";
+  if (run.status === "running") return "Running";
+  if (run.status === "partial") return "Partial output";
+  if (run.status === "failed") return "Failed, no output";
+  return "Output ready";
 }
 
-function agentState(run: MissionRun | null, key: string): "waiting" | "running" | "done" | "failed" {
-  if (!run) return "waiting";
-  const relevant = run.events.filter((event) => event.agentKey === key);
-  if (relevant.some((event) => event.kind === "agent_completed" || (key === "chair" && event.kind === "mission_completed"))) return "done";
-  if (relevant.some((event) => event.kind === "agent_failed" || (key === "chair" && event.kind === "mission_failed"))) return "failed";
-  if (relevant.some((event) => event.kind === "agent_started" || (key === "chair" && event.kind === "synthesis_started"))) return "running";
-  return "waiting";
+function resultHeadline(run: MissionRunSummary): string {
+  const result = run.result;
+  if (!result) return run.status === "failed" ? "No output" : "In progress";
+  if (result.missionType === "viability_tribunal") return result.verdict.replaceAll("_", " ");
+  if (result.missionType === "evidence_audit") return `${result.findings.length} items audited`;
+  if (result.missionType === "decision_route_audit") return `${result.orderedRoute.length} route steps`;
+  return `${result.precedents.length} precedents`;
 }
 
-function FactoryGlyph({ pattern }: { pattern: MissionDefinition["pattern"] }) {
-  const mark = pattern === "Tribunal" ? "⇉◇" : pattern === "Parallel Team" ? "⇉●" : pattern === "Persistent Loop" ? "↻●" : "↻◇";
-  return <span className="factory-glyph" aria-hidden="true">{mark}</span>;
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/London" }).format(new Date(value));
 }
 
-function MissionRow({ mission }: { mission: MissionDefinition }) {
+function formatTime(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Europe/London" }).format(new Date(value));
+}
+
+function MissionHistory({ mission, runs, selectedRun, onSelect }: {
+  mission: MissionDefinition & { type: MissionType };
+  runs: MissionRunSummary[];
+  selectedRun: MissionRun | null;
+  onSelect: (run: MissionRunSummary) => Promise<void>;
+}) {
   return (
-    <details className="mission-row">
-      <summary>
-        <span className="mission-row-main">
-          <FactoryGlyph pattern={mission.pattern} />
-          <span><b>{mission.name}</b><small>{mission.question}</small></span>
-        </span>
-        <span className={`mb-status ${mission.availability}`}>{availabilityLabel(mission.availability)}</span>
-      </summary>
-      <div className="mission-row-detail">
-        <div><span className="mb-kicker">Factory pattern</span><b>{mission.pattern}</b></div>
-        <div><span className="mb-kicker">Coordinated team</span><p>{mission.team.join(" · ")}</p></div>
-        <div><span className="mb-kicker">Returns</span><p>{mission.artefact}</p></div>
-        <div><span className="mb-kicker">Human decision</span><p>{mission.humanDecision}</p></div>
-        <p className="mission-boundary"><b>Boundary:</b> {mission.boundary}</p>
-      </div>
+    <details className="mission-history" open={runs.length > 0 && !selectedRun}>
+      <summary><span className="mb-step-number">4</span><span><b>Previous runs</b><small>{runs.length ? `${runs.length} saved run${runs.length === 1 ? "" : "s"}` : "No previous runs"}</small></span></summary>
+      {runs.length ? (
+        <div className="mission-history-list">
+          {runs.map((run) => {
+            const href = `/c/${run.campaignId}/missions?mission=${mission.slug}&run=${run.id}`;
+            return (
+              <a
+                aria-current={selectedRun?.id === run.id ? "true" : undefined}
+                href={href}
+                key={run.id}
+                onClick={(event) => { event.preventDefault(); void onSelect(run); }}
+              >
+                <span><b>{resultHeadline(run)}</b><small>{formatDate(run.createdAt)}</small></span>
+                <span className={`mb-run-status ${run.status}`}>{run.status}</span>
+              </a>
+            );
+          })}
+        </div>
+      ) : <p className="mb-empty">The first completed run will appear here with its event history and human review note.</p>}
     </details>
   );
 }
 
-function EvidenceRefs({ refs, campaign }: { refs: string[]; campaign: Campaign }) {
-  if (!refs?.length) return <span className="basis-pill unknown">No direct source cited</span>;
-  return (
-    <span className="evidence-refs">
-      {refs.map((ref) => {
-        const source = campaign.sources[Number(ref.slice(1)) - 1];
-        return source?.url?.startsWith("http") ? (
-          <a key={ref} href={source.url} target="_blank" rel="noopener noreferrer" title={source.sourceTitle}>{ref}</a>
-        ) : <span key={ref}>{ref}</span>;
-      })}
-    </span>
-  );
-}
-
-function ResultList({ title, items, empty }: { title: string; items: string[]; empty?: string }) {
-  return (
-    <section className="result-list">
-      <h3>{title}</h3>
-      {items.length ? <ul>{items.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className="mb-muted">{empty || "None recorded."}</p>}
-    </section>
-  );
-}
-
-function TribunalResult({ run, campaign, canLaunch, onReview }: {
+function RunExperience({ mission, run, history, canReview, onReview, onSelectHistory }: {
+  mission: MissionDefinition & { type: MissionType };
   run: MissionRun;
-  campaign: Campaign;
-  canLaunch: boolean;
+  history: MissionRunSummary[];
+  canReview: boolean;
   onReview: (state: Exclude<ReviewState, "unreviewed">) => Promise<void>;
+  onSelectHistory: (run: MissionRunSummary) => Promise<void>;
 }) {
-  const result = run.result;
-  if (!result) return null;
+  const outputReady = run.status === "complete" || run.status === "partial";
   return (
-    <section className="tribunal-result" aria-labelledby="tribunal-verdict">
-      <header className="verdict-head">
-        <div>
-          <span className="mb-kicker">Tribunal verdict</span>
-          <h2 id="tribunal-verdict">{VERDICT_LABEL[result.verdict]}</h2>
-        </div>
-        <span className={`review-state ${run.reviewState}`}>{REVIEW_LABEL[run.reviewState]}</span>
-      </header>
-      <p className="verdict-summary">{result.executiveSummary}</p>
-
-      <div className="rationale-list">
-        {result.rationale.map((item, index) => (
-          <article key={index}>
-            <span className={`basis-pill ${item.basis}`}>{item.basis}</span>
-            <p>{item.point}</p>
-            <EvidenceRefs refs={item.evidenceRefs} campaign={campaign} />
-          </article>
-        ))}
-      </div>
-
-      <div className="result-columns">
-        <ResultList title="What the examiners agree on" items={result.agreements} />
-        <ResultList title="What could make the campaign fail" items={result.failureConditions} />
-        <ResultList title="Recommended changes for review" items={result.recommendedChanges} empty="No changes recommended." />
-        <ResultList title="Questions for local knowledge" items={result.localKnowledgeQuestions} empty="No local questions recorded." />
-      </div>
-
-      {result.disagreements.length ? (
-        <section className="disagreements">
-          <span className="mb-kicker">Disagreement retained</span>
-          <h3>The chair did not flatten these differences</h3>
-          {result.disagreements.map((item, index) => (
-            <details key={index}>
-              <summary>{item.issue}</summary>
-              <ul>{item.positions.map((position, itemIndex) => <li key={itemIndex}>{position}</li>)}</ul>
-              <p><b>Chair&apos;s assessment:</b> {item.chairAssessment}</p>
-            </details>
+    <div className="mission-run" aria-label={`${mission.name} run`}>
+      <section className="mission-run-step">
+        <header><span className="mb-step-number">1</span><div><h3>Running</h3><p>Specialists work independently before the final reconciliation.</p></div><span className={`mb-run-status ${run.status}`}>{runStatusLabel(run)}</span></header>
+        <AgentTeam mission={mission} run={run} />
+        <div className="mission-events" aria-live="polite">
+          {run.events.map((event) => (
+            <div className={`mission-event ${event.kind}`} key={event.id}>
+              <span className="event-marker" aria-hidden="true" />
+              <div><b>{event.label}</b>{event.detail ? <p>{event.detail}</p> : null}</div>
+              <time dateTime={event.createdAt}>{formatTime(event.createdAt)}</time>
+            </div>
           ))}
-        </section>
-      ) : null}
-
-      <div className="worker-reports">
-        <span className="mb-kicker">Independent examinations</span>
-        {run.workerReports.map((report) => (
-          <details key={report.agentKey}>
-            <summary><b>{report.agentName}</b><span>{report.assessment.replaceAll("_", " ")}</span></summary>
-            <p>{report.summary}</p>
-            {report.findings.map((finding, index) => (
-              <div className="worker-finding" key={index}>
-                <span className={`basis-pill ${finding.basis}`}>{finding.basis}</span>
-                <p>{finding.finding}</p>
-                <EvidenceRefs refs={finding.evidenceRefs} campaign={campaign} />
-              </div>
-            ))}
-          </details>
-        ))}
-      </div>
-
-      {result.limitations.length ? <ResultList title="Limits of this verdict" items={result.limitations} /> : null}
-
-      <footer className="human-gate">
-        <div>
-          <span className="mb-kicker">Human approval gate</span>
-          <h3>The campaign has not been changed</h3>
-          <p>Record what you make of the tribunal. This decision is an audit note, not an automatic edit.</p>
         </div>
-        {canLaunch ? (
-          <div className="review-actions">
-            <button onClick={() => void onReview("reviewed")}>Mark reviewed</button>
-            <button onClick={() => void onReview("needs_local_knowledge")}>Needs local knowledge</button>
-            <button className="quiet" onClick={() => void onReview("rejected")}>Reject findings</button>
-          </div>
-        ) : <p className="mb-muted">Only the campaign owner can record the review decision.</p>}
-      </footer>
-    </section>
+      </section>
+
+      <section className="mission-run-step">
+        <header><span className="mb-step-number">2</span><div><h3>Mission output</h3><p>The result stays beside the evidence and event history that produced it.</p></div></header>
+        {run.status === "queued" || run.status === "running" ? (
+          <div className="mb-output-skeleton" aria-label="Mission output is being prepared"><span /><span /><span /></div>
+        ) : null}
+        {run.status === "failed" ? <p className="mb-error" role="alert"><CircleAlert aria-hidden="true" />{run.error || "The mission stopped before synthesis."}</p> : null}
+        {outputReady ? <MissionOutput run={run} /> : null}
+        {outputReady ? <SpecialistReports run={run} /> : null}
+      </section>
+
+      <section className="mission-run-step">
+        <header><span className="mb-step-number">3</span><div><h3>Human decision</h3><p>{mission.humanDecision}</p></div></header>
+        {outputReady ? <HumanDecisionGate canReview={canReview} mission={mission} onReview={onReview} run={run} /> : <p className="mb-empty">The review gate opens only when a complete or partial output is available.</p>}
+      </section>
+
+      <MissionHistory mission={mission} runs={history} selectedRun={run} onSelect={onSelectHistory} />
+    </div>
   );
 }
 
-export function MissionBay({ campaign, canLaunch, initialRuns, initialRun }: {
+export function MissionBay({ campaign, canLaunch, initialRuns, initialRunByType, initialMissionType }: {
   campaign: Campaign;
   canLaunch: boolean;
   initialRuns: MissionRunSummary[];
-  initialRun: MissionRun | null;
+  initialRunByType: Partial<Record<MissionType, MissionRun>>;
+  initialMissionType: MissionType;
 }) {
   const [runs, setRuns] = useState(initialRuns);
-  const [selectedRun, setSelectedRun] = useState<MissionRun | null>(initialRun);
-  const [launching, setLaunching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedRuns, setSelectedRuns] = useState<Partial<Record<MissionType, MissionRun>>>(initialRunByType);
+  const [selectedType, setSelectedType] = useState<MissionType>(initialMissionType);
+  const [launching, setLaunching] = useState<MissionType | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<MissionType, string>>>({});
+  const runButtons = useRef<Partial<Record<MissionType, HTMLButtonElement | null>>>({});
 
-  const isActive = selectedRun?.status === "queued" || selectedRun?.status === "running";
-  const newestRunId = runs[0]?.id;
+  const activeSummary = runs.find((run) => run.status === "queued" || run.status === "running") || null;
+  const activeMission = activeSummary ? getMissionByType(activeSummary.missionType) : null;
 
-  const fetchRun = useCallback(async (id: string) => {
+  const updateUrl = useCallback((type: MissionType, runId?: string) => {
+    const mission = getMissionByType(type);
+    const url = new URL(window.location.href);
+    url.searchParams.set("mission", mission.slug);
+    if (runId) url.searchParams.set("run", runId);
+    else url.searchParams.delete("run");
+    window.history.replaceState({}, "", url);
+  }, []);
+
+  const fetchRun = useCallback(async (id: string, updateLocation = false) => {
     const response = await fetch(`/api/missions/${id}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Mission progress could not be loaded.");
     const run = await response.json() as MissionRun;
-    setSelectedRun(run);
+    setSelectedRuns((current) => ({ ...current, [run.missionType]: run }));
     setRuns((current) => {
       const summary: MissionRunSummary = {
         id: run.id,
@@ -220,166 +163,178 @@ export function MissionBay({ campaign, canLaunch, initialRuns, initialRun }: {
       };
       return [summary, ...current.filter((item) => item.id !== run.id)].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     });
-  }, []);
+    if (updateLocation) {
+      setSelectedType(run.missionType);
+      updateUrl(run.missionType, run.id);
+    }
+    return run;
+  }, [updateUrl]);
 
   useEffect(() => {
-    if (!isActive || !selectedRun) return;
-    const id = window.setInterval(() => void fetchRun(selectedRun.id).catch(() => {}), 1800);
-    return () => window.clearInterval(id);
-  }, [fetchRun, isActive, selectedRun]);
+    if (!activeSummary) return;
+    const timer = window.setInterval(() => void fetchRun(activeSummary.id).catch(() => {}), 1_800);
+    return () => window.clearInterval(timer);
+  }, [activeSummary, fetchRun]);
 
-  async function launch() {
-    setLaunching(true);
-    setError(null);
+  function selectMission(type: MissionType) {
+    setSelectedType(type);
+    updateUrl(type, selectedRuns[type]?.id);
+  }
+
+  function openMission(type: MissionType) {
+    selectMission(type);
+    window.requestAnimationFrame(() => {
+      const button = runButtons.current[type];
+      if (!button) return;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      button.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      button.focus({ preventScroll: true });
+    });
+  }
+
+  async function launch(type: MissionType) {
+    if (!canLaunch || launching || activeSummary) return;
+    const mission = getMissionByType(type);
+    setLaunching(type);
+    setErrors((current) => ({ ...current, [type]: undefined }));
     try {
-      const response = await fetch(`/api/campaigns/${campaign.id}/missions/viability-tribunal`, { method: "POST" });
-      const body = await response.json() as { missionRunId?: string; error?: string };
+      const response = await fetch(`/api/campaigns/${campaign.id}/missions/${mission.slug}`, { method: "POST" });
+      const body = await response.json() as { missionRunId?: string; missionType?: MissionType; error?: string };
       if (!response.ok && body.missionRunId) {
-        await fetchRun(body.missionRunId);
-        return;
+        await fetchRun(body.missionRunId, true);
+        throw new Error(body.error || "Another mission is already active.");
       }
-      if (!response.ok || !body.missionRunId) throw new Error(body.error || "The tribunal could not be launched.");
-      await fetchRun(body.missionRunId);
+      if (!response.ok || !body.missionRunId) throw new Error(body.error || `${mission.name} could not be launched.`);
+      await fetchRun(body.missionRunId, true);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The tribunal could not be launched.");
+      setErrors((current) => ({ ...current, [type]: reason instanceof Error ? reason.message : `${mission.name} could not be launched.` }));
     } finally {
-      setLaunching(false);
+      setLaunching(null);
     }
   }
 
-  async function review(reviewState: Exclude<ReviewState, "unreviewed">) {
-    if (!selectedRun) return;
-    setError(null);
-    const response = await fetch(`/api/missions/${selectedRun.id}/decision`, {
+  async function review(type: MissionType, reviewState: Exclude<ReviewState, "unreviewed">) {
+    const run = selectedRuns[type];
+    if (!run) return;
+    setErrors((current) => ({ ...current, [type]: undefined }));
+    const response = await fetch(`/api/missions/${run.id}/decision`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ reviewState }),
     });
     const body = await response.json() as { error?: string };
     if (!response.ok) {
-      setError(body.error || "The review decision could not be saved.");
+      setErrors((current) => ({ ...current, [type]: body.error || "The review decision could not be saved." }));
       return;
     }
-    await fetchRun(selectedRun.id);
+    await fetchRun(run.id);
   }
 
   const location = campaign.research?.location;
-  const place = campaign.input.location || location?.area || "Not resolved";
+  const place = campaign.input.location || location?.area || "Place unresolved";
   const decision = campaign.plan?.objective.dm || campaign.research?.decisionMaker?.formal || "Decision route unresolved";
-  const challengeMissions = useMemo(() => MISSION_CATALOGUE.filter((mission) => mission.purpose === "challenge" && mission.slug !== VIABILITY_TRIBUNAL.slug), []);
+  const historyByType = useMemo(() => Object.fromEntries(RUNNABLE_MISSIONS.map((mission) => [
+    mission.type,
+    runs.filter((run) => run.missionType === mission.type),
+  ])) as Record<MissionType, MissionRunSummary[]>, [runs]);
 
   return (
     <div className="mission-bay-shell">
-      <header className="mission-bay-hero">
-        <Link className="back-link" href={`/c/${campaign.id}`}>← Back to campaign</Link>
-        <div className="mb-eyebrow">Mission Bay · one hyperlocal campaign</div>
-        <h1>What should the factory do <span>next?</span></h1>
-        <p>Choose a bounded mission to challenge, investigate, watch or prepare this campaign. Every result returns to a person for judgement.</p>
+      <header className="jhero mb-jhero">
+        <Link className="back-link" href={`/c/${campaign.id}`}><ArrowLeft aria-hidden="true" />Back to campaign</Link>
+        <div className="eyebrow">Mission Bay</div>
+        <h1>{campaign.name}</h1>
+        <p className="obj">{place}. Run one bounded investigation at a time, inspect its evidence, then make the political judgement yourself.</p>
       </header>
 
-      <section className="campaign-context" aria-label="Campaign context">
-        <div><span>Campaign</span><b>{campaign.name}</b></div>
-        <div><span>Place</span><b>{place}</b><small>{location?.authority}</small></div>
-        <div><span>Decision target</span><b>{decision}</b></div>
-        <div><span>Evidence register</span><b>{campaign.sources.length} labelled source{campaign.sources.length === 1 ? "" : "s"}</b></div>
-      </section>
-
-      <aside className="factory-caption">
-        <FactoryGlyph pattern="Tribunal" />
-        <p>Mission Bay visualises how an agent factory divides, checks and recombines campaign work. These are bounded software processes, not autonomous digital employees. Every result returns to a person for review.</p>
-        <Link href="/how#mission-bay">How the factory works</Link>
-      </aside>
-
-      <section className="featured-bay" aria-labelledby="viability-title">
-        <div className="featured-copy">
-          <div className="featured-meta"><MissionStatus run={selectedRun} /><span className="pattern-label"><FactoryGlyph pattern="Tribunal" /> Tribunal</span></div>
-          <span className="mb-kicker">Challenge mission 01</span>
-          <h2 id="viability-title">Viability Tribunal</h2>
-          <p className="featured-question">Can this campaign actually win?</p>
-          <p>Four examiners test the campaign independently. A fifth agent adjudicates their evidence and preserves disagreement instead of producing an easy consensus.</p>
-          <div className="mission-contract">
-            <p><b>Returns:</b> {VIABILITY_TRIBUNAL.artefact}</p>
-            <p><b>Boundary:</b> {VIABILITY_TRIBUNAL.boundary}</p>
-          </div>
-          {error ? <p className="mb-error" role="alert">{error}</p> : null}
-          {canLaunch ? (
-            <button className="launch-button" disabled={launching || isActive} onClick={() => void launch()}>
-              {launching ? "Securing campaign snapshot…" : isActive ? "Tribunal in progress" : selectedRun?.result ? "Run tribunal again" : "Send the tribunal"}
-            </button>
-          ) : (
-            <p className="owner-note">This campaign is viewable by link. Only the browser session that created it can launch a mission.</p>
-          )}
-        </div>
-
-        <div className="factory-stage" aria-label="Viability Tribunal agent flow">
-          <div className="factory-workers">
-            {WORKER_KEYS.map(([key, name]) => {
-              const state = agentState(selectedRun, key);
-              return <div className={`factory-worker ${state}`} key={key}><i aria-hidden="true" /><span>{name}</span><small>{state}</small></div>;
-            })}
-          </div>
-          <div className="factory-join" aria-hidden="true"><span /><b>independent reports</b><span /></div>
-          <div className={`factory-chair ${agentState(selectedRun, "chair")}`}>
-            <i aria-hidden="true" />
-            <div><span>Tribunal Chair</span><small>{agentState(selectedRun, "chair")}</small></div>
-          </div>
-          <div className="human-return"><span>↓</span><b>Human review</b><small>No campaign changes are applied</small></div>
-        </div>
-      </section>
-
-      {selectedRun ? (
-        <section className="mission-live" aria-label="Mission run">
-          <div className="mission-live-head">
-            <div><span className="mb-kicker">Real mission run</span><h2>{selectedRun.result ? "A verdict, with its working" : "The tribunal is working"}</h2></div>
-            <span className="snapshot-hash">Snapshot {selectedRun.snapshotHash.slice(0, 12)}</span>
-          </div>
-          <div className="mission-events" aria-live="polite">
-            {selectedRun.events.map((event) => (
-              <div className={`mission-event ${event.kind}`} key={event.id}>
-                <i aria-hidden="true" />
-                <div><b>{event.label}</b>{event.detail ? <p>{event.detail}</p> : null}</div>
-                <time>{new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time>
-              </div>
-            ))}
-          </div>
-          {selectedRun.status === "failed" ? <p className="mb-error" role="alert">{selectedRun.error}</p> : null}
-          <TribunalResult run={selectedRun} campaign={campaign} canLaunch={canLaunch} onReview={review} />
+      <div className="jcontainer">
+        <section className="mb-context-pills" aria-label="Campaign context">
+          <span><b>Place</b>{place}</span>
+          {location?.authority ? <span><b>Authority</b>{location.authority}</span> : null}
+          <span><b>Decision target</b>{decision}</span>
+          <span><b>Evidence</b>{campaign.sources.length} labelled source{campaign.sources.length === 1 ? "" : "s"}</span>
         </section>
-      ) : null}
 
-      <section className="catalogue" aria-labelledby="catalogue-title">
-        <header>
-          <span className="mb-kicker">The mission catalogue</span>
-          <h2 id="catalogue-title">One factory, four campaign purposes</h2>
-          <p>Only the Viability Tribunal runs in this prototype. The remaining missions show the bounded capabilities this factory could add next.</p>
-        </header>
-        {PURPOSES.map((purpose, index) => {
-          const missions = purpose.id === "challenge" ? challengeMissions : MISSION_CATALOGUE.filter((mission) => mission.purpose === purpose.id);
-          return (
-            <section className="purpose-band" key={purpose.id}>
-              <header><span>0{index + 1}</span><div><h3>{purpose.label}</h3><p>{purpose.description}</p></div></header>
-              <div>{missions.map((mission) => <MissionRow mission={mission} key={mission.slug} />)}</div>
-            </section>
-          );
-        })}
-      </section>
+        <MissionSelector onOpen={openMission} onSelect={selectMission} selectedType={selectedType} />
 
-      {runs.length ? (
-        <section className="mission-history" aria-labelledby="history-title">
-          <span className="mb-kicker">Audit trail</span>
-          <h2 id="history-title">Previous tribunal runs</h2>
+        <div className="mb-runnable" aria-label="Runnable missions">
+          {RUNNABLE_MISSIONS.map((mission, index) => {
+            const run = selectedRuns[mission.type] || null;
+            const history = historyByType[mission.type];
+            const Icon = missionIcon(mission);
+            const missionIsActive = activeSummary?.missionType === mission.type;
+            const launchBlocked = !canLaunch || Boolean(activeSummary) || launching !== null;
+            const buttonLabel = !canLaunch
+              ? "Owner-only launch"
+              : launching === mission.type
+                ? "Starting mission…"
+                : missionIsActive
+                  ? `${mission.shortName} is running`
+                  : activeMission
+                    ? `${activeMission.shortName} is running`
+                    : `Run ${mission.name}`;
+            return (
+              <section className={`rung mission-rung ${mission.type === selectedType ? "active" : ""}`} id={`mission-${mission.slug}`} key={mission.type}>
+                <div className="rung-grid">
+                  <aside>
+                    <span className="n">0{index + 1}</span>
+                    <span className="mb-kicker">{mission.pattern}</span>
+                    <h2>{mission.name}</h2>
+                    <p className="whatsnew">{mission.question}</p>
+                    <span className={`mb-run-status ${run?.status || "ready"}`}>{runStatusLabel(run)}</span>
+                    <p className="limit"><ShieldCheck aria-hidden="true" />{mission.boundary}</p>
+                  </aside>
+
+                  <div className="rc mission-rung-content">
+                    <div className="mb-mission-intro"><Icon aria-hidden="true" /><p>{mission.artefact}</p></div>
+                    <dl className="mb-contract-list">
+                      <div><dt>Agent team</dt><dd><AgentTeam mission={mission} run={missionIsActive ? run : null} /></dd></div>
+                      <div><dt><Wrench aria-hidden="true" />Tools and evidence</dt><dd className="mb-tool-list">{mission.tools.map((tool) => <span key={tool}>{tool}</span>)}</dd></div>
+                      <div><dt><FileOutput aria-hidden="true" />Artefact returned</dt><dd>{mission.artefact}</dd></div>
+                      <div><dt><Clock3 aria-hidden="true" />Human decision</dt><dd>{mission.humanDecision}</dd></div>
+                    </dl>
+
+                    {errors[mission.type] ? <p className="mb-error" role="alert"><CircleAlert aria-hidden="true" />{errors[mission.type]}</p> : null}
+                    <button
+                      aria-disabled={launchBlocked}
+                      className="launch-button"
+                      id={`run-${mission.slug}`}
+                      onClick={() => void launch(mission.type)}
+                      ref={(node) => { runButtons.current[mission.type] = node; }}
+                      type="button"
+                    >{buttonLabel}<span aria-hidden="true"><ArrowUpRight /></span></button>
+                    {!canLaunch ? <p className="owner-note">This shared campaign is read-only. Only the browser session that created it can launch or review missions.</p> : null}
+                    {activeMission && !missionIsActive ? <p className="owner-note">Only one mission can be active. This launch unlocks when {activeMission.name} finishes.</p> : null}
+
+                    {run ? (
+                      <RunExperience
+                        canReview={canLaunch}
+                        history={history}
+                        mission={mission}
+                        onReview={(state) => review(mission.type, state)}
+                        onSelectHistory={async (summary) => { await fetchRun(summary.id, true); }}
+                        run={run}
+                      />
+                    ) : <MissionHistory mission={mission} onSelect={async (summary) => { await fetchRun(summary.id, true); }} runs={history} selectedRun={null} />}
+                  </div>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <section className="mb-future" aria-labelledby="future-missions-title">
+          <header><span className="eyebrow">Prioritised next</span><h2 id="future-missions-title">Future missions</h2><p>Persistent watching starts only after durable scheduling and stop controls exist.</p></header>
           <div>
-            {runs.map((run, index) => (
-              <button className={selectedRun?.id === run.id ? "selected" : ""} onClick={() => void fetchRun(run.id)} key={run.id}>
-                <span>Run {runs.length - index}</span>
-                <b>{run.result ? VERDICT_LABEL[run.result.verdict] : run.status === "failed" ? "No verdict" : "In progress"}</b>
-                <small>{new Date(run.createdAt).toLocaleString()} · {REVIEW_LABEL[run.reviewState]}</small>
-              </button>
+            {FUTURE_MISSIONS.map((mission) => (
+              <details key={mission.slug}>
+                <summary><span className="mb-priority">{String(mission.priority).padStart(2, "0")}</span><span><b>{mission.name}</b><small>{mission.question}</small></span><span className={`mb-availability ${mission.availability}`}>{mission.availability}</span></summary>
+                <p><b>Returns:</b> {mission.artefact}</p><p><b>Boundary:</b> {mission.boundary}</p>
+              </details>
             ))}
           </div>
-          {newestRunId && selectedRun?.id !== newestRunId ? <button className="return-latest" onClick={() => void fetchRun(newestRunId)}>Return to latest run</button> : null}
         </section>
-      ) : null}
+      </div>
     </div>
   );
 }

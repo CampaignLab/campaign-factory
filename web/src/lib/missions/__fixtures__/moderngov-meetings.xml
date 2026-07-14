@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Meetings>
+  <Meeting>
+    <MeetingId>3184</MeetingId>
+    <MeetingTitle>Cabinet</MeetingTitle>
+    <MeetingDate>22/09/2026 14:00</MeetingDate>
+    <Venue>Civic Centre</Venue>
+    <WebUrl>https://democracy.example.gov.uk/ieListDocuments.aspx?CId=118&amp;MId=3184</WebUrl>
+  </Meeting>
+  <Meeting>
+    <MeetingId>3190</MeetingId>
+    <MeetingTitle>Environment Scrutiny Committee</MeetingTitle>
+    <MeetingDate>02/10/2026 18:30</MeetingDate>
+    <Venue>Town Hall</Venue>
+  </Meeting>
+</Meetings>

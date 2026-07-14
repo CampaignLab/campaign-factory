@@ -13,7 +13,7 @@ A routed pipeline of four model calls over one shared campaign state:
 
 The run happens as a background job; the client polls for progress and the **journey UI reveals progressively** — research is readable while the plan and drafts still generate. Finished campaigns live at a shareable URL and can be opted into a **conference wall** with a projector mode.
 
-Completed campaigns now continue into **Mission Bay**, a campaign-specific visualisation of an agent factory. Its first real mission, the **Viability Tribunal**, runs four independent examinations in parallel and sends their reports to a fifth adjudicating agent. Results, evidence references, disagreements and human review decisions are persisted; the campaign is never silently changed.
+Completed campaigns now continue into **Mission Bay**, a campaign-specific, human-reviewed agent workflow. Four missions are runnable: **Viability Tribunal**, **Whole-Campaign Evidence Audit**, **Decision Route & Meetings Audit**, and **Campaign Precedent Review**. Each runs independent specialists through a server-only registry, persists its event history and typed result, and returns to an explicit human decision without changing the campaign. Only one mission can run for a campaign at a time.
 
 ## Repository layout
 

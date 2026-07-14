@@ -1,6 +1,10 @@
 # Mission Bay
 
-**Status:** Implemented conference-prototype scope; eleven catalogue missions remain future concepts
+**Status:** Four prioritised missions implemented; eight catalogue missions remain future concepts
+
+> Implementation update, 14 July 2026: Mission Bay now uses the campaign journey's
+> visual language, keeps run output and human review inline, and permits one active
+> mission per campaign. The later sections retain the original concept history.
 **Last updated:** 14 July 2026
 **Purpose:** Explore how Campaign Factory can make agent factories tangible to campaigners after a campaign has been formulated
 

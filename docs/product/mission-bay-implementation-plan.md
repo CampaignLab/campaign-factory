@@ -1,5 +1,11 @@
 # Mission Bay Implementation Plan
 
+> Historical plan note, 14 July 2026: this file records the original one-mission
+> conference scope. The implemented branch now has four runnable missions, a generic
+> registry and launch endpoint, campaign-wide active-run protection, inline results,
+> and query-linked history. See the latest entry in `EXECUTION_JOURNAL.md` for current
+> verification and remaining live-acceptance work.
+
 **Status:** Implemented conference-prototype scope on `codex/mission-bay`; watcher missions remain catalogue previews
 **Date:** 14 July 2026
 **Implementation target:** `web/`, the production Next.js application

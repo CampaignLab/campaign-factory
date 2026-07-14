@@ -83,9 +83,13 @@ export function migrate(): Promise<void> {
       )`;
     await sql`create index if not exists mission_runs_campaign_idx on mission_runs (campaign_id, created_at desc)`;
     await sql`create index if not exists mission_events_run_idx on mission_events (mission_run_id, id)`;
+    // Mission Bay permits one active mission across the whole campaign. Create
+    // the stronger index under a new name before removing the earlier per-type
+    // index, so repeated cold-start migrations never open a constraint gap.
     await sql`
-      create unique index if not exists mission_one_active_idx
-      on mission_runs (campaign_id, mission_type)
+      create unique index if not exists mission_one_active_campaign_idx
+      on mission_runs (campaign_id)
       where status in ('queued', 'running')`;
+    await sql`drop index if exists mission_one_active_idx`;
   })());
 }

@@ -172,3 +172,129 @@ Run five real Viability Tribunals on representative completed campaigns in the d
 environment. Record latency, per-agent failure, cost, citation validity and verdict
 usefulness. If any run exceeds 120 seconds or the current function lifetime is
 unreliable, move mission orchestration to a durable workflow before the conference.
+
+## 2026-07-14T18:36:03Z - Mission Bay visual and multi-mission refactor
+
+### Goal
+
+Turn Mission Bay into a continuation of the campaign journey, make the first four
+prioritised missions genuinely runnable, keep every result and decision inline, and
+strengthen the runtime so only one mission can be active for a campaign.
+
+### Changes
+
+- Rebased `codex/mission-bay` in an isolated worktree, then refreshed it onto the
+  latest local `main` at `1d6af21`, preserving unrelated changes in the primary checkout.
+- Replaced the dark factory panel and Mission Bay-specific colour variables with the
+  existing journey hero, sticky rungs, pills, pastel callouts, diagrams and stage gates.
+- Added a keyboard-operable four-tab selector. It updates an abstract Lucide-icon flow
+  from immutable campaign snapshot through specialists, reconciler, output and human
+  decision. Selection does not launch paid work.
+- Added four complete mission rungs for Viability Tribunal, Whole-Campaign Evidence
+  Audit, Decision Route & Meetings Audit, and Campaign Precedent Review. Each shows its
+  question, team, tools, artefact, decision, safety boundary, launch state, live agent
+  states, events, typed output, human review and previous runs inline.
+- Added query-linked history at
+  `/c/[id]/missions?mission=<slug>&run=<uuid>`. Invalid, mismatched and unrelated runs
+  are ignored at the page boundary.
+- Replaced the hard-coded viability runtime with a server-only registry. Each executable
+  specification owns readiness rules, agents, worker schema, synthesis schema, worker
+  threshold, prompts, preparation and result normalisation.
+- Added a shared orchestration engine and the generic
+  `POST /api/campaigns/[id]/missions/[missionSlug]` launch route. Ownership, readonly,
+  daily budget, readiness and global active-run checks occur before launch.
+- Generalised Postgres mapping and JSONB result validation across four discriminated
+  mission results. The partial unique index now covers `campaign_id` alone for queued
+  and running rows. Read-time adapters keep legacy Viability results and reports usable.
+- Made Evidence Audit inventory deterministic. Every source claim and unresolved lint
+  item is retained, no more than 24 priority items are marked for recheck, and remaining
+  items are explicitly `not_rechecked` with original labels and evidence preserved.
+- Added supported UK Parliament committee and meeting adapters, official-domain
+  ModernGov detection, ModernGov committee and meeting calls, provider coverage ledgers,
+  12-month and 90-day windows, official-source restrictions and incomplete-coverage
+  labels for Decision Route Audit.
+- Added URL validation, citation normalisation and deterministic evidence downgrades.
+  Unsupported evidence becomes `unknown`; formal-route evidence needs a primary official
+  URL; precedent causal claims remain inference at the validation boundary.
+- Removed both inline Mission Bay explainer links. The global footer still links to
+  `/how`.
+
+### Decisions
+
+- Public catalogue metadata remains client-safe and separate from executable server
+  functions. Browser code cannot select arbitrary prompts, schemas or runtime work.
+- Mission inputs are immutable campaign snapshots. Provider records and model reports
+  are evidence for a persisted result, not permission to mutate the campaign.
+- One active mission is enforced twice: a campaign-wide lookup provides a useful UI/API
+  response, and a partial Postgres unique index resolves cross-instance races.
+- Provider coverage is intentionally conservative. A responding API is labelled partial
+  until relevance and missing records are reconciled; an absent record is never treated
+  as proof that no meeting, route or deadline exists.
+- Existing Viability rows are adapted only when read. New writes must pass the current
+  discriminated schema, so compatibility does not weaken the runtime contract.
+
+### Tradeoffs
+
+- The runtime continues to use Next.js `after()` with the existing 800-second ceiling.
+  Durable job scheduling, retries, stale-run recovery and stop controls remain outside
+  this change.
+- Official provider calls are bounded preflight context for the decision-route agents.
+  They do not attempt to normalise every Parliament or council product into one universal
+  civic-data model.
+- Precedent causality is conservatively held at inference. A future direct-evidence field
+  and deterministic source inspection would be required to promote it.
+- Browser acceptance used an existing shared campaign in viewer mode. No paid mission was
+  launched and no temporary campaign or mission row was created.
+
+### Risks
+
+- Live latency, token cost, model/tool compatibility and output quality have not yet been
+  measured for the three new web-research missions.
+- A server interruption can still leave a mission active until operational recovery.
+  This matters more now that the unique index blocks every other campaign mission.
+- Parliament and ModernGov response shapes vary. Fixture tests cover supported shapes,
+  but live council services can omit endpoints, return escaped datasets or reject date
+  formats. These cases stay visible as unavailable or partial coverage.
+- `npm install` continues to report two moderate dependency vulnerabilities. No forced
+  dependency upgrade was applied.
+
+### Verification
+
+- Vitest: 4 files and 11 tests passed. Coverage includes registry integrity, strict
+  synthesis failure, full/partial/below-threshold worker outcomes, deterministic evidence
+  inventory, invalid URL rejection, evidence downgrade, real `mission_type` row mapping,
+  legacy Viability row mapping, campaign-wide active status and fixture-backed Parliament
+  JSON plus ModernGov XML parsing.
+- Strict TypeScript passed with `npm run typecheck`.
+- Targeted ESLint passed for all changed mission, database, API, page and transition code.
+- Next.js 16.2.10 production build passed and generated the generic mission route plus the
+  dynamic Mission Bay page.
+- Chromium verified desktop, 1920 by 1080 projector and 390 by 844 mobile layouts. The
+  document width stayed at 390px on mobile. Mouse and arrow-key tab selection, focus from
+  `Open this mission`, viewer launch messaging, selector content, invalid query fallback,
+  reduced-motion duration, the single campaign transition link and footer-only `/how`
+  link all behaved as intended. Browser console reported zero errors and zero warnings.
+- Loading the page exercised the idempotent database migration against the configured
+  development database and created the campaign-wide partial unique index. It created no
+  mission run and spent no model tokens.
+
+### Demo Impact
+
+Mission Bay is now visibly the campaign's next rung, not a separate AI console. A
+presenter can select any live mission, explain the specialist team and evidence boundary,
+open the matching rung, and show where events, results, human judgement and history live
+without leaving the campaign narrative.
+
+### Customer-Facing Context
+
+The runtime demonstrates bounded autonomy with server-whitelisted work, immutable inputs,
+typed outputs, provider coverage, deterministic citation downgrades, persisted events,
+race-safe concurrency and review-only human decisions. No mission sends messages,
+publishes, profiles people, edits campaign data or converts inference into official fact.
+
+### Next Recommended Step
+
+Run two deployed examples of each runnable mission before the conference. Record complete
+event history, provider coverage, valid URLs, political-position safety, partial-failure
+coherence, latency and cost. Then add stale-run recovery before enabling any persistent
+watcher.

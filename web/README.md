@@ -9,9 +9,11 @@ sources with 7 verification labels; drafts mark unresolved facts as `[VERIFY: �
 failed stages are shown as failed, never faked.
 
 After the campaign journey, **Mission Bay** makes bounded agent orchestration visible.
-Its live Viability Tribunal runs four independent campaign examinations in parallel,
-then sends the reports to a fifth adjudicating agent. The other eleven missions are
-truthfully labelled catalogue previews, not simulated activity.
+Four live missions challenge viability, audit campaign evidence, verify the formal
+decision route and meetings, or compare campaign precedents. Each uses four independent
+specialists and a reconciler, persists the complete audit trail, and stops at a human
+decision. Eight further missions are prioritised as `Next` or `Later`, with no simulated
+activity.
 
 ## Status
 
@@ -144,8 +146,9 @@ these before the conference (the Vercel account will be switched later):
 - `src/lib/pipeline/` — the routed pipeline: `stageA` research, `stageB` plan, `stageC`
   drafts (3 parallel groups), `lint`, `run` orchestration, `models`/`prompts`/`schemas`/`labels`.
 - `src/lib/db/` — Postgres layer (runs, spend ledger, sessions, wall).
-- `src/lib/missions/` — Mission catalogue, structured tribunal schemas and the real
-  fan-out/fan-in Viability Tribunal runtime.
+- `src/lib/missions/` — Client-safe catalogue plus the server-only mission registry,
+  typed schemas, citation validation, official-provider adapters and shared
+  fan-out/reconciliation runtime for all four runnable missions.
 - `src/lib/jobs/store.ts` — run store with write-through persistence + `after()` execution.
 - `src/lib/config.ts` — env-driven launch controls.
 - `src/app/api/` — campaigns, mission runs, review decisions, `runs`

@@ -730,7 +730,6 @@ export function Journey({ campaign, onReset }: { campaign: Campaign; onReset?: (
           </div>
           <div className="mission-transition-actions">
             <Link className="mission-transition-primary" href={`/c/${c.id}/missions`}>Enter Mission Bay →</Link>
-            <Link href="/how#mission-bay">How agent factories work</Link>
           </div>
         </section>
       ) : null}
