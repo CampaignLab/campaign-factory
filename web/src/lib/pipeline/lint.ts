@@ -20,7 +20,12 @@ export async function runLint(
     client,
     {
       model: MODELS.lint.model,
-      max_tokens: 2000,
+      // Lint output routinely reached 1,400–1,700 tokens against the old 2,000
+      // cap, so verbose runs truncated mid-JSON and failed to parse (the
+      // "Consistency check unavailable" bug). 4,000 gives comfortable headroom;
+      // billing is per actual output token, so the higher ceiling costs nothing
+      // on normal runs.
+      max_tokens: 4000,
       system: LINT_SYSTEM,
       jsonSchema: LINT_SCHEMA,
       messages: [
@@ -32,21 +37,8 @@ export async function runLint(
     },
     { onUsage },
   );
-  const raw = textOf(msg);
-  // TEMP DIAGNOSTIC: capture the shape of EVERY lint response so we can see, on
-  // both passing and failing runs, whether output nears the token cap (truncation)
-  // or carries stray content. Persisted on campaign.lint.diag, read via the API.
-  const blockTypes = (msg.content || []).map((b) => b.type).join(",");
-  const usage = msg.usage as { output_tokens?: number } | undefined;
-  const diag = `stop=${msg.stop_reason} blocks=[${blockTypes}] outTok=${usage?.output_tokens ?? "?"} textLen=${raw.length} head=${JSON.stringify(raw.slice(0, 100))} tail=${JSON.stringify(raw.slice(-100))}`;
-  let out: LintResult;
-  try {
-    out = parseJSONLoose<LintResult>(raw);
-  } catch (e) {
-    throw new Error(`${e instanceof Error ? e.message : "parse failed"} | ${diag}`);
-  }
+  const out = parseJSONLoose<LintResult>(textOf(msg));
   out.flags = out.flags || [];
   out.ok = !out.flags.some((f) => f.severity === "block");
-  (out as LintResult & { diag?: string }).diag = diag;
   return out;
 }
