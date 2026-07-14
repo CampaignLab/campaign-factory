@@ -44,6 +44,14 @@ export async function deleteRun(id: string, sid: string): Promise<boolean> {
   return res.count > 0;
 }
 
+// Admin delete: remove any run by id, not owner-gated (guarded by the admin key
+// at the route layer). Used to prune test/spam runs.
+export async function deleteRunAdmin(id: string): Promise<boolean> {
+  await migrate();
+  const res = await sql`delete from runs where id = ${id}`;
+  return res.count > 0;
+}
+
 export async function isOwner(id: string, sid: string): Promise<boolean> {
   await migrate();
   const rows = await sql`select 1 from runs where id = ${id} and owner_sid = ${sid}`;
