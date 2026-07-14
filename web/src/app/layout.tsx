@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter_Tight, Instrument_Serif, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./journey.css";
+import "./mission-bay.css";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 

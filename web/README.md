@@ -8,6 +8,11 @@ flagged. Built for a conference launch. Full product plan and decisions: [`../PL
 sources with 7 verification labels; drafts mark unresolved facts as `[VERIFY: …]`;
 failed stages are shown as failed, never faked.
 
+After the campaign journey, **Mission Bay** makes bounded agent orchestration visible.
+Its live Viability Tribunal runs four independent campaign examinations in parallel,
+then sends the reports to a fifth adjudicating agent. The other eleven missions are
+truthfully labelled catalogue previews, not simulated activity.
+
 ## Status
 
 - **Repo:** [`sugaroverflow/campaign-factory`](https://github.com/sugaroverflow/campaign-factory) — GitHub-connected to Vercel; pushes to `main` **auto-deploy** (build root: `web/`).
@@ -139,8 +144,13 @@ these before the conference (the Vercel account will be switched later):
 - `src/lib/pipeline/` — the routed pipeline: `stageA` research, `stageB` plan, `stageC`
   drafts (3 parallel groups), `lint`, `run` orchestration, `models`/`prompts`/`schemas`/`labels`.
 - `src/lib/db/` — Postgres layer (runs, spend ledger, sessions, wall).
+- `src/lib/missions/` — Mission catalogue, structured tribunal schemas and the real
+  fan-out/fan-in Viability Tribunal runtime.
 - `src/lib/jobs/store.ts` — run store with write-through persistence + `after()` execution.
 - `src/lib/config.ts` — env-driven launch controls.
-- `src/app/api/` — `runs` (start/poll/delete/share), `status`, `wall`, `admin/hide`.
-- `src/app/c/[id]` — shareable read-only campaign page. `src/app/wall` — wall + projector.
+- `src/app/api/` — campaigns, mission runs, review decisions, `runs`
+  (start/poll/delete/share), `status`, `wall`, and `admin/hide`.
+- `src/app/c/[id]` — shareable read-only campaign page. `src/app/c/[id]/missions` is its
+  campaign-specific Mission Bay. Only the creating browser session can launch or review
+  a mission; anyone with the private-by-default campaign link can read its result.
 - `src/components/` — `EntryForm`, `RunProgress`, `Journey`, `OwnerBar`, `ProjectorWall`, …

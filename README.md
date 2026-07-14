@@ -13,6 +13,8 @@ A routed pipeline of four model calls over one shared campaign state:
 
 The run happens as a background job; the client polls for progress and the **journey UI reveals progressively** — research is readable while the plan and drafts still generate. Finished campaigns live at a shareable URL and can be opted into a **conference wall** with a projector mode.
 
+Completed campaigns now continue into **Mission Bay**, a campaign-specific visualisation of an agent factory. Its first real mission, the **Viability Tribunal**, runs four independent examinations in parallel and sends their reports to a fifth adjudicating agent. Results, evidence references, disagreements and human review decisions are persisted; the campaign is never silently changed.
+
 ## Repository layout
 
 | Path | What it is |
@@ -22,6 +24,10 @@ The run happens as a background job; the client polls for progress and the **jou
 | [`PLAN.md`](PLAN.md) | Full product plan and locked decisions. |
 | [`HOW_IT_WAS_BUILT.md`](HOW_IT_WAS_BUILT.md) | Architecture-and-story companion. |
 | [`EXECUTION_JOURNAL.md`](EXECUTION_JOURNAL.md) | Chronological build log. |
+| [`docs/product/mission-bay-concept.md`](docs/product/mission-bay-concept.md) | Mission Bay product concept and catalogue rationale. |
+| [`docs/product/mission-bay-implementation-plan.md`](docs/product/mission-bay-implementation-plan.md) | Reviewable implementation plan, safety boundaries and acceptance criteria. |
+| [`PRODUCT.md`](PRODUCT.md) | Product register, users, tone and interface principles. |
+| [`CONTEXT.md`](CONTEXT.md) | Shared domain glossary for campaign and agent-factory concepts. |
 | [`docs/research/`](docs/research/) | Deep-research notes (e.g. why this is a workflow, not a multi-agent system). |
 
 ## Quickstart

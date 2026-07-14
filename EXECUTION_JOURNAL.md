@@ -62,3 +62,113 @@ Stage C drafts = Sonnet 5 ×3 parallel groups; lint = Haiku 4.5. No Fable 5 in-p
   protection + confirm real access code + plan/`maxDuration`.
 - M6: Stage-A label-quality test (Sonnet vs Opus), ~45-run load rehearsal, per-run cost
   measurement, seed rehearsal campaigns.
+
+---
+
+## 2026-07-14T16:25:01Z - Mission Bay conference prototype
+
+### Goal
+
+Implement the approved Mission Bay defaults in an isolated worktree and prepare a
+reviewable pull request. Preserve the long campaign journey, make an agent factory
+legible to campaigners, and prove one coordinated mission without fabricating the
+other catalogue capabilities.
+
+### Changes
+
+- Added `/c/[id]/missions` as a second act for one Hyperlocal Campaign and added an
+  end-of-journey transition into it.
+- Added the twelve-mission catalogue organised by Challenge, Investigate, Watch and
+  Prepare. Only Viability Tribunal is operational; the other eleven use explicit
+  `Up next` or `Future mission concept` labels and never animate as active work.
+- Implemented Viability Tribunal as four parallel Sonnet 5 examinations followed by
+  a Sonnet 5 Tribunal Chair. All calls use structured outputs. Invalid evidence IDs
+  are removed, and an `evidence` claim with no valid source ID is downgraded to
+  `unknown`.
+- Added immutable campaign snapshots, SHA-256 snapshot hashes, mission runs, mission
+  events, worker reports, verdicts, cost, failure state and human review state to
+  Postgres.
+- Added owner-only mission launch and review endpoints, read-only result access for
+  people who can view the private-by-default campaign URL, one-active-run protection,
+  daily budget enforcement and readonly-mode enforcement.
+- Added visible event history, examiner reports, preserved disagreement, evidence
+  links, local-knowledge questions and an explicit human approval gate. The mission
+  never edits the campaign.
+- Extended `/how` to explain that Mission Bay is a Factory Visualisation of bounded
+  server processes, not a literal digital workforce.
+- Added the Mission Bay concept, implementation plan, product register and domain
+  glossary to the branch.
+
+### Decisions
+
+- The conference prototype proves one mission deeply instead of simulating a busy
+  operations console.
+- The tribunal audits the existing campaign and evidence register without web search.
+  Re-research belongs in a future Evidence Audit or Decision-Route mission.
+- Examiner failures are retained in the event history. The chair may adjudicate only
+  when at least two independent examinations complete; otherwise the run fails rather
+  than manufacturing a verdict.
+- `complete` means all four examiners and the chair completed. A chair verdict based on
+  two or three reports is explicitly `partial`.
+- Review decisions are audit notes only: reviewed, rejected or needs local knowledge.
+
+### Tradeoffs
+
+- Runtime execution uses the application's existing `after()` pattern and 800-second
+  ceiling. Durable workflow infrastructure was not introduced in this PR.
+- The Tribunal Chair uses Sonnet 5 at high effort instead of Opus to keep the
+  conference latency and cost plausible. The four examiners use Sonnet 5 at medium
+  effort and run concurrently.
+- Watcher missions remain non-functional until scheduling, stop controls, durable
+  execution and source-specific monitoring are implemented.
+- The prototype does not apply recommended changes because campaigns do not yet have
+  versioned editing or approval-aware mutation.
+
+### Risks
+
+- No paid live tribunal was launched during this implementation. Latency, cost and
+  output quality still require the five-run deployed benchmark in the implementation
+  plan.
+- A server interruption can leave a run recorded as `running`; durable execution and
+  stale-run recovery remain required before enabling persistent missions.
+- The full repository lint command still fails on three pre-existing React 19
+  `set-state-in-effect` errors in `admin/page.tsx`, `CampaignApp.tsx` and `Reveal.tsx`.
+- `npm install` reports two moderate dependency vulnerabilities. No forced dependency
+  upgrades were attempted in this feature branch.
+- Loading Mission Bay against the configured development database exercised the
+  idempotent migration and created the empty mission tables and indexes. It did not
+  create a mission run or spend model tokens.
+
+### Verification
+
+- Targeted ESLint passed for all Mission Bay code and every touched application file.
+- `npm run build` passed with Next.js 16.2.10 after loading the existing local
+  environment and allowing `next/font` to fetch its existing Google fonts.
+- Browser-checked the campaign transition, Mission Bay desktop reveal, 390px mobile
+  layout, catalogue semantics and `/how#mission-bay` in Chromium. No browser console
+  errors were reported.
+- Verified the public mission-list endpoint returns an empty run list and
+  `canLaunch: false` for a viewer. Verified an unauthenticated launch attempt returns
+  HTTP 403 without creating a run.
+- Verified exactly twelve catalogue definitions and four purpose groups in source.
+
+### Demo Impact
+
+The campaign remains the main story. The final transition now opens a second act where
+the audience can see one campaign split into four independent examinations, recombined
+by a chair and stopped at human review. The eleven static mission rows make the future
+factory visible without claiming that unavailable capabilities ran.
+
+### Customer-Facing Context
+
+Mission Bay is bounded autonomy: public or campaign-supplied evidence, immutable input
+snapshots, source-restricted claims, persisted audit events, no autonomous contact or
+publication, and explicit human judgement. The interface visualises orchestration but
+does not claim that agents are people or that future mission concepts are live.
+
+### Next Recommended Step
+
+Run five real Viability Tribunals on representative completed campaigns in the deployed
+environment. Record latency, per-agent failure, cost, citation validity and verdict
+usefulness. If any run exceeds 120 seconds or the current function lifetime is
+unreliable, move mission orchestration to a durable workflow before the conference.

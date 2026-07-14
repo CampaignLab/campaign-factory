@@ -47,3 +47,10 @@ export async function getRunState(id: string): Promise<RunState | null> {
   `;
   return rows[0] ? rowToState(rows[0]) : null;
 }
+
+export async function isRunOwner(id: string, sid: string | null): Promise<boolean> {
+  if (!sid) return false;
+  await migrate();
+  const rows = await sql`select 1 from runs where id = ${id} and owner_sid = ${sid} limit 1`;
+  return Boolean(rows[0]);
+}
