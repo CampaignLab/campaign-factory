@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { type VerificationLabel } from "@/lib/pipeline/labels";
 import { type Campaign, type PlanStakeholder } from "@/lib/pipeline/types";
@@ -719,19 +718,6 @@ export function Journey({ campaign, onReset }: { campaign: Campaign; onReset?: (
             ))}
           </div>
         </Stage>
-      ) : null}
-
-      {c.completed.research && c.plan ? (
-        <section className="mission-transition" aria-labelledby="mission-transition-title">
-          <div>
-            <span className="mb-kicker">The campaign is ready</span>
-            <h2 id="mission-transition-title">What should the factory do <span>next?</span></h2>
-            <p>Send a coordinated agent team to challenge the campaign, investigate unresolved questions, watch the public decision route or prepare the next move.</p>
-          </div>
-          <div className="mission-transition-actions">
-            <Link className="mission-transition-primary" href={`/c/${c.id}/missions`}>Enter Mission Bay →</Link>
-          </div>
-        </section>
       ) : null}
 
       {/* stakeholder detail panel */}
