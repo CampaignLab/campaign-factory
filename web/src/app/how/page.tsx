@@ -53,28 +53,6 @@ export default function HowPage() {
             </ul>
           </div>
         </div>
-
-        <section id="mission-bay" className="how-mission-bay">
-          <div>
-            <span className="mb-kicker">Mission Bay</span>
-            <h2>A visual model of an agent factory</h2>
-            <p>
-              Agents do not live in little boxes. In practice, they are bounded software processes running on servers.
-              Mission Bay makes their coordination legible: one campaign snapshot is divided into independent workstreams,
-              the workstreams run in parallel, a specialist reconciles their evidence and disagreements, and the result
-              returns to a person for a decision.
-            </p>
-          </div>
-          <div className="how-factory-flow" aria-label="Mission Bay factory pattern">
-            <span>Campaign snapshot<small>immutable for the run</small></span>
-            <b>fans out</b>
-            <div><span>Examiner</span><span>Examiner</span><span>Examiner</span><span>Examiner</span></div>
-            <b>recombines</b>
-            <span>Adjudicator<small>preserves disagreement</small></span>
-            <b>returns to</b>
-            <span>Human review<small>nothing is sent or changed</small></span>
-          </div>
-        </section>
       </div>
     </main>
   );
