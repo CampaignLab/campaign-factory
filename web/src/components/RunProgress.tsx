@@ -14,11 +14,13 @@ const STAGES: { id: StageId; title: string; desc: string; agent: string }[] = [
 
 const TERMINAL = new Set(["complete", "partial", "failed"]);
 
-function Dot({ status }: { status: StageStatus }) {
+// Ported stepper marker from the prototype (○ pending · ◐ running · ✓ done · ✕ failed).
+function StageIcon({ status }: { status: StageStatus }) {
   if (status === "done") return <span className="text-[var(--good)]">✓</span>;
   if (status === "failed") return <span className="text-[var(--bad)]">✕</span>;
-  if (status === "running") return <span className="inline-block size-2.5 animate-pulse rounded-full bg-brand" />;
-  return <span className="inline-block size-2.5 rounded-full border border-muted-foreground/40" />;
+  if (status === "running")
+    return <span className="inline-block animate-spin text-[var(--warn)]">◐</span>;
+  return <span className="text-[var(--ring)]">○</span>;
 }
 
 export function RunProgress({
@@ -55,33 +57,53 @@ export function RunProgress({
   }, [runId, onComplete]);
 
   const notes = state?.notes ?? [];
+  const lastNote = notes[notes.length - 1];
+  const doneCount = STAGES.filter((s) => state?.stages[s.id]?.status === "done").length;
+  const anyRunning = STAGES.some((s) => state?.stages[s.id]?.status === "running");
+  // Progress-bar fill: complete stages, plus a half-step for the one in flight.
+  const pct = Math.min(100, Math.round(((doneCount + (anyRunning ? 0.5 : 0)) / STAGES.length) * 100));
   const failed = state ? STAGES.filter((s) => state.stages[s.id]?.status === "failed") : [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-12">
-      <h2 className="text-2xl font-semibold tracking-tight">Building your campaign…</h2>
-      <p className="mt-2 text-muted-foreground">
-        This runs live and takes a few minutes. You can leave this open — research appears first, then the
-        plan and materials.
+    <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:py-24">
+      <div className="text-xs font-medium uppercase tracking-[0.09em] text-muted-foreground">
+        Building your campaign · live research
+      </div>
+      <h2 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">Building your campaign…</h2>
+      <p className="mt-3 max-w-[62ch] text-muted-foreground">
+        Research first, then one shared campaign plan drives every stage and all the documents. This runs live
+        and takes a few minutes — you can leave it open.
       </p>
 
-      <ol className="mt-8 space-y-4">
+      {/* Top progress bar — fills as stages complete */}
+      <div className="mt-8 h-2 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-full rounded-full bg-foreground transition-[width] duration-700 ease-out motion-reduce:transition-none"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Vertical stepper with per-stage state + live note */}
+      <ol className="mt-9 flex flex-col gap-6">
         {STAGES.map((s) => {
           const st = state?.stages[s.id]?.status ?? "pending";
+          const isRunning = st === "running";
+          const dim = st === "pending" ? "opacity-40" : st === "done" ? "opacity-80" : "opacity-100";
+          // The running stage shows the newest live note; others show their static description.
+          const note = isRunning && lastNote ? lastNote : s.desc;
           return (
-            <li
-              key={s.id}
-              className={`flex items-start gap-3 rounded-[var(--r-xl)] border p-4 transition-colors ${
-                st === "running" ? "border-brand/40 bg-accent" : "bg-card/40"
-              }`}
-            >
-              <span className="mt-1 flex size-5 items-center justify-center text-sm">
-                <Dot status={st} />
+            <li key={s.id} className={`flex gap-3.5 transition-opacity duration-300 ${dim}`}>
+              <span className="w-6 flex-none pt-0.5 text-center text-lg leading-none">
+                <StageIcon status={st} />
               </span>
               <div className="min-w-0">
-                <div className="font-medium">{s.title}</div>
-                <div className="text-sm text-muted-foreground">{s.desc}</div>
-                <div className="mt-1"><span className="agentchip">🤖 {s.agent}</span></div>
+                <div className="text-[1.05rem] font-medium leading-snug">{s.title}</div>
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.72rem] text-muted-foreground">
+                    🤖 {s.agent}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-sm text-muted-foreground">{note}</div>
                 {st === "failed" && state?.stages[s.id]?.error ? (
                   <div className="mt-1 text-xs text-[var(--bad)]">{state.stages[s.id]?.error}</div>
                 ) : null}
@@ -91,22 +113,8 @@ export function RunProgress({
         })}
       </ol>
 
-      {/* Live research feed (secondary) */}
-      {notes.length > 0 && (
-        <div className="mt-8">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Live feed</div>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-            {notes.slice(-6).map((n, i) => (
-              <li key={i} className="truncate">
-                · {n}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {failed.length > 0 && (
-        <div className="mt-8 rounded-[var(--r-xl)] border border-[var(--warn)] bg-[var(--tint-yellow)] p-4 text-sm">
+        <div className="mt-9 rounded-[var(--r-xl)] border border-[var(--warn)] bg-tint-yellow p-4 text-sm">
           <p className="font-medium text-foreground">
             {failed.length === STAGES.length ? "This run didn't complete." : "Some stages didn't complete."}
           </p>
@@ -120,6 +128,11 @@ export function RunProgress({
           </Button>
         </div>
       )}
+
+      <p className="mt-10 text-sm text-muted-foreground">
+        Drafts, not decisions: everything produced here needs human review, local knowledge, and verification
+        before use.
+      </p>
     </div>
   );
 }

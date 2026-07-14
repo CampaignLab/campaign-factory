@@ -1,32 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { type StartInput } from "@/lib/client/api";
 
-const EXAMPLE: StartInput = {
+// The 8 optional structured fields (ported from the prototype intake). Only
+// `problem` is required — research fills the gaps and reports what it couldn't
+// establish. Placeholders match the old well-spaced pill fields; `label` is kept
+// for accessibility (used as aria-label).
+const STRUCTURED: { key: keyof StartInput; label: string; placeholder: string }[] = [
+  { key: "org", label: "Campaign or organisation name", placeholder: "Campaign / organisation name (optional)" },
+  { key: "location", label: "Location or postcode", placeholder: "Location or postcode (optional)" },
+  { key: "outcome", label: "Desired outcome", placeholder: "Desired outcome (optional)" },
+  { key: "dm", label: "Known decision-maker or institution", placeholder: "Known decision-maker or institution (optional)" },
+  { key: "timeframe", label: "Timeframe", placeholder: "Timeframe (optional)" },
+  { key: "affected", label: "People affected", placeholder: "People affected (optional)" },
+  { key: "evidence", label: "Known evidence or context", placeholder: "Known evidence or context (optional)" },
+  { key: "resources", label: "Available campaign resources", placeholder: "Available campaign resources (optional)" },
+];
+
+// Prepared examples (ported verbatim from the prototype). The example button
+// toggles between the primary Lime demo and the library-closure backup.
+const EXAMPLE_LIME: StartInput = {
   problem:
-    "I want the council to reverse the planned closure of our local branch library and keep it open with its current staffed opening hours.",
-  org: "Save Our Library",
-  location: "Leicester LE2 1TH",
-  outcome: "Keep the library open, staffed, at current hours",
-  timeframe: "Before the budget is set",
-  affected: "Local families, older residents, students",
+    "I want Lime bikes to be allowed to enter Queen Elizabeth Olympic Park in Stratford. This affects people who use shared bikes to travel to and around the park. Identify who controls the decision, why the current restriction exists, and what campaign could change it.",
+  location: "Stratford, London E20",
+  outcome: "Shared e-bikes permitted to ride and park within the park",
+  affected: "park visitors, commuters crossing the park, shared-bike users",
+};
+const EXAMPLE_BACKUP: StartInput = {
+  problem:
+    "The council plans to close the local library in six weeks. Residents want the decision reversed or delayed while alternative funding options are considered.",
+  org: "Friends of the Library",
+  location: "Nottingham",
+  timeframe: "six weeks",
 };
 
-const STRUCTURED: { key: keyof StartInput; label: string; placeholder: string }[] = [
-  { key: "org", label: "Your organisation (optional)", placeholder: "e.g. Save Our Library" },
-  { key: "location", label: "Location (a postcode helps)", placeholder: "e.g. Leicester LE2 1TH" },
-  { key: "outcome", label: "Desired outcome", placeholder: "What does winning look like?" },
-  { key: "dm", label: "Known decision-maker", placeholder: "If you already know who decides" },
-  { key: "timeframe", label: "Timeframe", placeholder: "e.g. before the March budget" },
-  { key: "affected", label: "Who is affected", placeholder: "e.g. families, older residents" },
-  { key: "evidence", label: "Evidence you have", placeholder: "Consultations, figures, reports" },
-  { key: "resources", label: "Resources you have", placeholder: "People, budget, contacts" },
-];
+const PROBLEM_PLACEHOLDER =
+  "I want [decision-maker or organisation, if known] to [specific change] in [location] by [timeframe, if known], because [problem or reason]. This affects [people or community]. We already know [evidence, context, allies, or constraints].";
 
 export function EntryForm({
   onStart,
@@ -43,22 +56,29 @@ export function EntryForm({
 }) {
   const [form, setForm] = useState<StartInput>({ problem: "" });
   const [code, setCode] = useState(initialCode);
+  const [exampleToggle, setExampleToggle] = useState(false);
   const set = (k: keyof StartInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const codeOk = !accessRequired || code.trim().length > 0;
   const canSubmit = (form.problem || "").trim().length >= 8 && codeOk && !busy;
 
+  const loadExample = () => {
+    setForm({ ...(exampleToggle ? EXAMPLE_BACKUP : EXAMPLE_LIME) });
+    setExampleToggle((t) => !t);
+  };
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
-      <header className="mb-10 text-center sm:mb-12">
+    <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:py-24">
+      <header className="mb-12 text-center sm:mb-14">
         <div className="text-xs font-medium uppercase tracking-[0.09em] text-muted-foreground">
           From a local problem to a working campaign — live
         </div>
         <h1 className="mx-auto mt-4 max-w-[18ch] text-4xl font-medium tracking-tight sm:text-6xl">
           Turn a local problem into a <span className="font-serif font-normal italic">whole campaign</span>.
         </h1>
-        <p className="mx-auto mt-5 max-w-[56ch] text-lg text-muted-foreground sm:text-xl">
-          Describe a UK local or public-policy problem. Campaign Factory researches it live, builds the
-          plan, and drafts the materials — labelling what it can verify and flagging what it can&apos;t.
+        <p className="mx-auto mt-6 max-w-[58ch] text-lg text-muted-foreground sm:text-xl">
+          Describe the local or public-policy problem you want to change. Campaign Factory researches it,
+          verifies what it can, and turns it into a campaign objective, power analysis, strategy, organising
+          plan, and a set of practical campaign resources.
         </p>
       </header>
 
@@ -67,9 +87,9 @@ export function EntryForm({
           e.preventDefault();
           if (canSubmit) onStart(normalise(form), code.trim());
         }}
-        className="space-y-6"
+        className="space-y-7"
       >
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <Label htmlFor="problem" className="text-base">
             What&apos;s the problem?
           </Label>
@@ -77,36 +97,39 @@ export function EntryForm({
             id="problem"
             value={form.problem}
             onChange={(e) => set("problem", e.target.value)}
-            placeholder="I want [who] to [do what] in [where]…"
-            rows={4}
-            className="text-base"
+            placeholder={PROBLEM_PLACEHOLDER}
+            rows={5}
+            className="min-h-[9.5rem] rounded-[var(--r-2xl)] border-[1.5px] p-5 text-base leading-relaxed sm:text-lg"
             autoFocus
           />
-          <p className="text-xs text-muted-foreground">
-            One sentence is enough — research fills the gaps and tells you what it couldn&apos;t establish.
-          </p>
+          <div className="rounded-[var(--r-xl)] bg-secondary px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+            <b className="font-semibold text-foreground">Don&apos;t know who decides?</b>{" "}
+            That&apos;s fine — try:
+            “I want to change [problem] in [location]. The outcome I want is [desired change]. This matters
+            because [reason]. Help me identify who has the power to make the decision and how a campaign could
+            influence them.” Imperfect prompts are expected; the research stage fills gaps and says what it
+            couldn&apos;t establish.
+          </div>
         </div>
 
-        <details className="rounded-lg border bg-card/50 p-4">
-          <summary className="cursor-pointer select-none text-sm font-medium">
-            Add more detail (optional)
-          </summary>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-3">
+          <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            Add more detail (all optional)
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
             {STRUCTURED.map((f) => (
-              <div key={f.key} className="space-y-1.5">
-                <Label htmlFor={f.key} className="text-xs text-muted-foreground">
-                  {f.label}
-                </Label>
-                <Input
-                  id={f.key}
-                  value={(form[f.key] as string) || ""}
-                  onChange={(e) => set(f.key, e.target.value)}
-                  placeholder={f.placeholder}
-                />
-              </div>
+              <Input
+                key={f.key}
+                id={f.key}
+                aria-label={f.label}
+                value={(form[f.key] as string) || ""}
+                onChange={(e) => set(f.key, e.target.value)}
+                placeholder={f.placeholder}
+                className="h-auto rounded-full border-[1.5px] px-4 py-2.5 text-sm"
+              />
             ))}
           </div>
-        </details>
+        </div>
 
         {accessRequired ? (
           <div className="space-y-1.5">
@@ -123,18 +146,30 @@ export function EntryForm({
           </div>
         ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-[var(--bad)]">{error}</p> : null}
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4 pt-1">
           <button type="submit" className="cta" disabled={!canSubmit}>
             {busy ? "Starting…" : "Build the campaign"}
             <span className="chip">→</span>
           </button>
-          <Button type="button" variant="ghost" onClick={() => setForm(EXAMPLE)} disabled={busy}>
-            Use a prepared example
-          </Button>
+          <button
+            type="button"
+            onClick={loadExample}
+            className="max-w-md flex-1 cursor-pointer rounded-[var(--r-xl)] border border-dashed border-[var(--ring)] bg-secondary px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+          >
+            <b className="mb-0.5 block text-foreground">Prepared example — Lime bikes in the Olympic Park</b>
+            “I want Lime bikes to be allowed to enter Queen Elizabeth Olympic Park in Stratford…” · emergency
+            backup: library closure
+          </button>
         </div>
       </form>
+
+      <p className="mx-auto mt-10 max-w-[60ch] text-center text-sm text-muted-foreground">
+        Optimised for UK local government, public bodies, transport, planning, environment, education, health,
+        public services, constituency issues and consultations. The factory follows: problem → research →
+        objective → decision-maker → power → pressure → strategy → tactics → organising → drafted resources.
+      </p>
     </div>
   );
 }
