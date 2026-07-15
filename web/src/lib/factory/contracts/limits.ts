@@ -21,12 +21,15 @@ export const RUNTIME_LIMITS = {
   hardCampaignLimitMs: 25 * 60000,
 } as const;
 
-// Express profile (audience path): typical completion ≤ 12 min, hard 15 min.
-// Same shape as RUNTIME_LIMITS so call sites can swap by profile.
+// Express profile (audience path): typical completion ≤ 12 min, hard 20 min.
+// Same shape as RUNTIME_LIMITS so call sites can swap by profile. Hard limit
+// raised 15→20 (user decision, 15 Jul): live batch 4 delivered 6-7/9 sections
+// with zero agent failures but claim verification didn't fit 15 min, leaving
+// documents honestly "needs verification" instead of ready.
 export const EXPRESS_RUNTIME_LIMITS = {
   ...RUNTIME_LIMITS,
-  softCampaignTargetMs: 9 * 60000,
-  hardCampaignLimitMs: 15 * 60000,
+  softCampaignTargetMs: 12 * 60000,
+  hardCampaignLimitMs: 20 * 60000,
 } as const;
 
 export type RuntimeLimits = typeof RUNTIME_LIMITS | typeof EXPRESS_RUNTIME_LIMITS;

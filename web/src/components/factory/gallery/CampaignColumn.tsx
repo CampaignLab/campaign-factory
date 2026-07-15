@@ -47,6 +47,19 @@ export function CampaignColumn({
   const sectionsAccepted = Object.values(run.sections).filter((s) => s.status === "accepted").length;
   const showReceipt = run.status === "completed" || run.status === "partial" || !!run.receiptAt;
 
+  // Chronological interleave: agent workspaces by start time, published brief
+  // pieces by publish time — the brief visibly lands in between the workspaces.
+  type FlowItem =
+    | { kind: "agent"; at: string; card: (typeof cards)[number] }
+    | { kind: "published"; at: string; card: (typeof run.publishedCards)[number] };
+  const flow = useMemo<FlowItem[]>(() => {
+    const items: FlowItem[] = [
+      ...cards.map((c) => ({ kind: "agent" as const, at: c.startedAt ?? "9999", card: c })),
+      ...run.publishedCards.map((p) => ({ kind: "published" as const, at: p.at, card: p })),
+    ];
+    return items.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+  }, [cards, run.publishedCards]);
+
   // Layout signature: recompute connectors only when the set of cards changes
   // (every card is always a full workspace now, so identity is the only input).
   const revision = useMemo(() => cards.map((c) => c.agentRunId).join("|"), [cards]);
@@ -70,27 +83,25 @@ export function CampaignColumn({
       <div className={styles.cardsArea} ref={cardsRef}>
         <ConnectorLayer containerRef={cardsRef} edges={edges} revision={revision} />
 
-        {/* Substrate layer: the brief assembling BEHIND the agent workspaces. */}
-        {run.publishedCards.length > 0 ? (
-          <div className={styles.briefSubstrate}>
-            <PublishedBriefStack cards={run.publishedCards} hue={campaign.hue} />
-          </div>
-        ) : null}
-
-        {/* Agent layer: every workspace, full width, always open. */}
-        {cards.length > 0 ? (
-          <div className={styles.cardStack}>
-            {cards.map((vm) => (
+        {/* One chronological flow: published brief pieces drop in BETWEEN the
+            agent workspaces as they're drafted — no overlay layers. */}
+        <div className={styles.cardStack}>
+          {flow.map((item) =>
+            item.kind === "agent" ? (
               <div
-                key={vm.agentRunId}
-                data-agent-run-id={vm.agentRunId}
+                key={item.card.agentRunId}
+                data-agent-run-id={item.card.agentRunId}
                 className={cardStyles.reposition}
               >
-                <AgentWorkCard vm={vm} now={now} fill />
+                <AgentWorkCard vm={item.card} now={now} fill />
               </div>
-            ))}
-          </div>
-        ) : null}
+            ) : (
+              <div key={`pub-${item.card.key}`} className={cardStyles.reposition}>
+                <PublishedBriefStack cards={[item.card]} hue={campaign.hue} />
+              </div>
+            ),
+          )}
+        </div>
       </div>
     </div>
   );
