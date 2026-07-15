@@ -33,7 +33,9 @@ export const SIG_HEADER = "x-factory-signature";
 export const SIG_TIMESTAMP_HEADER = "x-factory-timestamp";
 
 // Stream tokens (browser → worker SSE): token = `${runId}.${exp}.${hex(HMAC(secret, `${runId}.${exp}`))}`
-export const STREAM_TOKEN_TTL_MS = 15 * 60000;
+// TTL must comfortably exceed the 20-minute hard campaign limit plus reconnect
+// slack — a 15-minute token expired mid-run and broke SSE resume in live run 2.
+export const STREAM_TOKEN_TTL_MS = 45 * 60000;
 
 // ---- Worker HTTP surface ----
 // POST   /runs                     start one public campaign run

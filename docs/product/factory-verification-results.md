@@ -28,6 +28,19 @@ Playwright: presenter-batch spec **passed twice** against local mock (~3 min/run
 - Five `agent.failed` events produced zero `gap.terminal` events — ADR 0011 expects failed responsibilities to surface as Terminal Gaps (state-level next-checks may cover this; needs confirmation).
 - Run duration 24.9 min vs the 20-min hard execution limit — verify the limit stops new model nodes at 20 min as specified.
 
+## Live run #2 (Leicester, after the container fix — in progress at time of writing)
+
+**Container fix PROVEN in production shape:** zero tool-agent failures or retries across the entire run (run #1: five of five tool agents failed). All ten first-wave agents completed; both specialists spawned and delivered. Real evidence at depth: six `evidence.found` batches (claims mostly load-bearing), six honest `evidence.conflicted`, seven `evidence.gap`.
+
+**Product highlight:** the research *challenged the campaign premise* — sources indicate the school street launched as a trial (experimental traffic order), so judgements recommended reframing from "stalled scheme" to "protect the live trial and make it permanent". Evidence-driven reframing, live, is the product's core claim demonstrated.
+
+**New defects found (the purpose of a live E2E):**
+1. **20-minute hard execution limit not enforced** — run #2 passed 45+ minutes (run #1's 24.9 min corroborates). Cost guard remains the effective backstop.
+2. **Judgement Request cap not enforced** — six requests emitted against the contractual maximum of four per run (all defaulted correctly and non-blockingly).
+3. **Stream-token TTL (15 min) shorter than a live run** — SSE reconnect fails mid-run and the UI silently degrades to polling. Fixed: TTL raised to 45 min in contracts.
+4. `source.search.started` ≫ `completed` asymmetry persists (41/11) with zero failures — likely an event-accounting artifact of code-execution-filtered searches, cosmetic but misleading in the ledger.
+5. Cost passed the $4 warning (~29 min); guard events fired correctly. $8 hard stop unexercised so far.
+
 ## Pending (appended as they complete)
 
 - Live run #2 after the tool-loop fix (clean gate measurement).
