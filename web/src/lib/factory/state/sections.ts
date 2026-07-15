@@ -98,7 +98,12 @@ const problemSchema = z.object({
 });
 
 const evidenceSchema = z.object({
-  summary: z.string().min(1),
+  // Optional (not required): the Evidence section is built incrementally — the
+  // Research Director set_sections a summary, then specialists merge_section
+  // their lane blocks. A merge that lands before the summary must still
+  // validate, so summary is not a hard requirement at the reducer's shape gate
+  // (completeness is the reviewer's concern).
+  summary: z.string().optional(),
   researchQuestions: strArr.optional(),
   keyDates: strArr.optional(),
   institutions: strArr.optional(),
