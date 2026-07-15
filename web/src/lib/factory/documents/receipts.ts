@@ -7,9 +7,13 @@
 // Provenance split (kept honest and explicit):
 //  - ACTIVITY counts (agents spawned/completed/partial/failed, sources fetched,
 //    claims labelled, judgements, elapsed) come from Factory Events.
-//  - ACCEPTED-STATE counts (sections accepted, documents ready, terminal gaps)
-//    come from accepted CampaignState, which is itself produced only by accepted
-//    proposals flowing through those same events.
+//  - ACCEPTED-STATE counts (sections accepted, terminal gaps) come from accepted
+//    CampaignState, which is itself produced only by accepted proposals flowing
+//    through those same events.
+//  - DOCUMENT readiness comes from the authoritative compiler
+//    (compileDocuments over that same state + claims) — the same function the
+//    finalise node uses — NOT from raw state.documents[] statuses, which only
+//    carry the producer packs at their pre-finalisation status.
 //  - claims-by-label uses the claim ledger when provided (authoritative); if
 //    absent it falls back to labels carried on evidence events, and leaves the
 //    breakdown empty rather than inventing one.
@@ -19,6 +23,7 @@ import type { CampaignState } from "../contracts/state";
 import type { Claim } from "../contracts/evidence";
 import { JOURNEY_STEPS } from "../contracts/journey";
 import { CANONICAL_DOCUMENTS } from "../contracts/documents";
+import { compileDocuments } from "./compile";
 import { isVerificationLabel, type VerificationLabel } from "../../pipeline/labels";
 
 export interface AgentTally {
@@ -228,8 +233,15 @@ export function buildCampaignReceipt(
 
   // accepted-state counts (authoritative)
   const sectionsAccepted = Object.values(state.sections ?? {}).filter((s) => s.status === "accepted").length;
-  const documentsReady = (state.documents ?? []).filter((d) => d.status === "ready").length;
-  const documentsNeedsVerification = (state.documents ?? []).filter(
+  // Document readiness must come from the AUTHORITATIVE compiler — the same
+  // function the finalise node uses to decide the terminal run status — not from
+  // raw state.documents[] statuses. state.documents only carries the three
+  // producer packs (at their pre-finalisation status) and omits the six
+  // section-derived documents, so counting it undercounts readiness and can
+  // disagree with the terminal status the run actually reached.
+  const compiledDocs = compileDocuments(state, claims ?? []);
+  const documentsReady = compiledDocs.filter((d) => d.status === "ready").length;
+  const documentsNeedsVerification = compiledDocs.filter(
     (d) => d.status === "needs verification",
   ).length;
   const terminalGaps = (state.terminalGaps ?? []).length;
