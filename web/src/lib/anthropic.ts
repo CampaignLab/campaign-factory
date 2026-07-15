@@ -30,6 +30,7 @@ export interface CallOptions {
   onText?: (delta: string) => void; // streamed text deltas (Stage A live feed)
   onToolNote?: (note: string) => void; // "searching the web…" etc.
   onUsage?: UsageSink; // token usage → spend ledger / kill-switch
+  signal?: AbortSignal; // true request-level abort (factory cancel/timeout)
 }
 
 function buildParams(p: CallParams): Record<string, unknown> {
@@ -56,7 +57,10 @@ async function streamOnce(
   params: Record<string, unknown>,
   opts: CallOptions,
 ): Promise<Anthropic.Message> {
-  const stream = client.messages.stream(params as unknown as Anthropic.MessageStreamParams);
+  const stream = client.messages.stream(
+    params as unknown as Anthropic.MessageStreamParams,
+    opts.signal ? { signal: opts.signal } : undefined,
+  );
   if (opts.onText) stream.on("text", (delta: string) => opts.onText!(delta));
   if (opts.onToolNote) {
     stream.on("streamEvent", (event) => {
