@@ -49,6 +49,15 @@ Playwright: presenter-batch spec **passed twice** against local mock (~3 min/run
 
 Playwright presenter-batch spec **PASSED in 3.8 min against the Vercel preview** (`campaign-factory-git-factory-multi-agent-build-campaign-lab.vercel.app`) with the worker deployed on Railway: presenter code gate → five-campaign intake → gallery anchors + live Agent Work Cards over cross-origin SSE → five terminal receipts → brief with 11 sections + 9 document cards; all agent names roster-valid; no fabrication tells. Summary: `web/test-results/batch-summary-2026-07-15T12-28-49-700Z.json`. Also fixed en route: the presenter route failed OPEN when no code was configured on the public preview (now 503, fail-closed).
 
+## Live batch test #1 (five campaigns via the Vercel preview + Railway worker)
+
+**Terminal: batch `partial`, receipt `usable: 5/5` — every campaign produced a usable brief.** Per-campaign cost ~$3.35–3.41 (batch well under the $35 stop). Four campaigns ran genuinely concurrently (peak 9 simultaneous model calls through the gate, no starvation) and were **halted by the now-enforced 20-minute hard limit at 21.2–23.5 min**, recording honest Terminal Gaps (10/8/4/…) — the enforcement fix's first live demonstration. The full batch (1,432 events) is promoted as the pinned replay at `/factory/replay/conference`.
+
+**Defects found by this batch (both fixed on the branch, deploy pending):**
+1. **Fan-out defect** — the fifth campaign sat queued ~20 min: pg-boss 11 delivers one handler invocation per fetch and never fetches again until it resolves, so a single `batchSize: 5` subscription serialized the fifth job behind the first four. Fixed with five independent `batchSize: 1` subscriptions (verified against pg-boss source); also removed batch-coupled retry burning. Batch #2 verifies.
+2. **Playwright harness crash** at minute 6.4 — brittle index assumption when the live gallery rendered more column nodes than the five intake campaigns; batch itself unaffected (verified server-side). Harness fixed.
+3. Minor: `factory_batches.status` stayed `queued` while all five campaigns ran (jumps straight to the terminal roll-up) — cosmetic, logged.
+
 ## Pending (appended as they complete)
 
 - Live run #2 after the tool-loop fix (clean gate measurement).
