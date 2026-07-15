@@ -37,9 +37,20 @@ export function AssemblyClient({ campaignId }: { campaignId: string }) {
     if (attempted.current || !isTerminal(run.status)) return;
     attempted.current = true;
     let cancelled = false;
-    void fetchCompiledCampaign(campaignId).then((bundle) => {
-      if (!cancelled && bundle) setCompiled(bundle);
-    });
+    // W2 emits the terminal run.* event only AFTER finalisation persists the
+    // compiled output, so the first attempt should succeed; a couple of spaced
+    // retries cover propagation lag (route answers 409 while non-terminal).
+    void (async () => {
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
+        const bundle = await fetchCompiledCampaign(campaignId);
+        if (cancelled) return;
+        if (bundle) {
+          setCompiled(bundle);
+          return;
+        }
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 2500 * (attempt + 1)));
+      }
+    })();
     return () => {
       cancelled = true;
     };
