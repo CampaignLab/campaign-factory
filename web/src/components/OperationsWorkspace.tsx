@@ -379,7 +379,7 @@ export function OperationsWorkspace() {
             <div className="rounded-[var(--r-2xl)] border border-border p-5">
               <p className="text-sm font-medium uppercase tracking-[0.09em] text-muted-foreground">Demo-safe outbox</p>
               <h2 className="mt-1 text-2xl font-medium tracking-tight">{state.status === "queued" ? "One local queue item" : "Nothing queued yet"}</h2>
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p id="operations-provider-note" className="mt-3 text-sm text-muted-foreground">
                 {state.status === "queued"
                   ? "The approved draft is stored in this browser for the conference demo. It is not connected to an email provider."
                   : "Approve the draft before it can enter the local demo queue. Provider outreach stays disabled."}
@@ -387,10 +387,11 @@ export function OperationsWorkspace() {
               <button
                 type="button"
                 disabled
+                aria-describedby="operations-provider-note"
                 className="mt-4 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground opacity-70"
                 title="Provider connection is coming soon; this demo does not use email outreach."
               >
-                Provider dispatch · Coming soon
+                Email provider · Coming soon
               </button>
             </div>
             <div className="rounded-[var(--r-2xl)] border border-border p-5">
