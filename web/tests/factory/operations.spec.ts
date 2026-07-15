@@ -79,6 +79,13 @@ test("operations workbench: cross-view local review and demo queue flow", async 
 test("operations workbench: all sidebar destinations are navigable and designed", async ({ page }) => {
   await page.goto("/operations");
 
+  await expect(page.getByRole("heading", { name: "Brief to safe local outbox, one stage at a time." })).toBeVisible();
+  await page.getByRole("button", { name: /Evidence: Current, Checks in view/ }).click();
+  await expect(page.getByRole("heading", { name: "Evidence & checks" })).toBeVisible();
+  await page.getByRole("button", { name: /Overview/ }).first().click();
+  await page.getByRole("button", { name: /Local outbox: Coming soon boundary, Provider off/ }).click();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+
   const destinations = [
     { nav: /Overview/, heading: /Make the St John the Baptist school street/i },
     { nav: /Campaign brief/, heading: "Campaign brief" },

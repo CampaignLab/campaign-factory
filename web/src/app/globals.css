@@ -10,6 +10,13 @@
   /* awake accents */
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-ops-ink: var(--ops-ink);
+  --color-ops-yellow: var(--ops-yellow);
+  --color-ops-blue: var(--ops-blue);
+  --color-ops-mint: var(--ops-mint);
+  --color-ops-coral: var(--ops-coral);
+  --color-ops-paper: var(--ops-paper);
+  --color-ops-line: var(--ops-line);
   --color-pale-yellow: var(--pale-yellow);
   --color-tint-blue: var(--tint-blue);
   --color-tint-yellow: var(--tint-yellow);
@@ -87,6 +94,14 @@
   --pastel-purple: #ba81ee;
   --tint-blue: #d9f3fc;
   --tint-yellow: #fdf1d3;
+  --ops-ink: oklch(0.2 0.025 210);
+  --ops-ink-soft: oklch(0.29 0.024 210);
+  --ops-yellow: oklch(0.91 0.095 88);
+  --ops-blue: oklch(0.92 0.052 226);
+  --ops-mint: oklch(0.9 0.07 154);
+  --ops-coral: oklch(0.88 0.075 31);
+  --ops-paper: oklch(0.985 0.012 82);
+  --ops-line: oklch(0.82 0.018 82);
   /* prototype aliases so the ported journey.css works verbatim */
   --ink: #1b1d1e;
   --good: #178a3a;
@@ -111,6 +126,74 @@
   --sidebar-accent-foreground: #171717;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #a1a1a1;
+}
+
+@layer components {
+  .ops-runway {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--ops-line);
+    border-radius: var(--r-3xl);
+    background: var(--ops-ink);
+  }
+
+  .ops-runway-stage {
+    position: relative;
+    min-height: 12.25rem;
+    border-right: 1px solid oklch(0.2 0.025 210 / 16%);
+    padding: 1rem;
+    text-align: left;
+    transition:
+      transform 180ms cubic-bezier(0.2, 0, 0, 1),
+      background-color 180ms cubic-bezier(0.2, 0, 0, 1),
+      border-color 180ms cubic-bezier(0.2, 0, 0, 1),
+      opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .ops-runway-stage:last-child { border-right: 0; }
+  .ops-runway-stage:hover { transform: translateY(-2px); }
+  .ops-runway-stage:focus-visible { outline: 3px solid oklch(0.74 0.13 88 / 70%); outline-offset: -3px; }
+  .ops-stage-complete { background: var(--ops-mint); }
+  .ops-stage-current { background: var(--ops-yellow); }
+  .ops-stage-blocked { background: var(--ops-coral); }
+  .ops-stage-soon { background: var(--ops-blue); }
+
+  .ops-stage-node {
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid oklch(0.2 0.025 210 / 30%);
+    border-radius: 999px;
+    background: oklch(0.99 0.01 82 / 70%);
+    color: var(--ops-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .ops-stage-line {
+    height: 2px;
+    flex: 1;
+    background: oklch(0.2 0.025 210 / 35%);
+  }
+
+  @media (max-width: 1179px) {
+    .ops-runway { grid-template-columns: 1fr; }
+    .ops-runway-stage {
+      min-height: auto;
+      border-right: 0;
+      border-bottom: 1px solid oklch(0.2 0.025 210 / 16%);
+    }
+    .ops-runway-stage:last-child { border-bottom: 0; }
+    .ops-runway-stage:hover { transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ops-runway-stage { transition: none; }
+    .ops-runway-stage:hover { transform: none; }
+  }
 }
 
 .dark {

@@ -14,6 +14,7 @@ type SegmentId = "school_gates" | "ward_parents" | "local_allies";
 type DraftId = "supporter_email" | "decision_maker_letter" | "press_pitch";
 type DraftStatus = "draft" | "review" | "approved" | "queued";
 type Mode = "compose" | "preview";
+type StageStatus = "complete" | "current" | "blocked" | "soon";
 type ViewId =
   | "overview"
   | "brief"
@@ -61,6 +62,7 @@ type Segment = {
 
 type NavItem = { id: ViewId; label: string; badge?: string; note: string };
 type CampaignContextRow = { label: string; detail: string; use: string; owner: string };
+type RunwayStage = { label: string; view: ViewId; status: StageStatus; statusLabel: string; detail: string };
 type DraftLibraryItem = {
   id: DraftId;
   title: string;
@@ -406,6 +408,20 @@ const statusCopy: Record<DraftStatus, { label: string; text: string }> = {
   },
 };
 
+const stageStatusCopy: Record<StageStatus, string> = {
+  complete: "Complete",
+  current: "Current",
+  blocked: "Blocked",
+  soon: "Coming soon boundary",
+};
+
+const stageClass: Record<StageStatus, string> = {
+  complete: "ops-stage-complete",
+  current: "ops-stage-current",
+  blocked: "ops-stage-blocked",
+  soon: "ops-stage-soon",
+};
+
 function normaliseState(parsed: Partial<DemoState>): DemoState {
   return {
     ...initialState,
@@ -517,6 +533,50 @@ export function OperationsWorkspace() {
     tomorrow_morning: "Demo intent: next school-run morning after provider setup",
     school_run: "Demo intent: school-run reminder window after consent import",
   };
+  const runwayStages: RunwayStage[] = [
+    {
+      label: "Brief",
+      view: "brief",
+      status: "complete",
+      statusLabel: "Fixture brief loaded",
+      detail: "Outcome, place, and provenance are visible before any communication work starts.",
+    },
+    {
+      label: "Evidence",
+      view: "evidence",
+      status: state.status === "review" || state.status === "approved" || state.status === "queued" ? "complete" : "current",
+      statusLabel: state.status === "draft" ? "Checks in view" : "Checks understood",
+      detail: "Council timing, legal wording, and contact consent stay attached to review.",
+    },
+    {
+      label: "Audience",
+      view: "audiences",
+      status: selected.ready > 0 ? "complete" : "blocked",
+      statusLabel: `${selected.name}: ${selected.ready}/${selected.contacts} ready fixtures`,
+      detail: "The selected segment follows Drafts, Reviews, and the local queue.",
+    },
+    {
+      label: "Draft",
+      view: "drafts",
+      status: !canRequestReview ? "blocked" : state.status === "draft" ? "current" : "complete",
+      statusLabel: !canRequestReview ? "Needs copy" : status.label,
+      detail: activeDraftEditable ? "Supporter email is editable and saved in this browser." : "Staged fixture; not available for approval.",
+    },
+    {
+      label: "Human approval",
+      view: "reviews",
+      status: state.status === "approved" || state.status === "queued" ? "complete" : state.status === "review" ? "current" : "blocked",
+      statusLabel: state.status === "approved" || state.status === "queued" ? "Approved by human" : state.status === "review" ? "Waiting for approval" : "Required before queue",
+      detail: "A person must explicitly approve before anything enters the local demo queue.",
+    },
+    {
+      label: "Local outbox",
+      view: "outbox",
+      status: state.status === "queued" ? "complete" : state.status === "approved" ? "current" : "soon",
+      statusLabel: state.status === "queued" ? "Queued for demo" : state.status === "approved" ? "Ready to queue locally" : "Provider off",
+      detail: state.status === "queued" ? "Stored locally in this browser; no provider used." : "Local queue only; production scheduling and provider connection remain off.",
+    },
+  ];
 
   const navGroups: { title: string; items: NavItem[] }[] = [
     {
@@ -623,11 +683,11 @@ export function OperationsWorkspace() {
     });
   };
 
-  const renderNav = (compact = false) => (
+  const renderNav = (compact = false, ink = false) => (
     <nav aria-label="Campaign operations views" className="space-y-6">
       {navGroups.map((group) => (
         <div key={group.title}>
-          <div className="mb-2 px-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className={`mb-2 px-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] ${ink ? "text-white/55" : "text-muted-foreground"}`}>
             {group.title}
           </div>
           <div className={compact ? "grid gap-2 sm:grid-cols-2" : "space-y-1"}>
@@ -638,20 +698,26 @@ export function OperationsWorkspace() {
                   key={item.id}
                   type="button"
                   onClick={() => setView(item.id)}
-                  className={`w-full rounded-[var(--r-xl)] border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
-                    active ? "border-foreground bg-foreground text-background" : "border-transparent text-foreground hover:border-border hover:bg-secondary"
+                  className={`w-full rounded-[var(--r-xl)] border px-3 py-2.5 text-left motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                    active
+                      ? ink
+                        ? "border-white/15 bg-ops-yellow text-ops-ink shadow-sm"
+                        : "border-foreground bg-foreground text-background"
+                      : ink
+                        ? "border-transparent text-white/88 hover:border-white/15 hover:bg-white/8"
+                        : "border-transparent text-foreground hover:border-border hover:bg-secondary"
                   }`}
                   aria-current={active ? "page" : undefined}
                 >
                   <span className="flex items-center justify-between gap-2 text-sm font-medium">
                     {item.label}
                     {item.badge ? (
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-background text-foreground" : "bg-tint-yellow text-foreground"}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-background text-foreground" : ink ? "bg-ops-coral text-ops-ink" : "bg-tint-yellow text-foreground"}`}>
                         {item.badge}
                       </span>
                     ) : null}
                   </span>
-                  <span className={`mt-0.5 block text-xs ${active ? "text-background/75" : "text-muted-foreground"}`}>{item.note}</span>
+                  <span className={`mt-0.5 block text-xs ${active ? (ink ? "text-ops-ink/75" : "text-background/75") : ink ? "text-white/50" : "text-muted-foreground"}`}>{item.note}</span>
                 </button>
               );
             })}
@@ -961,10 +1027,49 @@ export function OperationsWorkspace() {
     </div>
   );
 
+  const renderRunway = () => (
+    <section aria-labelledby="campaign-runway-title" className="rounded-[var(--r-3xl)] bg-ops-ink p-2 text-ops-ink shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-3 pb-3 pt-2 text-white">
+        <div>
+          <SmallLabel>Campaign Runway</SmallLabel>
+          <h2 id="campaign-runway-title" className="mt-1 text-2xl font-medium tracking-tight sm:text-3xl">
+            Brief to safe local outbox, one stage at a time.
+          </h2>
+        </div>
+        <p className="max-w-md text-sm text-white/65">
+          Every node is derived from fixture/local state. Select a stage to work there; no provider action is connected.
+        </p>
+      </div>
+      <div className="ops-runway" role="list" aria-label="Six-stage campaign runway">
+        {runwayStages.map((stage, index) => (
+          <button
+            key={stage.label}
+            type="button"
+            onClick={() => setView(stage.view)}
+            className={`ops-runway-stage ${stageClass[stage.status]}`}
+            aria-label={`${stage.label}: ${stageStatusCopy[stage.status]}, ${stage.statusLabel}`}
+          >
+            <span className="flex items-center gap-3" aria-hidden="true">
+              <span className="ops-stage-node">{index + 1}</span>
+              {index < runwayStages.length - 1 ? <span className="ops-stage-line" /> : null}
+            </span>
+            <span className="mt-4 block text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ops-ink/65">
+              {stageStatusCopy[stage.status]}
+            </span>
+            <span className="mt-1 block text-xl font-medium tracking-tight">{stage.label}</span>
+            <span className="mt-2 block text-sm font-semibold">{stage.statusLabel}</span>
+            <span className="mt-3 block text-sm leading-snug text-ops-ink/72">{stage.detail}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+
   const renderOverview = () => (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="space-y-5">
-        <Panel className="bg-tint-yellow/70">
+    <div className="space-y-5">
+      <Panel className="bg-ops-paper">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
           <SmallLabel>Today</SmallLabel>
           <h1 className="mt-2 max-w-3xl text-4xl font-medium tracking-tight sm:text-5xl">
             Make the St John the Baptist school street <span className="font-serif font-normal italic">permanent</span> before the order lapses.
@@ -972,52 +1077,48 @@ export function OperationsWorkspace() {
           <p className="mt-4 max-w-3xl text-muted-foreground">
             The workbench keeps the campaign brief, audience choice, draft copy, review gate, and local queue in one place. Fixture data is labelled; real provider and import steps remain off.
           </p>
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            {[
-              { label: "1. Confirm audience", detail: selected.name, view: "audiences" as ViewId },
-              { label: "2. Prepare supporter email", detail: status.label, view: "drafts" as ViewId },
-              { label: "3. Complete human review", detail: state.status === "review" ? "Waiting for approval" : "Approval gate visible", view: "reviews" as ViewId },
-              { label: "4. Inspect local queue", detail: state.status === "queued" ? "One queued demo item" : "Nothing queued yet", view: "outbox" as ViewId },
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => setView(item.view)}
-                className="rounded-[var(--r-xl)] border border-border bg-background/75 p-4 text-left transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <span className="block text-sm font-semibold">{item.label}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">{item.detail}</span>
-              </button>
-            ))}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {goButton("audiences", `Audience: ${selected.name}`)}
+            {goButton("drafts", `Draft: ${status.label}`)}
+            {goButton("reviews", state.status === "review" ? "Approve now" : "Open approval gate")}
+            {goButton("outbox", state.status === "queued" ? "Inspect local queue" : "Outbox locked")}
           </div>
-        </Panel>
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Panel>
+          </div>
+          <div className="rounded-[var(--r-2xl)] border border-ops-line bg-background/80 p-4">
             <SmallLabel>Next human decision</SmallLabel>
             <h2 className="mt-2 text-2xl font-medium">Approve only after the claim checks are understood.</h2>
             <p className="mt-3 text-sm text-muted-foreground">
               Council timing, legal-order wording, and contact consent are the key checks before any real provider connection is considered.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">{goButton("reviews", "Open reviews")}{goButton("evidence", "See evidence checks")}</div>
-          </Panel>
-          <Panel>
-            <SmallLabel>Current communications</SmallLabel>
-            <h2 className="mt-2 text-2xl font-medium">{status.label}</h2>
-            <p className="mt-3 text-sm text-muted-foreground">{status.text}</p>
-            <div className="mt-5 flex flex-wrap gap-3">{goButton("drafts", "Edit draft")}{goButton("outbox", "Open outbox")}</div>
-          </Panel>
+            <div className="mt-5 flex flex-wrap gap-3">{goButton("reviews", "Open reviews")}{goButton("evidence", "See checks")}</div>
+          </div>
         </div>
-      </div>
-      <Panel>
-        <SmallLabel>Activity from this browser</SmallLabel>
-        <ul className="mt-4 space-y-3 text-sm">
-          {state.activity.map((item) => (
-            <li key={item.id} className="border-l-2 border-foreground/20 pl-3 text-muted-foreground">
-              {item.label}
-            </li>
-          ))}
-        </ul>
       </Panel>
+      {renderRunway()}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <Panel className="bg-ops-blue/70">
+          <SmallLabel>Current communications</SmallLabel>
+          <h2 className="mt-2 text-2xl font-medium">{status.label}</h2>
+          <p className="mt-3 text-sm text-muted-foreground">{status.text}</p>
+          <div className="mt-5 flex flex-wrap gap-3">{goButton("drafts", "Edit draft")}{goButton("outbox", "Open outbox")}</div>
+        </Panel>
+        <Panel className="bg-background">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <SmallLabel>Field notes from this browser</SmallLabel>
+              <p className="mt-2 text-sm text-muted-foreground">Only genuine local actions appear here.</p>
+            </div>
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">{state.activity.length} local note{state.activity.length === 1 ? "" : "s"}</span>
+          </div>
+          <ul className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+            {state.activity.slice(0, 4).map((item) => (
+              <li key={item.id} className="border-l-2 border-ops-ink/25 pl-3 text-muted-foreground">
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      </div>
     </div>
   );
 
@@ -1224,24 +1325,24 @@ export function OperationsWorkspace() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
+    <div className="min-h-screen bg-ops-paper text-foreground">
+      <header className="sticky top-0 z-40 border-b border-ops-line bg-ops-paper/96 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <Link href="/" className="text-sm font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full">
               Campaign Factory
             </Link>
             <span className="text-muted-foreground" aria-hidden="true">/</span>
-            <span className="rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background">Campaign Operations</span>
-            <span className="rounded-full bg-tint-yellow px-3 py-1 text-xs font-semibold uppercase tracking-[0.09em]">Demo workspace</span>
-            <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">Local fixture state</span>
+            <span className="rounded-full bg-ops-ink px-3 py-1 text-sm font-medium text-white">Campaign Operations</span>
+            <span className="rounded-full bg-ops-yellow px-3 py-1 text-xs font-semibold uppercase tracking-[0.09em] text-ops-ink">Demo workspace</span>
+            <span className="rounded-full border border-ops-line bg-background/70 px-3 py-1 text-xs text-muted-foreground">Local fixture state</span>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="text-muted-foreground">St John the Baptist school street · Leicester</span>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
+            <span className="rounded-full bg-ops-mint px-3 py-1 text-xs text-ops-ink">
               {hydrated ? "Saved in this browser" : "Loading local state"}
             </span>
-            <Link href="/factory" className="rounded-full border border-border px-3 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            <Link href="/factory" className="rounded-full border border-ops-line bg-background/70 px-3 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
               Back to Factory
             </Link>
           </div>
@@ -1250,12 +1351,17 @@ export function OperationsWorkspace() {
 
       <div className="mx-auto grid w-full max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-6">
         <aside className="hidden lg:block">
-          <div className="sticky top-[5.25rem] max-h-[calc(100vh-6rem)] overflow-auto rounded-[var(--r-2xl)] border border-border bg-secondary/45 p-3">
-            {renderNav()}
+          <div className="sticky top-[5.25rem] max-h-[calc(100vh-6rem)] overflow-auto rounded-[var(--r-2xl)] border border-ops-ink bg-ops-ink p-3 shadow-sm">
+            <div className="mb-4 rounded-[var(--r-xl)] border border-white/10 bg-white/10 p-3 text-white">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/55">Runway state</p>
+              <p className="mt-1 text-sm font-medium">{runwayStages.find((stage) => stage.status === "current")?.label ?? (state.status === "queued" ? "Local outbox" : "Human approval")}</p>
+              <p className="mt-1 text-xs text-white/55">{status.label} · {selected.name}</p>
+            </div>
+            {renderNav(false, true)}
           </div>
         </aside>
 
-        <details className="rounded-[var(--r-2xl)] border border-border bg-secondary/45 p-3 lg:hidden">
+        <details className="rounded-[var(--r-2xl)] border border-ops-line bg-background/70 p-3 lg:hidden">
           <summary className="cursor-pointer rounded-[var(--r-xl)] px-2 py-1 font-medium focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             Operations navigation · {navGroups.flatMap((group) => group.items).find((item) => item.id === state.activeView)?.label}
           </summary>
@@ -1267,7 +1373,7 @@ export function OperationsWorkspace() {
         </main>
       </div>
 
-      <footer className="border-t border-border bg-secondary/55">
+      <footer className="border-t border-ops-line bg-ops-paper">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-3 px-4 py-4 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between lg:px-6">
           <p>
             Local demo storage · Email provider not connected · Human approval required before local queueing.
