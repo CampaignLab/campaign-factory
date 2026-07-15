@@ -1,0 +1,100 @@
+/* Factory Gallery layout. The five campaign anchors are a 5-column field that
+   collapses to 3+2 below 1500px (parameters §6). The dark overlay sits over the
+   light Awake page, so the field itself stays on the page background. */
+
+.field {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  padding: 16px 20px 64px;
+  align-items: start;
+}
+@media (max-width: 1500px) {
+  /* 3 + 2: five items reflow into three then two. */
+  .field {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 980px) {
+  .field {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.column {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* The cards area is the positioning context for the connector overlay. */
+.cardsArea {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connectorSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.cardGroup {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pillGroup {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Anchors + judgement cards always render above connectors and agent cards. */
+.anchor {
+  position: sticky;
+  top: 60px; /* below the fixed nav + ledger */
+  z-index: 3;
+}
+.judgementStack {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Factory Ledger — fixed below the nav, ≤44px tall. */
+.ledger {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 20px;
+  background: rgba(22, 24, 27, 0.94);
+  color: #f2f3f5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  overflow-x: auto;
+  white-space: nowrap;
+}

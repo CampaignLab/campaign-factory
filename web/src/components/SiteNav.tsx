@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 // Fixed pill nav from the awake prototype: brand left, pill links, backdrop blur.
 const LINKS = [
   { href: "/", label: "New campaign" },
+  { href: "/factory", label: "Factory" },
   { href: "/wall", label: "Campaign Gallery" },
 ];
 
