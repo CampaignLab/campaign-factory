@@ -171,6 +171,13 @@ export default function FactoryIntakePage() {
         Optimised for UK local government, public bodies, transport, planning, environment, education, health,
         and consultations. Drafts, not decisions: everything produced needs human review and verification.
       </p>
+
+      <p className="mx-auto mt-4 text-center text-sm">
+        <a href="/factory/replay/conference" className="underline underline-offset-4 hover:text-foreground">
+          Or watch a recorded real run first
+        </a>
+        <span className="text-muted-foreground"> — five campaigns built live, replayed from the event log.</span>
+      </p>
     </div>
   );
 }

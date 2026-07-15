@@ -155,7 +155,7 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
         // intake campaigns (observed in live batch #1); grow the timing table
         // rather than crash mid-observation.
         if (!timings[i]) {
-          timings[i] = { shortName: "", firstCardMs: null, receiptMs: null, receiptTitle: "", receiptTag: "", terminalMs: null };
+          timings[i] = { index: i, shortName: "", firstCardMs: null, receiptMs: null, receiptTitle: "", receiptTag: "", terminalMs: null };
         }
         const t = timings[i];
         t.shortName = c.shortName || t.shortName;
