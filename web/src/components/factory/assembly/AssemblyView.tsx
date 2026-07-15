@@ -27,7 +27,7 @@ import {
   type RunVM,
 } from "@/lib/factory/client";
 import { BriefSection } from "./BriefSection";
-import { JudgementCard } from "./JudgementCard";
+import { YourJudgementCard } from "@/components/factory/judgement/YourJudgementCard";
 import { StepWorkspace } from "./StepWorkspace";
 import { EvidencePanel } from "./EvidencePanel";
 import { DocumentLibrary } from "./DocumentLibrary";
@@ -247,7 +247,9 @@ function JudgementInline({
   judgement: JudgementVM;
   onAnswer: (jid: string, action: JudgementAnswerRequest["action"], answer?: string) => Promise<boolean>;
 }) {
-  return <JudgementCard judgement={judgement} onAnswer={(action, answer) => onAnswer(judgement.id, action, answer)} />;
+  return (
+    <YourJudgementCard judgement={judgement} onAnswer={(action, answer) => onAnswer(judgement.id, action, answer)} />
+  );
 }
 
 function terminalLine(run: RunVM): string | null {

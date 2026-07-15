@@ -7,7 +7,7 @@
 
 import { JOURNEY_STEPS, type JudgementAnswerRequest } from "@/lib/factory/contracts";
 import { activeAgentCount, type AgentCardVM, type RunVM } from "@/lib/factory/client";
-import { JudgementCard } from "./JudgementCard";
+import { YourJudgementCard } from "@/components/factory/judgement/YourJudgementCard";
 import { SectionContent } from "./SectionContent";
 import { fmtClock } from "./format";
 
@@ -75,7 +75,7 @@ export function MobileCompactView({
         <div>
           <p className="fa-mobile__h">Your judgement</p>
           {openJudgements.map((j) => (
-            <JudgementCard key={j.id} judgement={j} onAnswer={(action, answer) => onAnswer(j.id, action, answer)} />
+            <YourJudgementCard key={j.id} judgement={j} onAnswer={(action, answer) => onAnswer(j.id, action, answer)} />
           ))}
         </div>
       ) : null}

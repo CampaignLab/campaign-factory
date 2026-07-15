@@ -18,7 +18,7 @@ import type { AgentCardVM as FoldAgentVM, JudgementVM, SectionVM } from "@/lib/f
 import type { JudgementAnswerRequest, SectionStatus } from "@/lib/factory/contracts";
 import { StepWorkspace } from "./StepWorkspace";
 import { SectionContent } from "./SectionContent";
-import { JudgementCard } from "./JudgementCard";
+import { YourJudgementCard } from "@/components/factory/judgement/YourJudgementCard";
 import { fmtClock } from "./format";
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
@@ -116,7 +116,7 @@ export function BriefSection({
         </aside>
         <div className="rc">
           {judgements.map((j) => (
-            <JudgementCard key={j.id} judgement={j} onAnswer={(action, answer) => onAnswer(j.id, action, answer)} />
+            <YourJudgementCard key={j.id} judgement={j} onAnswer={(action, answer) => onAnswer(j.id, action, answer)} />
           ))}
 
           {activeAgents.length > 0 ? (
