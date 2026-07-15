@@ -86,7 +86,9 @@ const stakeholderSchema = S(
     evidence: str,
     confidence: enumStr(["High", "Medium", "Low"]),
   },
-  ["org", "role", "tier", "power", "position", "positionStatus", "ask"],
+  // `name` is required by w1's reducer schema — role title, never an invented
+  // person (see the power agent's prompt + normalizeContent backstop).
+  ["name", "org", "role", "tier", "power", "position", "positionStatus", "ask"],
 );
 
 const powerContent = S(
@@ -106,9 +108,26 @@ export const powerStakeholder = makeSectionContract({
   summary: "Role-based power map with positions, relationships, and asks",
   tail: ANALYSIS_TAIL,
   role: `You are the Power & Stakeholder Agent for Campaign Factory. Build a role-based power map (8–12 stakeholders) from accepted evidence and attributed local context.
-- Each stakeholder: the ORG and ROLE (include a person's name ONLY if it was verified during research and is in the accepted evidence — otherwise leave name empty and describe the role), their power level, their tier (decides / influences / mobilises / resists / neutral), their position, the ASK you would make of them, and how you would approach them.
+- Each stakeholder MUST have a name: use the ROLE TITLE as the name (e.g. "Cabinet Lead for Transport", "Headteacher"). Use a person's actual name ONLY if it was verified during research and is in the accepted evidence — NEVER invent a personal name. Also give the ORG and ROLE category, their power level, their tier (decides / influences / mobilises / resists / neutral), their position, the ASK you would make of them, and how you would approach them.
 - positionStatus MUST carry an honest verification label. An inferred position is "Supported inference", never "Verified public information". Never present a guessed stance as confirmed.
 - Record local-knowledge gaps: what a person on the ground would know that the evidence does not tell you.`,
+  // w1's reducer requires every stakeholder to carry a `name` string. The prompt
+  // asks for a role-title name, but if the model omits it we fall back to the
+  // role, then org — never fabricating a personal name — so the section is never
+  // rejected for a missing name.
+  normalizeContent: (c) => {
+    const list = Array.isArray(c.stakeholders) ? c.stakeholders : [];
+    const pick = (o: Record<string, unknown>, k: string) =>
+      typeof o[k] === "string" && (o[k] as string).trim() ? (o[k] as string) : "";
+    return {
+      ...c,
+      stakeholders: list.map((s) => {
+        const o = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
+        const name = pick(o, "name") || pick(o, "role") || pick(o, "org") || "Stakeholder";
+        return { ...o, name };
+      }),
+    };
+  },
 });
 
 // ---- Step 6: Pressure Analysis Agent --------------------------------------

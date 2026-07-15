@@ -9,6 +9,7 @@ import { deterministicQA } from "../qa.js";
 import type { EmitFragment, ExecutorDeps } from "../deps.js";
 import { coerceLabel } from "@web/lib/pipeline/labels.js";
 import { coerceClaims } from "@web/lib/factory/agents/shared.js";
+import { getAgentContract } from "@web/lib/factory/agents/index.js";
 import { validateSectionContent } from "@web/lib/factory/state/sections.js";
 import type {
   AgentDef,
@@ -174,6 +175,39 @@ async function main() {
     const { deps } = stub(def);
     const result = await executeAgentTurn(env(def), deps);
     ok("adjudicator returns claimDecisions", !!result.claimDecisions && result.claimDecisions.decisions.length > 0);
+  }
+
+  // 6b) LIVE-path power name coercion: a model output whose stakeholders lack
+  // `name` must be repaired by the power contract's normalizeContent (falling
+  // back name→role→org, never inventing a person) so w1's reducer accepts it.
+  console.log("Live power name coercion:");
+  {
+    const def = agentDef("power_stakeholder");
+    const contract = getAgentContract("power_stakeholder");
+    const raw = {
+      workSummary: "x",
+      confidence: "medium",
+      unknowns: [],
+      claims: [],
+      evidenceClaimRefs: [],
+      handoffs: [],
+      power: {
+        stakeholders: [
+          { org: "Leicester City Council", role: "Cabinet lead for transport", tier: "decides", power: "High", position: "Unknown", positionStatus: "Campaign assumption", ask: "Meet us" },
+          { org: "Residents' association", tier: "resists", power: "Low", position: "Opposed", positionStatus: "Campaign assumption", ask: "Hear concerns" },
+        ],
+        statusQuoCost: "Ongoing risk at the gate.",
+      },
+    };
+    const body = contract.toResult(raw as Record<string, unknown>, { envelope: env(def), def });
+    const op = body.proposals.flatMap((p) => p.ops).find((o) => o.op === "set_section") as
+      | { op: string; step: string; content: Record<string, unknown> }
+      | undefined;
+    const list = (op?.content?.stakeholders ?? []) as Array<Record<string, unknown>>;
+    ok("nameless stakeholder gets role as name", list[0]?.name === "Cabinet lead for transport");
+    ok("role-less stakeholder falls back to org", list[1]?.name === "Residents' association");
+    const v = op ? validateSectionContent(op.step as never, op.content) : { ok: false, errors: ["no set_section op"] };
+    ok("coerced power content passes w1 schema", v.ok, v.errors.slice(0, 3).join("; "));
   }
 
   // 7) mock reviewer accepts all proposals.

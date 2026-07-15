@@ -28,6 +28,11 @@ export interface SectionContractSpec {
   contentSchema: JSchema; // JSchema for that content
   summary: string; // human proposal summary
   structuredOutput?: boolean;
+  // Optional last-mile coercion of the model's content object before it becomes
+  // a proposal, to guarantee w1 reducer-required nested fields exist (e.g. every
+  // power stakeholder must carry a `name` string). Never invents data — only
+  // fills required-but-empty fields from sibling fields already present.
+  normalizeContent?: (content: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export function makeSectionContract(spec: SectionContractSpec): AgentContract {
@@ -44,7 +49,8 @@ export function makeSectionContract(spec: SectionContractSpec): AgentContract {
     toResult: (raw, ctx) => {
       const body = baseBody(raw, ctx);
       const refs = coerceRefs(raw.evidenceClaimRefs);
-      const content = raw[spec.contentField] ?? {};
+      const rawContent = (raw[spec.contentField] ?? {}) as Record<string, unknown>;
+      const content = spec.normalizeContent ? spec.normalizeContent(rawContent) : rawContent;
       body.proposals.unshift(buildSectionProposal(ctx.envelope, spec.step, content, refs, { summary: spec.summary }));
       return body;
     },
