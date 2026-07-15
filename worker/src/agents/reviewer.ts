@@ -51,6 +51,7 @@ export interface ReviewInput {
   acceptedStateExtracts?: string; // optional pre-assembled context; else assembled here
   priorStepReports?: Array<{ step: number; report: string }>;
   qaFlagsByProposalId?: Record<string, string[]>;
+  profile?: "full" | "express"; // express reviews never escalate to Opus
 }
 
 export interface ReviewOutcome {
@@ -66,6 +67,10 @@ export interface ReviewOutcome {
 }
 
 function useOpus(input: ReviewInput): boolean {
+  // Express keeps every review pass on the roster model: the Opus strategy
+  // review alone consumed ~8 of the 15-minute budget in live batch 3
+  // (15 Jul), starving planning/production entirely.
+  if (input.profile === "express") return false;
   return (
     input.pass === "strategy" ||
     input.pass === "final" ||

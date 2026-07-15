@@ -604,6 +604,7 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
         proposals: pending.map((p) => p.proposal),
         priorStepReports,
         qaFlagsByProposalId,
+        profile: ctx.profile,
       },
       deps,
     );

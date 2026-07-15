@@ -20,6 +20,7 @@ export interface ReviewInput {
   proposals: ChangeProposal[];
   priorStepReports?: Array<{ step: number; report: string }>;
   qaFlagsByProposalId?: Record<string, string[]>;
+  profile?: "full" | "express"; // express reviews stay on the roster model (no Opus escalation)
 }
 
 export interface ProposalReviewResult {
