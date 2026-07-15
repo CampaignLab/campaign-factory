@@ -7,15 +7,16 @@
 // replaced by a Completion Receipt.
 
 import { useMemo, useRef } from "react";
-import { AgentWorkCard, CompactAgentCard, AgentIdentityPill } from "@/components/factory/cards";
+import { AgentWorkCard, CompactAgentCard, AgentIdentityPill, hueByIndex } from "@/components/factory/cards";
 import type { AgentCardVM, CardPresentation } from "@/components/factory/cards";
 import type { JudgementAnswerRequest } from "@/lib/factory/contracts";
+import { CampaignCompletionReceipt } from "@/components/factory/receipts/CampaignCompletionReceipt";
 import cardStyles from "@/components/factory/cards/factory.module.css";
 import styles from "./gallery.module.css";
 import { CampaignAnchor } from "./CampaignAnchor";
-import { CampaignReceiptCard } from "./CampaignReceiptCard";
 import { JudgementCard } from "./JudgementCard";
 import { ConnectorLayer } from "./ConnectorLayer";
+import { runVmToCampaignReceipt } from "./receiptModel";
 import type { ConnectorEdge, GalleryCampaign } from "./viewModel";
 
 export function CampaignColumn({
@@ -88,7 +89,11 @@ export function CampaignColumn({
 
       {showReceipt ? (
         <>
-          <CampaignReceiptCard campaign={campaign} />
+          <CampaignCompletionReceipt
+            receipt={runVmToCampaignReceipt(run)}
+            accent={hueByIndex(campaign.hue).accent}
+            compact
+          />
           {pills.length > 0 ? (
             <div className={styles.pillGroup}>
               {pills.map((vm) => (

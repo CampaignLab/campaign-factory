@@ -8,9 +8,9 @@ export { GalleryLive } from "./GalleryLive";
 export { FactoryLedger } from "./FactoryLedger";
 export { CampaignAnchor } from "./CampaignAnchor";
 export { CampaignColumn } from "./CampaignColumn";
-export { CampaignReceiptCard } from "./CampaignReceiptCard";
 export { JudgementCard } from "./JudgementCard";
 export { ConnectorLayer } from "./ConnectorLayer";
+export { runVmToCampaignReceipt } from "./receiptModel";
 export { selectPresentation, COMPLETION_READABLE_MS } from "./presentation";
 export type { PresentationOptions } from "./presentation";
 export {
