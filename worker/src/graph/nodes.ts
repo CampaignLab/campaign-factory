@@ -8,7 +8,9 @@ import { randomUUID } from "node:crypto";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { agentDef, type AgentKey, type SpecialistKey } from "@web/lib/factory/contracts/roster.js";
 import { journeyStepByKey, type JourneyStepKey } from "@web/lib/factory/contracts/journey.js";
+import { MAX_JUDGEMENT_REQUESTS_PER_RUN } from "@web/lib/factory/contracts/state.js";
 import type { CampaignState, ChangeProposal, ProposalOp } from "@web/lib/factory/contracts/state.js";
+import { RUNTIME_LIMITS } from "@web/lib/factory/contracts/limits.js";
 import type { AgentTaskEnvelope, AgentResult } from "@web/lib/factory/contracts/envelope.js";
 import type { ExecutorDeps } from "../agents/deps.js";
 import { contextFrom, type RuntimeContext } from "./context.js";
@@ -25,12 +27,18 @@ function deadlineIso(ms: number): string {
   return new Date(Date.now() + ms).toISOString();
 }
 
-// ---- Halt guard: cancellation (signal or DB status) + cost hard stop --------
+// ---- Halt guard: cancellation + hard time limit + cost hard stop ------------
 
-async function cancelled(ctx: RuntimeContext, campaignId: string): Promise<boolean> {
-  if (ctx.signal.aborted) return true;
-  const run = await store.getRun(ctx.sql, campaignId);
-  return run?.status === "cancelled";
+// Hard execution limit (parameters §5): crossing hardCampaignLimitMs stops
+// STARTING new model nodes; deterministic finalisation still runs and the
+// remaining work is recorded as Terminal Gaps — same semantics as the cost
+// hard stop. Returns the halt reason, or null while within the limit.
+function hardTimeLimit(startedAt: string | undefined): string | null {
+  if (!startedAt) return null;
+  const elapsedMs = Date.now() - new Date(startedAt).getTime();
+  if (elapsedMs < RUNTIME_LIMITS.hardCampaignLimitMs) return null;
+  const limitMin = RUNTIME_LIMITS.hardCampaignLimitMs / 60000;
+  return `Hard execution limit reached (${Math.round(elapsedMs / 60000)} min elapsed; limit ${limitMin} min)`;
 }
 
 // Returns a halt patch (recording gaps for the sections this node would build)
@@ -44,9 +52,14 @@ async function guard(
   if (state.halted) {
     return { terminalGaps: sections.map((s) => gapText(s, state.haltReason ?? "run halted")) };
   }
-  if (await cancelled(ctx, state.campaignId)) {
+  const run = await store.getRun(ctx.sql, state.campaignId);
+  if (ctx.signal.aborted || run?.status === "cancelled") {
     const reason = "run cancelled";
     return { halted: true, haltReason: reason, terminalGaps: sections.map((s) => gapText(s, reason)) };
+  }
+  const timeUp = hardTimeLimit(run?.startedAt);
+  if (timeUp) {
+    return { halted: true, haltReason: timeUp, terminalGaps: sections.map((s) => gapText(s, timeUp)) };
   }
   if (checkCostGuard) {
     const cost = await checkCost(ctx.sql, state.campaignId, ctx.batchId);
@@ -71,6 +84,18 @@ async function guard(
 
 function gapText(section: string, reason: string): string {
   return `${section} not built (${reason})`;
+}
+
+// The distinct sections/documents a set of pending proposals would change.
+function proposalTargets(pending: PendingProposal[]): string[] {
+  const targets = new Set<string>();
+  for (const pp of pending) {
+    for (const op of pp.proposal.ops) {
+      if (op.op === "set_section" || op.op === "merge_section") targets.add(String(op.step));
+      else if (op.op === "set_pack") targets.add(String(op.document));
+    }
+  }
+  return [...targets];
 }
 
 // ---- One agent turn (delegated to w3) --------------------------------------
@@ -196,39 +221,65 @@ async function runAgent(
   }
 
   // Nonblocking Judgement Request: record + emit + apply provisional default.
+  // Capped at MAX_JUDGEMENT_REQUESTS_PER_RUN per campaign — the excess is
+  // recorded honestly as an evidence.gap (folded into next checks) rather than
+  // emitted as another judgement; the provisional default still applies either
+  // way, so nothing blocks.
   if (result.judgementRequest) {
     const jr = result.judgementRequest;
-    const judgementId = randomUUID();
-    const full = {
-      id: judgementId,
-      campaignId: state.campaignId,
-      agentRunId,
-      kind: jr.kind,
-      question: jr.question,
-      options: jr.options,
-      provisionalDefault: jr.provisionalDefault,
-      rationale: jr.rationale,
-      affectedOutputs: jr.affectedOutputs,
-      status: "defaulted" as const,
-      answer: jr.provisionalDefault,
-    };
-    await store.insertJudgement(ctx.sql, full);
-    await ctx.emitter.emit({
-      type: "judgement.requested",
-      agentRunId,
-      journeyStep: primaryStep,
-      payload: { summary: `Judgement: ${jr.question}`, judgementId, agentKey: key, detail: { ...full } },
-    });
-    await ctx.emitter.emit({
-      type: "judgement.defaulted",
-      agentRunId,
-      journeyStep: primaryStep,
-      payload: {
-        summary: `Applied provisional default: ${jr.provisionalDefault}`,
-        judgementId,
-        detail: { judgementId, answer: jr.provisionalDefault },
-      },
-    });
+    const existingCount = (await store.listJudgements(ctx.sql, state.campaignId)).length;
+    if (existingCount >= MAX_JUDGEMENT_REQUESTS_PER_RUN) {
+      await ctx.emitter.emit({
+        type: "evidence.gap",
+        agentRunId,
+        journeyStep: primaryStep,
+        payload: {
+          summary: `Judgement cap (${MAX_JUDGEMENT_REQUESTS_PER_RUN}) reached — folded into next checks: ${jr.question}`,
+          agentKey: key,
+          detail: {
+            question: jr.question,
+            provisionalDefault: jr.provisionalDefault,
+            rationale: jr.rationale,
+            affectedOutputs: jr.affectedOutputs,
+            cap: MAX_JUDGEMENT_REQUESTS_PER_RUN,
+            foldedIntoNextChecks: true,
+          },
+        },
+      });
+      // Provisional default proceeds implicitly; no judgement row/events.
+    } else {
+      const judgementId = randomUUID();
+      const full = {
+        id: judgementId,
+        campaignId: state.campaignId,
+        agentRunId,
+        kind: jr.kind,
+        question: jr.question,
+        options: jr.options,
+        provisionalDefault: jr.provisionalDefault,
+        rationale: jr.rationale,
+        affectedOutputs: jr.affectedOutputs,
+        status: "defaulted" as const,
+        answer: jr.provisionalDefault,
+      };
+      await store.insertJudgement(ctx.sql, full);
+      await ctx.emitter.emit({
+        type: "judgement.requested",
+        agentRunId,
+        journeyStep: primaryStep,
+        payload: { summary: `Judgement: ${jr.question}`, judgementId, agentKey: key, detail: { ...full } },
+      });
+      await ctx.emitter.emit({
+        type: "judgement.defaulted",
+        agentRunId,
+        journeyStep: primaryStep,
+        payload: {
+          summary: `Applied provisional default: ${jr.provisionalDefault}`,
+          judgementId,
+          detail: { judgementId, answer: jr.provisionalDefault },
+        },
+      });
+    }
   }
 
   // Specialist escalation is recorded but auto-declined (scope-guard cut #2).
@@ -390,11 +441,22 @@ export function agentClusterNode(keys: AgentKey[], sections: string[]) {
 export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
   return async (state: GraphStateType, config?: RunnableConfig): Promise<Patch> => {
     const ctx = contextFrom(config);
-    if (state.halted) return { pendingProposals: [] };
-    if (await cancelled(ctx, state.campaignId)) {
-      return { halted: true, haltReason: "run cancelled", pendingProposals: [] };
-    }
     const pending = state.pendingProposals;
+    // Dropping un-reviewed proposals must be HONEST: their target sections/
+    // documents are recorded as Terminal Gaps, never silently discarded.
+    const dropPending = (reason: string): Patch => ({
+      pendingProposals: [],
+      terminalGaps: proposalTargets(pending).map((t) => `${t} not accepted (${reason})`),
+    });
+    if (state.halted) return dropPending(state.haltReason ?? "run halted");
+    const run = await store.getRun(ctx.sql, state.campaignId);
+    if (ctx.signal.aborted || run?.status === "cancelled") {
+      return { halted: true, haltReason: "run cancelled", ...dropPending("run cancelled") };
+    }
+    const timeUp = hardTimeLimit(run?.startedAt); // the reviewer is a model node too
+    if (timeUp) {
+      return { halted: true, haltReason: timeUp, ...dropPending(timeUp) };
+    }
     if (pending.length === 0) return { pendingProposals: [] };
 
     const reviewerAgentRunId = state.reviewerAgentRunId;
