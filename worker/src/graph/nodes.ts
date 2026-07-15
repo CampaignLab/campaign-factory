@@ -654,33 +654,60 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
         continue;
       }
       if (r.decision === "return") {
-        await ctx.emitter.emit({
-          type: "proposal.returned",
-          agentRunId: proposal.agentRunId,
-          payload: { summary: r.rationale || "Returned for one revision", proposalId: proposal.id, agentKey: pp.agentKey },
-        });
-        // Only the strategy pass has a revision loop, only within the soft
-        // time target, and NEVER on the express profile. Everywhere else a
-        // "return" is terminal for the section.
-        const loopAvailable =
-          pass === "strategy" && state.strategyRevisions < 1 && ctx.profile !== "express";
-        if (loopAvailable && !overSoftTarget) {
-          needsStrategyRevision = true;
+        // EXPRESS: a return becomes ACCEPT-WITH-DISSENT (user decision, 15 Jul).
+        // The graph has no revision loop here, and a hole in the brief is a
+        // worse outcome than flagged content: the content lands, the reviewer's
+        // objection ships verbatim as a Next Check on the affected sections,
+        // and the dissent stays in the rationale (ADR: preserve dissent).
+        if (ctx.profile === "express") {
+          const affected = proposal.ops.flatMap((op) =>
+            op.op === "set_section" || op.op === "merge_section" ? [op.step] : [],
+          );
+          proposal.ops.push({
+            op: "add_next_check",
+            check: {
+              description: `Reviewer dissent (accepted with reservations): ${(r.rationale || "unspecified").slice(0, 400)}`,
+              reason: "reviewer_return_express",
+              affectedSections: affected,
+            },
+          });
+          await ctx.emitter.emit({
+            type: "work.update",
+            agentRunId: reviewerAgentRunId,
+            journeyStep: journeySteps[0],
+            payload: {
+              summary: `Accepted with dissent recorded: ${(r.rationale || "").slice(0, 140)}`,
+              agentKey: "synthesis_reviewer",
+            },
+          });
+          // fall through to the accept path below
         } else {
-          if (loopAvailable && overSoftTarget) {
-            await ctx.emitter.emit({
-              type: "work.update",
-              agentRunId: reviewerAgentRunId,
-              journeyStep: journeySteps[0],
-              payload: {
-                summary: `Skipping strategy revision — ${Math.round(elapsedMs / 60000)} min elapsed exceeds the ${limits.softCampaignTargetMs / 60000} min soft target`,
-                agentKey: "synthesis_reviewer",
-              },
-            });
+          await ctx.emitter.emit({
+            type: "proposal.returned",
+            agentRunId: proposal.agentRunId,
+            payload: { summary: r.rationale || "Returned for one revision", proposalId: proposal.id, agentKey: pp.agentKey },
+          });
+          // Only the strategy pass has a revision loop, only within the soft
+          // time target. Everywhere else a "return" is terminal for the section.
+          const loopAvailable = pass === "strategy" && state.strategyRevisions < 1;
+          if (loopAvailable && !overSoftTarget) {
+            needsStrategyRevision = true;
+          } else {
+            if (loopAvailable && overSoftTarget) {
+              await ctx.emitter.emit({
+                type: "work.update",
+                agentRunId: reviewerAgentRunId,
+                journeyStep: journeySteps[0],
+                payload: {
+                  summary: `Skipping strategy revision — ${Math.round(elapsedMs / 60000)} min elapsed exceeds the ${limits.softCampaignTargetMs / 60000} min soft target`,
+                  agentKey: "synthesis_reviewer",
+                },
+              });
+            }
+            await emitRejectionGaps(pp, r.rationale, "reviewer returned; no revision loop");
           }
-          await emitRejectionGaps(pp, r.rationale, "reviewer returned; no revision loop");
+          continue;
         }
-        continue;
       }
 
       // accept → rebase to current version (sequential applies within a cluster)

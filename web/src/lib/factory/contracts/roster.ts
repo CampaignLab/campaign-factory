@@ -357,6 +357,9 @@ const EXPRESS_OVERRIDES: Partial<Record<AgentKey, Partial<Omit<AgentDef, "key" |
   // 12k gives the object room; search depth is unchanged.
   research_director: { searchBudget: 1, effort: "medium", maxOutputTokens: 12000 },
   evidence_adjudicator: { searchBudget: 1, effort: "medium", maxOutputTokens: 12000 },
+  // The four sequential review passes measured ~8 of the 20-minute budget at
+  // high effort (batch 5, 15 Jul). Medium + 6k reclaims ~4 min of slack.
+  synthesis_reviewer: { effort: "medium", maxOutputTokens: 6000 },
   objective_strategist: { effort: "medium" },
   decision_route: { effort: "medium", searchBudget: 0, timeoutMs: 240000 },
   power_stakeholder: { effort: "medium" },
