@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Fixed pill nav from the awake prototype: brand left, pill links, backdrop blur.
+// Awake-style pill nav: brand first, pill links, backdrop blur.
 const LINKS = [
   { href: "/factory", label: "Factory Builder" },
   { href: "/gallery", label: "Campaign Gallery" },
@@ -14,8 +14,8 @@ const LINKS = [
 export function SiteNav() {
   const path = usePathname() || "/";
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-7">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl flex-col items-start gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-7">
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <Image
             src="/campaign-factory-logo.png"
@@ -30,7 +30,7 @@ export function SiteNav() {
             UK local &amp; public-policy campaigns
           </span>
         </Link>
-        <nav className="flex shrink-0 gap-1 rounded-full bg-foreground/[0.05] p-1">
+        <nav aria-label="Primary" className="flex w-full flex-wrap gap-1 rounded-[1.25rem] bg-foreground/[0.05] p-1 sm:w-auto sm:shrink-0 sm:rounded-full">
           {LINKS.map((l) => {
             const active = l.href === "/" ? path === "/" : path.startsWith(l.href);
             return (
