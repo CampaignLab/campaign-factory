@@ -1,0 +1,361 @@
+// The deterministic nine-document compiler (ADR 0007, parameters §2).
+// PURE and runtime-neutral (no next/*, no DOM). The worker's finalisation node
+// calls compileDocuments(state, claims); the same function renders the live
+// Document Library and the exported .doc. Agents never rewrite shared factual
+// foundations at export — this is the ONLY renderer.
+//
+// Docs 1–6 compile from Campaign Synthesis Reviewer-ACCEPTED brief sections.
+// Packs 7–9 render CampaignDocumentState.resources (producers own the content;
+// the compiler only renders it). Missing evidence yields explicit
+// "needs verification" markers — never invented completion.
+
+import type { JourneyStepKey, SectionStatus } from "../contracts/journey";
+import { JOURNEY_STEPS } from "../contracts/journey";
+import {
+  CANONICAL_DOCUMENTS,
+  type CanonicalDocumentKey,
+  type DocumentStatus,
+} from "../contracts/documents";
+import type { CampaignDocumentState, CampaignSectionState, CampaignState } from "../contracts/state";
+import type { PackResource } from "../contracts/documents";
+import type { Claim } from "../contracts/evidence";
+import {
+  SECTION_RENDERERS,
+  blocksToHtml,
+  blocksToText,
+  escapeHtml,
+  isUnresolvedLabel,
+  withVerifyHtml,
+  type Block,
+} from "./render";
+import { buildEvidenceAndNextChecks, evidenceSection } from "./evidence";
+
+export interface CompiledDocument {
+  key: CanonicalDocumentKey;
+  num: number;
+  name: string;
+  status: DocumentStatus; // exact product strings
+  html: string;
+  plainText: string;
+  isPack: boolean;
+  /** brief-section keys underlying docs 1–6 (empty for packs) */
+  sectionKeys: JourneyStepKey[];
+  /** resource fragments rendered inside packs 7–9 (0 for docs 1–6) */
+  resourceCount: number;
+  /** reasons the document is "needs verification" (unresolved claims, placeholders) */
+  flags: string[];
+}
+
+// Which accepted brief sections each compiled document is built from. The
+// Campaign Brief is the full ten-step narrative (steps 1–9 are load-bearing for
+// readiness; the step-10 "documents" overview is not required to be ready).
+const BRIEF_SECTIONS: JourneyStepKey[] = [
+  "problem",
+  "evidence",
+  "objective",
+  "decision_route",
+  "power",
+  "pressure",
+  "strategy",
+  "tactics",
+  "organising",
+];
+
+export const DOC_SECTIONS: Record<
+  Exclude<CanonicalDocumentKey, "lobbying_pack" | "media_pack" | "digital_pack">,
+  JourneyStepKey[]
+> = {
+  campaign_brief: BRIEF_SECTIONS,
+  objective_theory_of_change: ["objective"],
+  power_stakeholder_map: ["power", "pressure"],
+  campaign_strategy: ["strategy"],
+  tactics_timeline: ["tactics"],
+  organising_plan: ["organising"],
+};
+
+const PACK_KEYS: ReadonlySet<CanonicalDocumentKey> = new Set([
+  "lobbying_pack",
+  "media_pack",
+  "digital_pack",
+]);
+
+const STEP_TITLE = new Map<JourneyStepKey, string>(JOURNEY_STEPS.map((s) => [s.key, s.title]));
+
+function humanSectionStatus(status: SectionStatus): string {
+  switch (status) {
+    case "empty":
+      return "not started";
+    case "assembling":
+      return "assembling";
+    case "under_review":
+      return "under review";
+    case "accepted":
+      return "accepted";
+    case "needs_verification":
+      return "needs verification";
+    default:
+      return status;
+  }
+}
+
+/** claims whose affectedOutputs touch any of the given section keys or the doc key */
+function claimsFor(claims: Claim[], sectionKeys: JourneyStepKey[], docKey: CanonicalDocumentKey): Claim[] {
+  const targets = new Set<string>([...sectionKeys, docKey]);
+  return claims.filter((c) => (c.affectedOutputs ?? []).some((o) => targets.has(o)));
+}
+
+function unresolvedLoadBearing(claims: Claim[]): Claim[] {
+  return claims.filter((c) => c.loadBearing && isUnresolvedLabel(c.status));
+}
+
+/**
+ * Status for a compiled document from its underlying section statuses + claims
+ * (ADR 0007):
+ *  - all sections accepted and no unresolved load-bearing claims → "ready"
+ *  - any needs_verification section OR unresolved load-bearing claim → "needs verification"
+ *  - some accepted / under review → "under review"
+ *  - otherwise (nothing accepted yet) → "assembling"
+ */
+export function sectionDocStatus(
+  state: CampaignState,
+  sectionKeys: JourneyStepKey[],
+  claims: Claim[],
+  docKey: CanonicalDocumentKey,
+): { status: DocumentStatus; flags: string[] } {
+  const flags: string[] = [];
+  const statuses = sectionKeys.map((k) => state.sections[k]?.status ?? "empty");
+
+  const relevant = claimsFor(claims, sectionKeys, docKey);
+  const unresolved = unresolvedLoadBearing(relevant);
+  for (const c of unresolved) flags.push(`Unresolved load-bearing claim: ${c.text}`);
+
+  const hasNeedsVerification = statuses.some((s) => s === "needs_verification");
+  if (hasNeedsVerification || unresolved.length > 0) {
+    if (hasNeedsVerification) flags.push("A source section is flagged needs verification.");
+    return { status: "needs verification", flags };
+  }
+  if (statuses.length > 0 && statuses.every((s) => s === "accepted")) {
+    return { status: "ready", flags };
+  }
+  if (statuses.some((s) => s === "accepted" || s === "under_review")) {
+    return { status: "under review", flags };
+  }
+  return { status: "assembling", flags };
+}
+
+/** Render one brief section into blocks, honestly marking unaccepted sections. */
+function renderSectionForBrief(key: JourneyStepKey, sec: CampaignSectionState | undefined): Block[] {
+  const title = STEP_TITLE.get(key) ?? key;
+  const blocks: Block[] = [{ t: "h2", text: title }];
+  const status = sec?.status ?? "empty";
+  if (status === "accepted" || status === "needs_verification") {
+    const body = SECTION_RENDERERS[key](sec?.content);
+    if (body.length) blocks.push(...body);
+    else blocks.push({ t: "note", text: "Accepted, but no structured content was recorded." });
+    if (status === "needs_verification") {
+      blocks.push({
+        t: "note",
+        text: "This section is flagged needs verification — confirm before use.",
+      });
+    }
+  } else {
+    blocks.push({
+      t: "note",
+      text: `Not yet reviewer-accepted (currently ${humanSectionStatus(status)}). Nothing has been invented to fill this section.`,
+    });
+  }
+  return blocks;
+}
+
+function compileBrief(state: CampaignState, claims: Claim[]): { html: string; plainText: string } {
+  const htmlParts: string[] = [];
+  const textParts: string[] = [];
+
+  // headline
+  const headBlocks: Block[] = [];
+  if (state.problem) headBlocks.push({ t: "quote", text: state.problem });
+  if (state.place) headBlocks.push({ t: "p", text: `Place: ${state.place}` });
+  if (headBlocks.length) {
+    htmlParts.push(blocksToHtml(headBlocks));
+    textParts.push(blocksToText(headBlocks));
+  }
+
+  // the ten-step narrative (steps 1–10, in order)
+  for (const step of JOURNEY_STEPS) {
+    const blocks = renderSectionForBrief(step.key, state.sections[step.key]);
+    htmlParts.push(blocksToHtml(blocks));
+    textParts.push(blocksToText(blocks));
+  }
+
+  // Evidence and next checks closing section
+  const evidence = evidenceSection(buildEvidenceAndNextChecks(state, claims));
+  htmlParts.push(evidence.html);
+  textParts.push(evidence.plainText);
+
+  return {
+    html: htmlParts.filter(Boolean).join("\n"),
+    plainText: textParts.filter(Boolean).join("\n\n").trim(),
+  };
+}
+
+function compileSubDoc(
+  key: Exclude<CanonicalDocumentKey, "lobbying_pack" | "media_pack" | "digital_pack">,
+  name: string,
+  state: CampaignState,
+): { html: string; plainText: string } {
+  const sectionKeys = DOC_SECTIONS[key];
+  const blocks: Block[] = [{ t: "h2", text: name }];
+  let renderedAny = false;
+  for (const sk of sectionKeys) {
+    const sec = state.sections[sk];
+    const status = sec?.status ?? "empty";
+    if (status === "accepted" || status === "needs_verification") {
+      const body = SECTION_RENDERERS[sk](sec?.content);
+      if (body.length) {
+        blocks.push(...body);
+        renderedAny = true;
+      }
+      if (status === "needs_verification") {
+        blocks.push({ t: "note", text: "Flagged needs verification — confirm before use." });
+      }
+    } else {
+      blocks.push({
+        t: "note",
+        text: `The ${STEP_TITLE.get(sk) ?? sk} section is not yet reviewer-accepted (currently ${humanSectionStatus(status)}). Nothing invented to fill it.`,
+      });
+    }
+  }
+  if (!renderedAny) {
+    blocks.push({ t: "note", text: "No accepted content yet — this document assembles as its brief sections are accepted." });
+  }
+  return { html: blocksToHtml(blocks), plainText: blocksToText(blocks) };
+}
+
+// ---- packs 7–9 ----
+
+function packStatus(
+  docState: CampaignDocumentState | undefined,
+  claims: Claim[],
+  docKey: CanonicalDocumentKey,
+): { status: DocumentStatus; flags: string[] } {
+  const flags: string[] = [];
+  const resources = docState?.resources ?? [];
+  if (!resources.length) {
+    // no content yet: keep any stored non-terminal status, else assembling
+    const stored = docState?.status;
+    return { status: stored && stored !== "assembling" ? stored : "assembling", flags };
+  }
+  const hasNotes = resources.some((r) => (r.verificationNotes?.length ?? 0) > 0);
+  if (hasNotes) flags.push("Contains explicit verification placeholders.");
+  const referenced = new Set<string>();
+  for (const r of resources) for (const id of r.claimIds ?? []) referenced.add(id);
+  const unresolved = claims.filter(
+    (c) => referenced.has(c.id) && c.loadBearing && isUnresolvedLabel(c.status),
+  );
+  for (const c of unresolved) flags.push(`Unresolved load-bearing claim: ${c.text}`);
+  const claimUnresolved = claimsFor(claims, [], docKey).filter(
+    (c) => c.loadBearing && isUnresolvedLabel(c.status),
+  );
+  for (const c of claimUnresolved) if (!unresolved.includes(c)) flags.push(`Unresolved load-bearing claim: ${c.text}`);
+
+  if (hasNotes || unresolved.length > 0 || claimUnresolved.length > 0) {
+    return { status: "needs verification", flags };
+  }
+  // otherwise respect a stored terminal status, defaulting to ready once content exists
+  return { status: docState?.status === "under review" ? "under review" : "ready", flags };
+}
+
+function renderResource(r: PackResource): Block[] {
+  const blocks: Block[] = [{ t: "h3", text: r.title || r.key }];
+  if (r.body && r.body.trim()) {
+    // resource bodies are markdown-ish plain text; split on blank lines into paras
+    for (const para of r.body.split(/\n{2,}/)) {
+      const p = para.trim();
+      if (p) blocks.push({ t: "p", text: p });
+    }
+  }
+  if (r.verificationNotes?.length) {
+    blocks.push({ t: "h4", text: "Before sending, verify" });
+    blocks.push({ t: "ul", items: r.verificationNotes });
+  }
+  return blocks;
+}
+
+function compilePack(name: string, docState: CampaignDocumentState | undefined): { html: string; plainText: string } {
+  const resources = docState?.resources ?? [];
+  const blocks: Block[] = [{ t: "h2", text: name }];
+  if (!resources.length) {
+    blocks.push({ t: "note", text: "No resources produced yet — this pack assembles once its strategy, tactics, and organising dependencies are stable." });
+    return { html: blocksToHtml(blocks), plainText: blocksToText(blocks) };
+  }
+  blocks.push({
+    t: "p",
+    text: "First drafts only. Nothing is sent without a person editing and approving it; highlighted [ … ] items are unresolved and must be resolved first.",
+  });
+  const html: string[] = [blocksToHtml(blocks)];
+  const text: string[] = [blocksToText(blocks)];
+  for (const r of resources) {
+    const rb = renderResource(r);
+    html.push(blocksToHtml(rb));
+    text.push(blocksToText(rb));
+  }
+  return { html: html.join("\n"), plainText: text.join("\n\n").trim() };
+}
+
+/**
+ * Compile all nine Canonical Campaign Documents from accepted campaign state +
+ * the claim ledger. Deterministic and side-effect free.
+ */
+export function compileDocuments(state: CampaignState, claims: Claim[]): CompiledDocument[] {
+  const docStateByKey = new Map<CanonicalDocumentKey, CampaignDocumentState>(
+    (state.documents ?? []).map((d) => [d.key, d]),
+  );
+  const claimList = claims ?? [];
+
+  return CANONICAL_DOCUMENTS.map((def): CompiledDocument => {
+    const isPack = PACK_KEYS.has(def.key);
+    if (isPack) {
+      const docState = docStateByKey.get(def.key);
+      const { status, flags } = packStatus(docState, claimList, def.key);
+      const { html, plainText } = compilePack(def.name, docState);
+      return {
+        key: def.key,
+        num: def.num,
+        name: def.name,
+        status,
+        html,
+        plainText,
+        isPack: true,
+        sectionKeys: [],
+        resourceCount: docState?.resources?.length ?? 0,
+        flags,
+      };
+    }
+
+    const subKey = def.key as Exclude<
+      CanonicalDocumentKey,
+      "lobbying_pack" | "media_pack" | "digital_pack"
+    >;
+    const sectionKeys = DOC_SECTIONS[subKey];
+    const { status, flags } = sectionDocStatus(state, sectionKeys, claimList, def.key);
+    const { html, plainText } =
+      def.key === "campaign_brief" ? compileBrief(state, claimList) : compileSubDoc(subKey, def.name, state);
+    return {
+      key: def.key,
+      num: def.num,
+      name: def.name,
+      status,
+      html,
+      plainText,
+      isPack: false,
+      sectionKeys,
+      resourceCount: 0,
+      flags,
+    };
+  });
+}
+
+/** True once the reviewer pass makes a document exportable (ADR 0007). */
+export function isExportable(status: DocumentStatus): boolean {
+  return status === "ready" || status === "needs verification";
+}
