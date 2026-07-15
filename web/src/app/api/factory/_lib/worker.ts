@@ -86,7 +86,9 @@ let readSql: ReturnType<typeof postgres> | null = null;
 // w1-db's factorySql() when reconciling.
 export function factoryReadSql(): ReturnType<typeof postgres> {
   if (readSql) return readSql;
-  const url = process.env.DATABASE_URL;
+  // Same precedence as store/client.ts: preview deployments point factory
+  // reads at the factory-dev branch via FACTORY_DATABASE_URL.
+  const url = process.env.FACTORY_DATABASE_URL || process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
   const needsSsl = /neon\.tech|sslmode=require/.test(url) || process.env.PGSSL === "require";
   readSql = postgres(url, { ssl: needsSsl ? "require" : false, max: 5, idle_timeout: 20 });
