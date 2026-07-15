@@ -19,7 +19,7 @@ import type {
   SpecialistRequest,
 } from "../contracts/envelope";
 import type { ClaimType } from "../contracts/evidence";
-import type { CanonicalDocumentKey, PackResource } from "../contracts/documents";
+import { CANONICAL_DOCUMENTS, type CanonicalDocumentKey, type PackResource } from "../contracts/documents";
 import type { JudgementKind, ProposalOp } from "../contracts/state";
 import { A, describeSchema, enumStr, S, str, strA, type JSchema } from "./schema";
 import type { AgentParseContext, AgentResultBody } from "./types";
@@ -71,11 +71,34 @@ export const TOOL_USE = `TOOLS & CITATION:
 export const JSON_ONLY =
   "Return ONLY a single JSON object — no prose, no markdown fences, nothing before or after it. It MUST match this exact shape (fields marked ? are optional; omit them entirely when empty):";
 
-/** Assemble a full system prompt from a role-specific body + the shared spine. */
+/** Every key a claim or judgement may cite in affectedOutputs: the ten brief
+ *  section keys + the nine canonical document keys. Derived from the contracts
+ *  so the prompt vocabulary can never drift from what the compiler matches. */
+export const AFFECTED_OUTPUT_KEYS: readonly string[] = [
+  ...JOURNEY_STEPS.map((s) => s.key),
+  ...CANONICAL_DOCUMENTS.map((d) => d.key),
+];
+
+/** Pinned affectedOutputs vocabulary. Free-text names ("problem statement",
+ *  "evidence base") match nothing in the document compiler, so claim flags
+ *  silently never reach the documents they describe — every agent prompt
+ *  carries this legend. */
+export const AFFECTED_OUTPUTS_GUIDE = `AFFECTED OUTPUTS VOCABULARY — when a claim or judgement lists affectedOutputs, use ONLY these exact keys (never prose names like "problem statement" or "evidence base"):
+Brief sections:
+${JOURNEY_STEPS.map((s) => `- "${s.key}" — step ${s.step}: ${s.title}`).join("\n")}
+Documents:
+${CANONICAL_DOCUMENTS.map((d) => `- "${d.key}" — document ${d.num}: ${d.name}`).join("\n")}`;
+
+/** Assemble a full system prompt from a role-specific body + the shared spine.
+ *  Every contract built this way emits claims and/or judgement requests, so the
+ *  affectedOutputs vocabulary legend is always included. */
 export function systemPrompt(roleBody: string, tail: string[], schema: JSchema): string {
-  return [roleBody.trim(), ...tail.map((t) => t.trim()), `${JSON_ONLY}\n${describeSchema(schema)}`].join(
-    "\n\n",
-  );
+  return [
+    roleBody.trim(),
+    ...tail.map((t) => t.trim()),
+    AFFECTED_OUTPUTS_GUIDE,
+    `${JSON_ONLY}\n${describeSchema(schema)}`,
+  ].join("\n\n");
 }
 
 // =========================================================================
@@ -97,7 +120,9 @@ export const CLAIM_TYPES: readonly ClaimType[] = [
 const CONFIDENCE = enumStr(["high", "medium", "low"]);
 
 /** Model-facing claim. `ref` is a local correlation key (c1, c2, …) that
- *  proposals reference in evidenceClaimRefs; it is stripped from the ClaimDraft. */
+ *  proposals reference in evidenceClaimRefs; it is stripped from the ClaimDraft.
+ *  affectedOutputs is pinned to the section/document key vocabulary — the
+ *  compiler matches these keys, so free text here would silently match nothing. */
 export const claimSchema: JSchema = S(
   {
     ref: str,
@@ -108,7 +133,7 @@ export const claimSchema: JSchema = S(
     confidence: CONFIDENCE,
     sourceIds: strA,
     excerpt: str,
-    affectedOutputs: strA,
+    affectedOutputs: A(enumStr(AFFECTED_OUTPUT_KEYS)),
     contradictsClaimIds: strA,
     supersedesClaimIds: strA,
     staleOfClaimId: str,
@@ -145,7 +170,7 @@ export const judgementRequestSchema: JSchema = S({
   options: strA,
   provisionalDefault: str,
   rationale: str,
-  affectedOutputs: strA,
+  affectedOutputs: A(enumStr(AFFECTED_OUTPUT_KEYS)),
 });
 
 /** A next-check the agent wants recorded (maps to the add_next_check op). */

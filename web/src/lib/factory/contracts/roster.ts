@@ -73,7 +73,7 @@ export const FIXED_AGENTS: readonly AgentDef[] = [
     inputTokenBudget: 20000,
     timeoutMs: 420000,
     toolPolicy: "search_discovery",
-    searchBudget: 2,
+    searchBudget: 1,
     journeySteps: [1, 2],
   },
   {
@@ -88,7 +88,7 @@ export const FIXED_AGENTS: readonly AgentDef[] = [
     inputTokenBudget: 50000,
     timeoutMs: 420000,
     toolPolicy: "adjudication",
-    searchBudget: 2,
+    searchBudget: 1,
     journeySteps: [2],
   },
   {
@@ -278,7 +278,7 @@ const specialistBase = {
   inputTokenBudget: 20000,
   timeoutMs: 420000,
   toolPolicy: "search_specialist" as const,
-  searchBudget: 4,
+  searchBudget: 2,
   journeySteps: [2],
 };
 
@@ -339,6 +339,37 @@ export function agentDef(key: AgentKey): AgentDef {
   const def = ALL_AGENT_DEFS.find((a) => a.key === key);
   if (!def) throw new Error(`Unknown agent key: ${key}`);
   return def;
+}
+
+// ---- Express profile (derived view, NOT a duplicate roster) -----------------
+// Same 13 responsibilities, same contracts; lighter execution for the audience
+// path (typical ≤12 min, hard 15 min): Sonnet strategy instead of Opus, medium
+// effort for the analysis wave, decision_route loses its search, and output
+// budgets are capped at ~8k. Selection of ONE specialist (vs two) and the
+// no-revision rule live in the graph, not here.
+
+const EXPRESS_MAX_OUTPUT_TOKENS = 8000;
+
+const EXPRESS_OVERRIDES: Partial<Record<AgentKey, Partial<Omit<AgentDef, "key" | "kind">>>> = {
+  research_director: { searchBudget: 1 },
+  evidence_adjudicator: { searchBudget: 1 },
+  objective_strategist: { effort: "medium" },
+  decision_route: { effort: "medium", searchBudget: 0, timeoutMs: 240000 },
+  power_stakeholder: { effort: "medium" },
+  pressure_analysis: { effort: "medium" },
+  strategy_architect: { model: "claude-sonnet-5" },
+};
+
+/** Profile-aware agent definition: "full" returns the roster def unchanged;
+ *  "express" layers the derived overrides + the ~8k output cap on top. */
+export function agentDefFor(key: AgentKey, profile: "full" | "express"): AgentDef {
+  const base = agentDef(key);
+  if (profile !== "express") return base;
+  return {
+    ...base,
+    maxOutputTokens: Math.min(base.maxOutputTokens, EXPRESS_MAX_OUTPUT_TOKENS),
+    ...EXPRESS_OVERRIDES[key],
+  };
 }
 
 // Execution limits per agent turn (parameters §2).

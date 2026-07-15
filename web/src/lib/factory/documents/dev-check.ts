@@ -3,10 +3,12 @@
 // TypeScript compiler into a temp dir, then node (see the run notes in the W6
 // handoff). Uses only runtime-neutral modules (no next/*, no DOM).
 
-import { compileDocuments } from "./compile";
+import type { CampaignState } from "../contracts/state";
+import type { Claim } from "../contracts/evidence";
+import { compileDocuments, isExportable } from "./compile";
 import { buildEvidenceAndNextChecks } from "./evidence";
 import { buildCampaignReceipt, buildBatchReceipt } from "./receipts";
-import { FIXTURE_STATE, FIXTURE_CLAIMS, FIXTURE_EVENTS } from "./fixtures";
+import { FIXTURE_CAMPAIGN_ID, FIXTURE_STATE, FIXTURE_CLAIMS, FIXTURE_EVENTS } from "./fixtures";
 
 let failures = 0;
 function assert(cond: boolean, msg: string): void {
@@ -41,7 +43,10 @@ assert(byKey.get("objective_theory_of_change")!.status === "ready", "objective d
 assert(byKey.get("power_stakeholder_map")!.status === "needs verification", "power map needs verification (pressure flagged + conflicting claim)");
 assert(byKey.get("campaign_strategy")!.status === "ready", "strategy ready");
 assert(byKey.get("tactics_timeline")!.status === "ready", "tactics ready");
-assert(byKey.get("organising_plan")!.status === "assembling", "organising assembling (section empty)");
+assert(
+  byKey.get("organising_plan")!.status === "assembling",
+  "organising assembling (section empty — c7's unresolved claim must NOT flip a contentless doc to needs verification)",
+);
 assert(byKey.get("campaign_brief")!.status === "needs verification", "brief needs verification (pressure flagged)");
 assert(byKey.get("lobbying_pack")!.status === "needs verification", "lobbying pack needs verification (has verification note)");
 assert(byKey.get("media_pack")!.status === "ready", "media pack ready (clean resources)");
@@ -49,6 +54,10 @@ assert(byKey.get("digital_pack")!.status === "assembling", "digital pack assembl
 
 const readyCount = docs.filter((d) => d.status === "ready").length;
 assert(readyCount === 4, `4 documents ready (got ${readyCount})`);
+
+// contentless documents are never exportable
+assert(!isExportable(byKey.get("organising_plan")!.status), "contentless organising plan is not exportable");
+assert(!isExportable(byKey.get("digital_pack")!.status), "contentless digital pack is not exportable");
 
 // no invented completion: the brief must explicitly mark the empty organising section
 assert(
@@ -60,14 +69,73 @@ assert(
   "empty pack honestly states no resources",
 );
 
+// step 10 derives from the compiled document statuses — no phantom
+// "Not yet reviewer-accepted" section (only decision_route + organising qualify)
+const briefText = byKey.get("campaign_brief")!.plainText;
+const unacceptedMarks = briefText.split("Not yet reviewer-accepted").length - 1;
+assert(
+  unacceptedMarks === 2,
+  `brief marks exactly the 2 unaccepted sections, no phantom step 10 (got ${unacceptedMarks})`,
+);
+assert(
+  briefText.includes("2. Objective and Theory of Change: ready"),
+  "brief step 10 summarises the nine documents and their statuses",
+);
+
+// extras fallback: reviewer-accepted content beyond the bespoke keys still renders
+assert(briefText.includes("Local government"), "brief renders the specialist lane block (humanised lane_ key)");
+assert(
+  briefText.includes("administered by the Highways team"),
+  "brief renders the lane findings content, not a 'no structured content' note",
+);
+assert(
+  byKey.get("objective_theory_of_change")!.plainText.includes("Theory of change"),
+  "objective doc renders the preserved theoryOfChange field",
+);
+
+console.log("\n=== affectedOutputs normalization ===");
+const variantClaim: Claim = {
+  id: "cv1",
+  campaignId: FIXTURE_CAMPAIGN_ID,
+  text: "The spring 2027 term deadline is not confirmed by any council source.",
+  type: "deadline",
+  status: "Verification incomplete",
+  loadBearing: true,
+  confidence: "low",
+  sourceIds: [],
+  authorAgentRunId: "ar2",
+  stateVersion: 6,
+  affectedOutputs: ["Objective and Theory of Change"], // free text, not a key
+};
+const docsWithVariant = compileDocuments(FIXTURE_STATE, [...FIXTURE_CLAIMS, variantClaim]);
+const objWithVariant = docsWithVariant.find((d) => d.key === "objective_theory_of_change")!;
+assert(
+  objWithVariant.status === "needs verification",
+  `free-text affectedOutputs variant still reaches its document (got ${objWithVariant.status})`,
+);
+
+console.log("\n=== contentless pack with stored terminal status ===");
+const stateWithEmptyReadyPack: CampaignState = {
+  ...FIXTURE_STATE,
+  documents: FIXTURE_STATE.documents.map((d) =>
+    d.key === "digital_pack" ? { ...d, status: "ready" as const } : d,
+  ),
+};
+const emptyReadyDocs = compileDocuments(stateWithEmptyReadyPack, FIXTURE_CLAIMS);
+const emptyReadyPack = emptyReadyDocs.find((d) => d.key === "digital_pack")!;
+assert(
+  emptyReadyPack.status === "assembling",
+  `stored terminal status on an empty pack compiles to assembling (got ${emptyReadyPack.status})`,
+);
+
 console.log("\n=== buildEvidenceAndNextChecks ===");
 const evidence = buildEvidenceAndNextChecks(FIXTURE_STATE, FIXTURE_CLAIMS);
 console.log(`  groups: ${evidence.groups.map((g) => `${g.label}(${g.count})`).join(", ")}`);
 console.log(`  conflicts: ${evidence.conflicts.length}, nextChecks: ${evidence.nextChecks.length}, terminalGaps: ${evidence.terminalGaps.length}`);
 console.log(`  totals: ${JSON.stringify(evidence.totals)}`);
-assert(evidence.totals.claims === 6, "6 claims total");
-assert(evidence.totals.loadBearing === 4, "4 load-bearing claims");
-assert(evidence.totals.unresolvedLoadBearing === 2, "2 unresolved load-bearing claims (c2, c3)");
+assert(evidence.totals.claims === 7, "7 claims total");
+assert(evidence.totals.loadBearing === 5, "5 load-bearing claims");
+assert(evidence.totals.unresolvedLoadBearing === 3, "3 unresolved load-bearing claims (c2, c3, c7)");
 assert(evidence.conflicts.length === 1, "1 conflict surfaced");
 assert(evidence.groups.length === 5, "claims grouped across 5 labels");
 
@@ -88,10 +156,14 @@ assert(receipt.agents.completed === 6, `6 agents completed (got ${receipt.agents
 assert(receipt.agents.failed === 1, `1 agent failed (got ${receipt.agents.failed})`);
 assert(receipt.sourcesFetched === 3, `3 sources fetched (got ${receipt.sourcesFetched})`);
 assert(receipt.sections.accepted === 6, `6 sections accepted (got ${receipt.sections.accepted})`);
+assert(
+  receipt.sections.total === 9,
+  `9 acceptable sections — step 10 is compiled, never reviewer-accepted (got ${receipt.sections.total})`,
+);
 assert(receipt.documents.ready === 4, `4 documents ready (got ${receipt.documents.ready})`);
 assert(receipt.terminalGaps === 1, "1 terminal gap");
 assert(receipt.judgements.requested === 1 && receipt.judgements.resolved === 1, "1 judgement requested + resolved");
-assert(receipt.claims.total === 6 && receipt.claims.labelSource === "claim-ledger", "claim tally from ledger");
+assert(receipt.claims.total === 7 && receipt.claims.labelSource === "claim-ledger", "claim tally from ledger");
 assert(typeof receipt.elapsedMs === "number" && receipt.elapsedMs! > 0, "elapsed derived from events");
 
 console.log("\n=== buildCampaignReceipt (events + state only, no claim ledger) ===");

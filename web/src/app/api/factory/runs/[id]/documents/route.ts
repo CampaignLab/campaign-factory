@@ -17,6 +17,10 @@ const TERMINAL = new Set(["completed", "partial", "failed", "cancelled"]);
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  // Non-UUID ids must 404 per contract, not surface a Postgres 22P02 as a 500.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: "Run not found" }, { status: 404 });
+  }
   const sql = factoryReadSql();
 
   const run = await getRun(sql, id);

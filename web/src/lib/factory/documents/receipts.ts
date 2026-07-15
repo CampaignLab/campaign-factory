@@ -231,8 +231,14 @@ export function buildCampaignReceipt(
     else if (s === "failed") agents.failed += 1;
   }
 
-  // accepted-state counts (authoritative)
-  const sectionsAccepted = Object.values(state.sections ?? {}).filter((s) => s.status === "accepted").length;
+  // accepted-state counts (authoritative). Step 10 ("Campaign documents") is
+  // compiled from the document statuses, never reviewer-accepted as a section,
+  // so the honest denominator is the nine acceptable sections — counting it
+  // would cap every receipt at 9/10 forever.
+  const acceptableSteps = JOURNEY_STEPS.filter((s) => s.key !== "documents");
+  const sectionsAccepted = acceptableSteps.filter(
+    (s) => state.sections?.[s.key]?.status === "accepted",
+  ).length;
   // Document readiness must come from the AUTHORITATIVE compiler — the same
   // function the finalise node uses to decide the terminal run status — not from
   // raw state.documents[] statuses. state.documents only carries the three
@@ -265,7 +271,7 @@ export function buildCampaignReceipt(
     agents,
     sourcesFetched,
     claims: claimTally,
-    sections: { accepted: sectionsAccepted, total: JOURNEY_STEPS.length },
+    sections: { accepted: sectionsAccepted, total: acceptableSteps.length },
     documents: {
       ready: documentsReady,
       needsVerification: documentsNeedsVerification,

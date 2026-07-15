@@ -127,15 +127,29 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (path === "/runs") return sendJson(res, ...toArgs(await handlers.handleStartRun(body)));
     if (path === "/batches") return sendJson(res, ...toArgs(await handlers.handleStartBatch(body)));
 
+    // Run-scoped mutations additionally carry the run's stream token (or, for
+    // presenter cancels, body `presenter: true`) — enforced in handlers.ts.
+    const streamToken = header(req, "x-factory-stream-token");
+
     const mCancel = RE_CANCEL.exec(path);
-    if (mCancel) return sendJson(res, ...toArgs(await handlers.handleCancel(decodeURIComponent(mCancel[1]))));
+    if (mCancel) {
+      return sendJson(
+        res,
+        ...toArgs(await handlers.handleCancel(decodeURIComponent(mCancel[1]), body, streamToken)),
+      );
+    }
 
     const mJudge = RE_JUDGEMENT.exec(path);
     if (mJudge) {
       return sendJson(
         res,
         ...toArgs(
-          await handlers.handleJudgement(decodeURIComponent(mJudge[1]), decodeURIComponent(mJudge[2]), body),
+          await handlers.handleJudgement(
+            decodeURIComponent(mJudge[1]),
+            decodeURIComponent(mJudge[2]),
+            body,
+            streamToken,
+          ),
         ),
       );
     }

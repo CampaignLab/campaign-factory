@@ -102,6 +102,20 @@ export async function getBatch(sql: Db, batchId: BatchId): Promise<BatchRecord |
   return rows.length ? mapBatch(rows[0]) : null;
 }
 
+// Most recent presenter batch for this environment — powers the public
+// spectator view at /factory/live (read-only; the viewer gets no tokens).
+export async function getLatestPresenterBatch(
+  sql: Db,
+  environmentId: string,
+): Promise<BatchRecord | null> {
+  const rows = await sql<Row[]>`
+    select * from factory.factory_batches
+     where mode = 'presenter' and environment_id = ${environmentId}
+     order by created_at desc
+     limit 1`;
+  return rows.length ? mapBatch(rows[0]) : null;
+}
+
 export async function setBatchStatus(
   sql: Db,
   batchId: BatchId,

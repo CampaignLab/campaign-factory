@@ -150,28 +150,42 @@ export async function runInvisibleQA(input: QAInput, deps: ExecutorDeps): Promis
 
   try {
     const client = getClient(deps.apiKey);
-    const msg = await call(
-      client,
-      {
-        model: "claude-haiku-4-5",
-        max_tokens: 3000,
-        system: QA_SYSTEM,
-        messages: [{ role: "user", content: summariseForQA(input.result) }],
-        jsonSchema: QA_SCHEMA as unknown as Record<string, unknown>,
-      },
-      {
-        onUsage: (model: string, usage: Usage) =>
-          void deps.recordUsage({
-            campaignId: input.campaignId,
-            batchId: input.batchId,
-            agentRunId: input.agentRunId,
-            model,
-            inputTokens: usage.input_tokens ?? 0,
-            outputTokens: usage.output_tokens ?? 0,
-            costUSD: costUSD(model, usage),
-          }),
-      },
-    );
+    // The Haiku pass is a model call like any other: it goes through the
+    // concurrency gate so QA cannot exceed the campaign/global call caps.
+    const release = await deps.gate.acquire({
+      campaignId: input.campaignId,
+      mode: input.batchId ? "presenter" : "public",
+      kind: "model",
+    });
+    let msg;
+    try {
+      msg = await call(
+        client,
+        {
+          model: "claude-haiku-4-5",
+          max_tokens: 3000,
+          system: QA_SYSTEM,
+          messages: [{ role: "user", content: summariseForQA(input.result) }],
+          jsonSchema: QA_SCHEMA as unknown as Record<string, unknown>,
+        },
+        {
+          onUsage: (model: string, usage: Usage) =>
+            void deps
+              .recordUsage({
+                campaignId: input.campaignId,
+                batchId: input.batchId,
+                agentRunId: input.agentRunId,
+                model,
+                inputTokens: usage.input_tokens ?? 0,
+                outputTokens: usage.output_tokens ?? 0,
+                costUSD: costUSD(model, usage),
+              })
+              .catch((err) => console.error("[agents] QA recordUsage failed:", err)),
+        },
+      );
+    } finally {
+      release();
+    }
     const parsed = parseJSONLoose<{ flags?: Array<Partial<QAFlag>> }>(textOf(msg));
     const kinds = new Set<QAKind>(["contract", "citation", "generic_language", "verification_marker"]);
     for (const f of parsed.flags ?? []) {

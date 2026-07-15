@@ -2,8 +2,9 @@
 // NEVER leaves the server: it is not written to the cookie, localStorage, state,
 // events, or analytics. Successful auth sets a Secure HttpOnly SameSite cookie
 // carrying only a signed, expiring token (exp + HMAC), which the gallery route
-// verifies. The HMAC key is the code itself (server-only), so a valid cookie is
-// unforgeable without the code yet reveals nothing about it.
+// verifies. The HMAC key is FACTORY_SIGNING_SECRET (server-only) — NOT the code:
+// keying with the code would let one observed cookie be brute-forced offline
+// against candidate codes. The code is compared only at login.
 
 import crypto from "node:crypto";
 
@@ -23,11 +24,7 @@ export function presenterCodeRequired(): boolean {
 }
 
 function hmacKey(): string {
-  return (
-    (process.env.CF_PRESENTER_CODE || "").trim() ||
-    (process.env.FACTORY_SIGNING_SECRET || "").trim() ||
-    "cf-dev-presenter-secret"
-  );
+  return (process.env.FACTORY_SIGNING_SECRET || "").trim() || "cf-dev-presenter-secret";
 }
 
 function timingSafeEqualStr(a: string, b: string): boolean {

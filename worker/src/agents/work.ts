@@ -49,11 +49,13 @@ export class WorkEmitter {
   }
 
   private send(summary: string, verb?: string): void {
-    void this.deps.emit({
-      type: "work.update",
-      journeyStep: this.journeyStep,
-      payload: { summary, verb, agentKey: this.agentKey },
-    });
+    this.deps
+      .emit({
+        type: "work.update",
+        journeyStep: this.journeyStep,
+        payload: { summary, verb, agentKey: this.agentKey },
+      })
+      .catch((err) => console.error(`[agents] ${this.agentKey}: work.update emit failed:`, err));
   }
 
   /** Emit any pending update immediately (call at turn end). */

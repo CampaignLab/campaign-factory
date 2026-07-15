@@ -43,6 +43,19 @@ const sections: Record<JourneyStepKey, CampaignSectionState> = {
     keyDates: ["School travel plan published 2024"],
     institutions: ["Leicester City Council", "Department for Transport (guidance)"],
     unresolved: ["Exact consultation dates for this street not yet confirmed"],
+    // Specialists merge lane findings under lane_<key>; the reducer preserves
+    // them and the compiler's extras fallback must render them, never drop them.
+    lane_local_government: {
+      specialist: "Local Government Records Specialist",
+      findings: {
+        summary:
+          "The school-street programme is administered by the Highways team; experimental TROs are made under delegated powers, with unresolved objections escalating the decision to Cabinet.",
+        keyPoints: [
+          "Existing school-street sites were approved as experimental TROs.",
+          "Objections during the statutory window can push the decision to Cabinet.",
+        ],
+      },
+    },
   }, ["c6"]),
   objective: sec("accepted", {
     dm: "Leicester City Council Cabinet",
@@ -51,6 +64,10 @@ const sections: Record<JourneyStepKey, CampaignSectionState> = {
     mvw: "a committed consultation on a timed closure for this street",
     success: "A timed closure operating at drop-off and pick-up, monitored for a year.",
     constraints: ["Limited volunteer time", "Must fit the council's existing TRO process"],
+    // A known-but-unrendered schema field: the extras fallback carries it into
+    // the compiled Objective and Theory of Change document.
+    theoryOfChange:
+      "If parents show organised support during the statutory consultation, the lead officer can carry a low-risk recommendation to Cabinet, because the council's own school-street precedent makes approval the path of least resistance.",
     smart: [
       { test: "Specific", assessment: "Names the decision-maker, the street, and the mechanism." },
       { test: "Measurable", assessment: "A closure order either exists or does not." },
@@ -280,7 +297,9 @@ export const FIXTURE_CLAIMS: Claim[] = [
     sourceIds: ["s4"],
     authorAgentRunId: "ar3",
     stateVersion: 3,
-    affectedOutputs: ["problem", "evidence"],
+    // Free-text variants observed in the recorded live batch — the compiler's
+    // normalization layer must still match these to "problem" / "evidence".
+    affectedOutputs: ["problem statement", "evidence base"],
   },
   {
     id: "c5",
@@ -308,6 +327,23 @@ export const FIXTURE_CLAIMS: Claim[] = [
     authorAgentRunId: "ar2",
     stateVersion: 3,
     affectedOutputs: ["evidence"],
+  },
+  {
+    id: "c7",
+    campaignId: FIXTURE_CAMPAIGN_ID,
+    text: "The council requires a named school contact for a school-street application.",
+    type: "process",
+    status: "Verification incomplete",
+    loadBearing: true,
+    confidence: "low",
+    sourceIds: [],
+    authorAgentRunId: "ar2",
+    stateVersion: 6,
+    // Deliberately a free-text variant ("organising plan" → organising): the
+    // Organising Plan document has NO accepted content yet, so despite this
+    // unresolved load-bearing claim it must stay "assembling", never
+    // "needs verification" (a contentless doc is not exportable).
+    affectedOutputs: ["organising plan"],
   },
 ];
 

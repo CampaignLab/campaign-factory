@@ -10,7 +10,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { call, getClient, parseJSONLoose, textOf } from "@web/lib/anthropic.js";
 import type { Effort } from "@web/lib/pipeline/models.js";
-import { costUSD, type Usage } from "@web/lib/spend/pricing.js";
+import { costUSD, WEB_SEARCH_COST_USD, type Usage } from "@web/lib/spend/pricing.js";
 import { validateAgainst, type JSchema } from "@web/lib/factory/agents/index.js";
 import type { AgentDef } from "@web/lib/factory/contracts/index.js";
 import type { ExecutorDeps } from "./deps.js";
@@ -19,6 +19,10 @@ import type { WorkEmitter } from "./work.js";
 
 export class TurnTimeoutError extends Error {}
 export class TurnAbortedError extends Error {}
+// The model produced effectively-empty content twice (initial + explicit
+// correction retry). Callers map this to a failed result with a distinct
+// "empty_output" reason instead of submitting an empty proposal.
+export class EmptyOutputError extends Error {}
 
 /**
  * TEMPORARY diagnostic tap (env-gated): with FACTORY_DIAG=1 the raw provider
@@ -109,6 +113,33 @@ function safeParseObject(text: string): Record<string, unknown> {
   }
 }
 
+// "Effectively empty": no string leaf anywhere carries non-whitespace content.
+// Catches both the tolerant-parse {} fallback and outputs whose builders would
+// coerce every content field to an empty string.
+function hasContentString(v: unknown): boolean {
+  if (typeof v === "string") return v.trim().length > 0;
+  if (Array.isArray(v)) return v.some(hasContentString);
+  if (v && typeof v === "object") return Object.values(v).some(hasContentString);
+  return false;
+}
+export function isEffectivelyEmpty(parsed: Record<string, unknown>): boolean {
+  return !hasContentString(parsed);
+}
+
+// Heuristic: the content of the JSON string literal currently open at the end
+// of the streamed buffer — the readable prose being written into a field.
+// Returns null when the buffer tail is JSON syntax rather than string content.
+function trailingStringContent(tail: string): string | null {
+  const m = /"((?:[^"\\]|\\.)*)$/.exec(tail);
+  if (!m) return null;
+  return m[1]
+    .replace(/\\[nrt]/g, " ")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\");
+}
+
+const cleanSnippet = (s: string, cap = 140): string => s.replace(/\s+/g, " ").trim().slice(-cap);
+
 type Block = { type: string; [k: string]: unknown };
 
 export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Promise<ModelTurnResult> {
@@ -117,36 +148,101 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
   const deadline = nowMs() + spec.timeoutMs;
   const remaining = () => deadline - nowMs();
 
+  const logDropped = (what: string) => (err: unknown) =>
+    console.error(`[agents] ${spec.def.key}: fire-and-forget ${what} failed:`, err);
+
   let searchCount = 0;
+  // Searches noted since the last usage record, so each call segment's ledger
+  // row carries the web searches it actually spent.
+  let searchesSinceLastUsage = 0;
   const onUsage = (model: string, usage: Usage) => {
-    void deps.recordUsage({
-      campaignId: spec.campaignId,
-      batchId: spec.batchId,
-      agentRunId: spec.agentRunId,
-      model,
-      inputTokens: usage.input_tokens ?? 0,
-      outputTokens: usage.output_tokens ?? 0,
-      cacheReadTokens: usage.cache_read_input_tokens,
-      cacheCreationTokens: usage.cache_creation_input_tokens,
-      costUSD: costUSD(model, usage),
-    });
+    const webSearches = searchesSinceLastUsage;
+    searchesSinceLastUsage = 0;
+    deps
+      .recordUsage({
+        campaignId: spec.campaignId,
+        batchId: spec.batchId,
+        agentRunId: spec.agentRunId,
+        model,
+        inputTokens: usage.input_tokens ?? 0,
+        outputTokens: usage.output_tokens ?? 0,
+        cacheReadTokens: usage.cache_read_input_tokens,
+        cacheCreationTokens: usage.cache_creation_input_tokens,
+        // Ledger totals sum cost_usd only, so search spend must be priced in
+        // here. WEB_SEARCH_COST_USD is per research call of ~4 searches → /4.
+        costUSD: costUSD(model, usage) + webSearches * (WEB_SEARCH_COST_USD / 4),
+        webSearches: webSearches || undefined,
+      })
+      .catch(logDropped("recordUsage"));
   };
-  const onToolNote = (note: string) => {
-    if (note.startsWith("searching")) {
+  const onToolNote = (note: string, verb?: string) => {
+    const v = verb ?? "working";
+    if (v === "searching") {
       searchCount++;
-      void deps.emit({
-        type: "source.search.started",
-        journeyStep: spec.journeyStep,
-        payload: { summary: "Searching public sources", verb: "searching", agentKey: spec.def.key },
-      });
-    } else if (note.startsWith("reading")) {
-      void deps.emit({
-        type: "source.search.completed",
-        journeyStep: spec.journeyStep,
-        payload: { summary: "Read search results", verb: "read", agentKey: spec.def.key },
-      });
+      searchesSinceLastUsage++;
+      deps
+        .emit({
+          type: "source.search.started",
+          journeyStep: spec.journeyStep,
+          // note carries the real query, e.g. `Searching: "…"`.
+          payload: { summary: note, verb: "searching", agentKey: spec.def.key },
+        })
+        .catch(logDropped("source.search.started emit"));
+    } else if (v === "reading") {
+      deps
+        .emit({
+          type: "source.search.completed",
+          journeyStep: spec.journeyStep,
+          payload: { summary: "Read search results", verb: "reading", agentKey: spec.def.key },
+        })
+        .catch(logDropped("source.search.completed emit"));
     }
-    spec.work.work(note, "searching");
+    spec.work.work(note, v);
+  };
+
+  // Live activity feed: surface what the model is generating, throttled to at
+  // most one visible update per second (the WorkEmitter coalesces further).
+  // JSON outputs never leak brace noise — we show the readable string content
+  // currently being written, or fall back to a running character count.
+  const progress = { lastAt: 0, sawContent: false, jsonMode: false, chars: 0, textTail: "", thinkTail: "" };
+  const resetProgress = () => {
+    progress.sawContent = false;
+    progress.jsonMode = false;
+    progress.chars = 0;
+    progress.textTail = "";
+    progress.thinkTail = "";
+  };
+  const onProgress = (kind: "text" | "thinking", delta: string) => {
+    if (kind === "text") {
+      if (!progress.sawContent) {
+        const t = delta.trimStart();
+        if (t) {
+          progress.sawContent = true;
+          progress.jsonMode = t.startsWith("{") || t.startsWith("[");
+        }
+      }
+      progress.chars += delta.length;
+      progress.textTail = (progress.textTail + delta).slice(-600);
+    } else {
+      progress.thinkTail = (progress.thinkTail + delta).slice(-600);
+    }
+    const t = nowMs();
+    if (t - progress.lastAt < 1000) return; // ≤1 progress update/sec per agent
+    progress.lastAt = t;
+    if (kind === "thinking") {
+      const s = cleanSnippet(progress.thinkTail);
+      if (s) spec.work.work(`Thinking: "…${s}"`, "thinking");
+      return;
+    }
+    if (progress.jsonMode) {
+      const readable = trailingStringContent(progress.textTail);
+      const s = readable ? cleanSnippet(readable) : "";
+      if (s.length >= 24) spec.work.work(`Writing: "…${s}"`, "writing");
+      else spec.work.work(`Drafting output · ${progress.chars.toLocaleString("en-GB")} chars…`, "writing");
+      return;
+    }
+    const s = cleanSnippet(progress.textTail);
+    if (s) spec.work.work(`Writing: "…${s}"`, "writing");
   };
 
   const baseParams = {
@@ -158,7 +254,7 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
     jsonSchema: spec.structuredOutput ? (spec.schema as Record<string, unknown> | undefined) : undefined,
     tools: spec.tools && spec.tools.length ? spec.tools : undefined,
   };
-  const opts = { onToolNote, onUsage, maxPauseResumes: (spec.def.searchBudget ?? 0) + 3 };
+  const opts = { onToolNote, onUsage, onProgress, maxPauseResumes: (spec.def.searchBudget ?? 0) + 3 };
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: spec.userText }];
   const maxToolTurns = spec.maxToolTurns ?? 8;
@@ -173,6 +269,7 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
 
   for (let turn = 0; turn <= maxToolTurns; turn++) {
     if (remaining() <= 0) throw new TurnTimeoutError(`model turn exceeded ${spec.timeoutMs}ms`);
+    resetProgress();
     spec.work.work(turn === 0 ? "Working" : "Reviewing sources", "thinking");
     const msg = await runCall(
       (signal) =>
@@ -210,47 +307,62 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
   }
 
   let parsed = safeParseObject(finalText);
-  if (spec.schema) {
-    const errors = validateAgainst(spec.schema, parsed);
-    if (errors.length && remaining() > 0) {
-      spec.work.work("Correcting output format", "fixing");
-      const truncated = lastStop === "max_tokens";
-      messages.push({ role: "assistant", content: finalText });
-      messages.push({
-        role: "user",
-        content: `Your previous response did not match the required schema. Problems:\n- ${errors.slice(0, 20).join("\n- ")}\n\n${
-          truncated
-            ? "Your previous response was CUT OFF by the output token limit. Return the COMPLETE JSON object but make every prose field markedly more concise so the whole object fits well within the limit. Do not drop required fields.\n\n"
-            : ""
-        }Return ONLY the corrected single JSON object — no prose, no fences.`,
-      });
-      try {
-        // No `container` here: the correction retry strips `tools`, and the API
-        // rejects a container id on requests without the code-execution-backed
-        // tools ("Container identifier can only be provided when using the code
-        // execution tool"). There are no pending tool uses at correction time —
-        // the last assistant turn is plain text — so it is not needed either.
-        const msg2 = await runCall(
-          (signal) =>
-            call(client, { ...baseParams, messages, tools: undefined } as Parameters<typeof call>[1], {
-              onUsage,
-              signal,
-            }),
-          Math.max(1, remaining()),
-          deps.signal,
-        );
-        const t2 = textOf(msg2);
-        const p2 = safeParseObject(t2);
-        if (validateAgainst(spec.schema, p2).length <= errors.length) {
-          parsed = p2;
-          finalText = t2;
-        }
-      } catch (e) {
-        diag("correction retry", e);
-        if (e instanceof TurnAbortedError) throw e;
-        // A failed correction retry is non-fatal: fall through with tolerant coercion.
+  const errors = spec.schema ? validateAgainst(spec.schema, parsed) : [];
+  const emptyFirst = isEffectivelyEmpty(parsed);
+  if ((errors.length || emptyFirst) && remaining() > 0) {
+    spec.work.work(emptyFirst ? "Output was empty — regenerating" : "Correcting output format", "fixing");
+    const truncated = lastStop === "max_tokens";
+    messages.push({ role: "assistant", content: finalText.trim() ? finalText : "(empty output)" });
+    messages.push({
+      role: "user",
+      content: `${emptyFirst ? "Your previous output was EMPTY — produce the full content now. Do not return empty strings, empty arrays, or an empty object.\n\n" : ""}${
+        errors.length
+          ? `Your previous response did not match the required schema. Problems:\n- ${errors.slice(0, 20).join("\n- ")}\n\n`
+          : ""
+      }${
+        truncated
+          ? "Your previous response was CUT OFF by the output token limit. Return the COMPLETE JSON object but make every prose field markedly more concise so the whole object fits well within the limit. Do not drop required fields.\n\n"
+          : ""
+      }Return ONLY the corrected single JSON object — no prose, no fences.`,
+    });
+    try {
+      resetProgress();
+      // No `container` here: the correction retry strips `tools`, and the API
+      // rejects a container id on requests without the code-execution-backed
+      // tools ("Container identifier can only be provided when using the code
+      // execution tool"). There are no pending tool uses at correction time —
+      // the last assistant turn is plain text — so it is not needed either.
+      const msg2 = await runCall(
+        (signal) =>
+          call(client, { ...baseParams, messages, tools: undefined } as Parameters<typeof call>[1], {
+            onUsage,
+            onProgress,
+            signal,
+          }),
+        Math.max(1, remaining()),
+        deps.signal,
+      );
+      const t2 = textOf(msg2);
+      const p2 = safeParseObject(t2);
+      const errors2 = spec.schema ? validateAgainst(spec.schema, p2) : [];
+      // Accept the retry only if it produced content and is no worse on schema.
+      if (!isEffectivelyEmpty(p2) && errors2.length <= errors.length) {
+        parsed = p2;
+        finalText = t2;
       }
+    } catch (e) {
+      diag("correction retry", e);
+      if (e instanceof TurnAbortedError) throw e;
+      // A failed correction retry is non-fatal: fall through with tolerant coercion.
     }
+  }
+
+  // Blocker fix: never hand back effectively-empty content — downstream
+  // builders would coerce it into an empty proposal that the reviewer rejects,
+  // burning run budget and permanently killing the section. The explicit
+  // correction retry above has already had its chance by this point.
+  if (isEffectivelyEmpty(parsed)) {
+    throw new EmptyOutputError("The model returned empty output after an explicit correction retry (empty_output).");
   }
 
   return { raw: parsed, rawText: finalText, searchCount };

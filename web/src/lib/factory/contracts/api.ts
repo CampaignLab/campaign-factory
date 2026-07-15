@@ -62,11 +62,24 @@ export interface CampaignIntake {
   place: string; // required; no run accepts a blank/ambiguous place
 }
 
+// Run profile: "full" is the complete build; "express" is the audience path —
+// same ten brief steps, same reviewer gating and honesty rules, but a single
+// specialist, lighter models/budgets, no revision loop, and a 15-minute hard
+// limit (typical completion ≤ 12 min).
+export type RunProfile = "full" | "express";
+
 export interface StartRunRequest {
   intake: CampaignIntake;
   mode: "public" | "presenter";
   environmentId: string; // must match worker's declared FACTORY_ENV_ID
+  profile?: RunProfile; // default "full"
 }
+
+// Worker-side mutation auth (cancel + judgement resolve): the web route
+// forwards the caller's run-scoped stream token in this header; presenter
+// cancels may instead carry body field `presenter: true` on the signed request
+// (the web route sets it only after its own presenter-cookie check).
+export const STREAM_TOKEN_HEADER = "x-factory-stream-token";
 
 export interface StartBatchRequest {
   intakes: CampaignIntake[]; // length 1–5; a sixth is rejected, not queued

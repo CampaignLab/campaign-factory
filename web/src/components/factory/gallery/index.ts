@@ -8,6 +8,7 @@ export { GalleryLive } from "./GalleryLive";
 export { FactoryLedger } from "./FactoryLedger";
 export { CampaignAnchor } from "./CampaignAnchor";
 export { CampaignColumn } from "./CampaignColumn";
+export { PublishedBriefStack } from "./PublishedBriefStack";
 export { JudgementCard } from "./JudgementCard";
 export { ConnectorLayer } from "./ConnectorLayer";
 export { runVmToCampaignReceipt } from "./receiptModel";

@@ -28,7 +28,14 @@ import {
 } from "@web/lib/factory/agents/index.js";
 import { getAcceptedState } from "@web/lib/factory/store/state-versions.js";
 import type { ExecutorDeps } from "./deps.js";
-import { runModelTurn, TurnAbortedError, TurnTimeoutError, type ModelTurnResult, type ModelTurnSpec } from "./model-call.js";
+import {
+  EmptyOutputError,
+  runModelTurn,
+  TurnAbortedError,
+  TurnTimeoutError,
+  type ModelTurnResult,
+  type ModelTurnSpec,
+} from "./model-call.js";
 import { WorkEmitter } from "./work.js";
 import { mockReview } from "./mock.js";
 
@@ -119,7 +126,20 @@ export async function runSynthesisReview(input: ReviewInput, deps: ExecutorDeps)
   };
 
   work.work(`Reviewing ${input.proposals.length} proposal${input.proposals.length === 1 ? "" : "s"}`, "reviewing");
-  const turn = await runReviewTurn(spec, deps, work);
+  // The reviewer is a model call like any other: acquire the concurrency gate
+  // (kind "model" — no tools) so review turns count against the campaign/global
+  // call caps exactly as executor turns do.
+  const release = await deps.gate.acquire({
+    campaignId: input.campaignId,
+    mode: input.batchId ? "presenter" : "public",
+    kind: "model",
+  });
+  let turn: ModelTurnResult | null;
+  try {
+    turn = await runReviewTurn(spec, deps, work);
+  } finally {
+    release();
+  }
   work.flush();
 
   if (!turn) {
@@ -175,15 +195,21 @@ async function runReviewTurn(
     return await runModelTurn(spec, deps);
   } catch (e) {
     if (e instanceof TurnAbortedError) throw e;
-    void deps.emit({
-      type: "agent.retry",
-      journeyStep: spec.journeyStep,
-      payload: {
-        summary: `Reviewer retrying after ${e instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`,
-        verb: "retrying",
-        agentKey: "synthesis_reviewer",
-      },
-    });
+    // Empty output already had its in-turn correction retry inside
+    // runModelTurn; a second full review turn would only burn budget. Fall
+    // through to the safe hold-for-revision outcome.
+    if (e instanceof EmptyOutputError) return null;
+    deps
+      .emit({
+        type: "agent.retry",
+        journeyStep: spec.journeyStep,
+        payload: {
+          summary: `Reviewer retrying after ${e instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`,
+          verb: "retrying",
+          agentKey: "synthesis_reviewer",
+        },
+      })
+      .catch((err) => console.error("[agents] synthesis_reviewer: agent.retry emit failed:", err));
     work.work("Retrying review", "retrying");
     try {
       return await runModelTurn(spec, deps);

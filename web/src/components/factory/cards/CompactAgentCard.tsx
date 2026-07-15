@@ -13,12 +13,18 @@ import type { AgentCardProps } from "./types";
 export function CompactAgentCard({ vm, now }: AgentCardProps) {
   const hue = hueByIndex(vm.hue);
   const last = vm.backscroll[vm.backscroll.length - 1];
+  const activityLabel = vm.activity?.label;
+  // Only show the generic analysis clock when no content-bearing label exists
+  // (old recordings / genuinely silent model turns).
   const analysing =
-    vm.status === "running" && (!vm.activity || vm.activity.kind === "analysis");
+    vm.status === "running" &&
+    (!vm.activity || (vm.activity.kind === "analysis" && !activityLabel));
+  const terminal =
+    vm.status === "complete" || vm.status === "partial" || vm.status === "failed";
 
   return (
     <div
-      className={styles.cardEnter}
+      className={`${styles.cardEnter} ${styles.glass}`}
       title={`${vm.displayName} — ${vm.responsibility}`}
       style={{
         width: COMPACT.w,
@@ -27,13 +33,17 @@ export function CompactAgentCard({ vm, now }: AgentCardProps) {
         padding: 8,
         borderRadius: 10,
         background: INK.surfaceCompact,
-        border: `1px solid ${INK.border}`,
+        border: `1px solid ${terminal ? "rgba(255,255,255,0.05)" : INK.border}`,
         borderLeft: `3px solid ${hue.edgeGlowless}`,
         color: INK.text,
         display: "flex",
         flexDirection: "column",
         gap: 3,
         overflow: "hidden",
+        // Terminal agents stand down: dimmed + desaturated until pill collapse.
+        opacity: terminal ? 0.6 : undefined,
+        filter: terminal ? "saturate(0.4)" : undefined,
+        transition: "opacity 400ms ease, filter 400ms ease",
       }}
     >
       {/* identity row */}
@@ -73,6 +83,7 @@ export function CompactAgentCard({ vm, now }: AgentCardProps) {
           </span>
           <span
             aria-label={vm.status}
+            className={vm.status === "running" ? styles.livePulse : undefined}
             style={{
               width: 7,
               height: 7,
@@ -114,10 +125,12 @@ export function CompactAgentCard({ vm, now }: AgentCardProps) {
           </span>
         ) : (
           <>
-            {vm.verb ? (
+            {vm.isHandingOff ? (
+              <span style={{ fontWeight: 700, color: hue.accent, marginRight: 4 }}>handing off →</span>
+            ) : vm.verb ? (
               <span style={{ ...mono, color: hue.accent, marginRight: 4 }}>{vm.verb}</span>
             ) : null}
-            <span>{vm.activity?.label ?? last?.summary ?? vm.assignment}</span>
+            <span>{activityLabel ?? last?.summary ?? vm.assignment}</span>
           </>
         )}
       </div>

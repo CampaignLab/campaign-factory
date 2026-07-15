@@ -38,10 +38,13 @@ export interface ForwardResult {
 // Sign and forward to the worker. `path` is the worker path (e.g. "/runs",
 // `/runs/${id}/cancel`) and is part of the signature — it must equal the path
 // the worker sees. `bodyObj` undefined ⇒ empty body (signed as "").
+// `extraHeaders` ride alongside the signature (e.g. the caller's run-scoped
+// stream token, which the worker verifies itself).
 export async function forwardSigned(
   method: "POST" | "GET",
   path: string,
   bodyObj?: unknown,
+  extraHeaders?: Record<string, string>,
 ): Promise<ForwardResult> {
   const secret = signingSecret();
   if (!secret) {
@@ -61,6 +64,7 @@ export async function forwardSigned(
         "content-type": "application/json",
         [SIG_TIMESTAMP_HEADER]: String(ts),
         [SIG_HEADER]: sig,
+        ...extraHeaders,
       },
       body: method === "GET" ? undefined : body,
       cache: "no-store",
@@ -73,11 +77,26 @@ export async function forwardSigned(
     }
     return { status: res.status, body: parsed };
   } catch (err) {
+    // Log the cause server-side only — internal hostnames/ports must not leak.
+    console.error(`factory worker unreachable (${method} ${path}):`, err);
     return {
       status: 502,
-      body: { error: `factory worker unreachable: ${(err as Error).message}` },
+      body: { error: "factory worker unreachable" },
     };
   }
+}
+
+// Run-scoped stream token presented by the run creator's client, accepted as
+// `Authorization: Bearer <token>` or `x-factory-stream-token`. Mutation routes
+// require it and forward it to the worker, which verifies it against the run.
+export const STREAM_TOKEN_HEADER = "x-factory-stream-token";
+
+export function streamTokenFrom(req: Request): string | undefined {
+  const auth = req.headers.get("authorization") || "";
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (m && m[1].trim()) return m[1].trim();
+  const header = (req.headers.get(STREAM_TOKEN_HEADER) || "").trim();
+  return header || undefined;
 }
 
 let readSql: ReturnType<typeof postgres> | null = null;

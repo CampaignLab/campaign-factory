@@ -18,7 +18,7 @@ export function AgentIdentityPill({ vm }: AgentCardProps) {
 
   return (
     <div
-      className={styles.collapse}
+      className={`${styles.collapse} ${styles.glass}`}
       title={`${vm.displayName} — ${vm.campaignShortName}`}
       style={{
         display: "inline-flex",

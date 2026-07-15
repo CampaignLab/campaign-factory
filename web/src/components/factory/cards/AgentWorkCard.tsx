@@ -1,14 +1,16 @@
+"use client";
+
 // Expanded Agent Work Card (~300×190). The six regions (parameters §6):
 //   1 agent identity pill + campaign identity
 //   2 bounded assignment in one line
-//   3 dense Work Backscroll (6–10 semantic events visible, scrolls)
-//   4 current source / tool / handoff state
+//   3 dense Work Backscroll (pinned to newest; scrolls, respects manual scroll)
+//   4 current source / tool / handoff state — real verbs + content labels
 //   5 latest useful finding or uncertainty
 //   6 proposal / review status + elapsed
 // Never token counts, hidden prompts, private reasoning, raw JSON, or stack
 // traces. Monospace only for stamps, verbs, and the elapsed clock.
 
-import { createElement } from "react";
+import { createElement, useEffect, useRef } from "react";
 import { Radio, ArrowRightLeft, FileSearch, ScrollText, Clock } from "lucide-react";
 import { hueByIndex } from "./hues";
 import { AgentIcon } from "./icons";
@@ -17,7 +19,8 @@ import { clockStamp, elapsedClock } from "./format";
 import styles from "./factory.module.css";
 import type { AgentCardProps, CardActivity, CardProposalState } from "./types";
 
-const MAX_ROWS = 12; // window the tail; VM may hold more (virtualised upstream)
+const MAX_ROWS = 40; // window the tail; VM may hold more (virtualised upstream)
+const PIN_THRESHOLD_PX = 28; // manual backscroll further than this unpins autoscroll
 
 function activityIcon(kind: CardActivity["kind"]) {
   switch (kind) {
@@ -46,8 +49,14 @@ const PROPOSAL_TONE: Record<CardProposalState["tone"], string> = {
 export function AgentWorkCard({ vm, now }: AgentCardProps) {
   const hue = hueByIndex(vm.hue);
   const rows = vm.backscroll.slice(-MAX_ROWS);
+  const activityLabel = vm.activity?.label;
+  // Only fall back to the generic analysis clock when there is genuinely no
+  // content-bearing label (old recordings / silent model turns).
   const analysing =
-    vm.status === "running" && (!vm.activity || vm.activity.kind === "analysis");
+    vm.status === "running" &&
+    (!vm.activity || (vm.activity.kind === "analysis" && !activityLabel));
+  const terminal =
+    vm.status === "complete" || vm.status === "partial" || vm.status === "failed";
   const activityGlyph = createElement(activityIcon(vm.activity?.kind ?? "analysis"), {
     size: 12,
     color: hue.accent,
@@ -55,9 +64,24 @@ export function AgentWorkCard({ vm, now }: AgentCardProps) {
     style: { flexShrink: 0 },
   });
 
+  // Backscroll pin-to-bottom: follow the newest row unless the user has
+  // deliberately scrolled up to read history.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pinnedRef = useRef(true);
+  const newestRowKey = rows.length > 0 ? rows[rows.length - 1].eventId : undefined;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
+  }, [newestRowKey]);
+  const onBackscrollScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= PIN_THRESHOLD_PX;
+  };
+
   return (
     <div
-      className={styles.cardEnter}
+      className={`${styles.cardEnter} ${styles.glass}`}
       style={{
         width: EXPANDED.w,
         height: EXPANDED.h,
@@ -65,13 +89,20 @@ export function AgentWorkCard({ vm, now }: AgentCardProps) {
         padding: 10,
         borderRadius: 12,
         background: INK.surface,
-        border: `1px solid ${INK.border}`,
+        border: `1px solid ${terminal ? "rgba(255,255,255,0.05)" : INK.border}`,
         borderLeft: `3px solid ${hue.edgeGlowless}`,
         color: INK.text,
         display: "flex",
         flexDirection: "column",
         gap: 5,
         overflow: "hidden",
+        // Working cards throw a faint hue glow into the layer beneath them.
+        boxShadow: terminal ? undefined : `0 0 22px -9px ${hue.edgeGlowless}`,
+        // Completed/partial/failed agents visibly stand down: dimmed and
+        // desaturated so the still-working cards carry the room's attention.
+        opacity: terminal ? 0.6 : undefined,
+        filter: terminal ? "saturate(0.4)" : undefined,
+        transition: "opacity 400ms ease, filter 400ms ease",
       }}
     >
       {/* 1 — identity + campaign */}
@@ -133,6 +164,7 @@ export function AgentWorkCard({ vm, now }: AgentCardProps) {
         </span>
         <span
           aria-label={vm.status}
+          className={vm.status === "running" ? styles.livePulse : undefined}
           style={{ width: 8, height: 8, borderRadius: 999, background: statusDot(vm.status), flexShrink: 0 }}
         />
       </div>
@@ -151,8 +183,10 @@ export function AgentWorkCard({ vm, now }: AgentCardProps) {
         {vm.assignment}
       </div>
 
-      {/* 3 — Work Backscroll */}
+      {/* 3 — Work Backscroll (pinned to newest) */}
       <div
+        ref={scrollRef}
+        onScroll={onBackscrollScroll}
         style={{
           flex: 1,
           minHeight: 0,
@@ -204,11 +238,32 @@ export function AgentWorkCard({ vm, now }: AgentCardProps) {
             Analysis in progress · {elapsedClock(vm.activity?.sinceAt ?? vm.startedAt ?? vm.lastEventAt, now)}
           </span>
         ) : (
-          <span
-            style={{ color: INK.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-          >
-            {vm.activity?.label ?? "Working"}
-          </span>
+          <>
+            {vm.isHandingOff ? (
+              <span style={{ fontWeight: 700, color: hue.accent, flexShrink: 0, whiteSpace: "nowrap" }}>
+                handing off →
+              </span>
+            ) : vm.verb ? (
+              <span style={{ ...mono, fontSize: 9.5, color: hue.accent, flexShrink: 0 }}>{vm.verb}</span>
+            ) : null}
+            <span
+              style={{
+                flex: 1,
+                minWidth: 0,
+                color: INK.text,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {activityLabel ?? "Working"}
+            </span>
+            {vm.status === "running" ? (
+              <span style={{ ...mono, fontSize: 9, color: INK.textFaint, flexShrink: 0 }}>
+                {elapsedClock(vm.activity?.sinceAt ?? vm.lastEventAt, now)}
+              </span>
+            ) : null}
+          </>
         )}
       </div>
 

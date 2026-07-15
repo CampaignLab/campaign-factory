@@ -68,10 +68,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // Sign + forward (environmentId injected server-side — never trusted from the client).
+  // Sign + forward (environmentId + profile injected server-side — never
+  // trusted from the client). Public solo runs use the cheaper express profile;
+  // presenter batches stay on "full" (worker default).
   const forwarded = await forwardSigned("POST", "/runs", {
     intake: { problem: problem.trim(), place: place.trim() },
     mode: "public",
+    profile: "express",
     environmentId: factoryEnvId(),
   });
   if (forwarded.status >= 400) {

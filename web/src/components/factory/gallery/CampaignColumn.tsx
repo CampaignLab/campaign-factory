@@ -1,12 +1,15 @@
 "use client";
 
 // One campaign region: opaque anchor (sticky, above everything), any open
-// Judgement cards (also above), then the agent cards grouped by presentation
+// Judgement cards (also above), the published brief pieces assembling as
+// sections are accepted, then the agent cards grouped by presentation
 // (expanded → compact → pills), with a per-campaign connector overlay behind
-// the cards. When the campaign reaches a usable terminal state its cluster is
-// replaced by a Completion Receipt.
+// the cards. When the campaign reaches a usable terminal state the cluster
+// resolves to: full Completion Receipt + the persistent published-brief stack +
+// identity pills. Pills are click-to-expand everywhere, so the end state never
+// collapses into unreadable chrome.
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AgentWorkCard, CompactAgentCard, AgentIdentityPill, hueByIndex } from "@/components/factory/cards";
 import type { AgentCardVM, CardPresentation } from "@/components/factory/cards";
 import type { JudgementAnswerRequest } from "@/lib/factory/contracts";
@@ -16,6 +19,7 @@ import styles from "./gallery.module.css";
 import { CampaignAnchor } from "./CampaignAnchor";
 import { JudgementCard } from "./JudgementCard";
 import { ConnectorLayer } from "./ConnectorLayer";
+import { PublishedBriefStack } from "./PublishedBriefStack";
 import { runVmToCampaignReceipt } from "./receiptModel";
 import type { ConnectorEdge, GalleryCampaign } from "./viewModel";
 
@@ -44,6 +48,16 @@ export function CampaignColumn({
   const cardsRef = useRef<HTMLDivElement | null>(null);
   const { run } = campaign;
 
+  // Pills the viewer has toggled back open into readable cards.
+  const [openPills, setOpenPills] = useState<Set<string>>(() => new Set());
+  const togglePill = (agentRunId: string) =>
+    setOpenPills((prev) => {
+      const next = new Set(prev);
+      if (next.has(agentRunId)) next.delete(agentRunId);
+      else next.add(agentRunId);
+      return next;
+    });
+
   const activeAgents = cards.filter((c) => c.status === "queued" || c.status === "running").length;
   const sectionsAccepted = Object.values(run.sections).filter((s) => s.status === "accepted").length;
   const showReceipt = run.status === "completed" || run.status === "partial" || !!run.receiptAt;
@@ -60,6 +74,33 @@ export function CampaignColumn({
     () => cards.map((c) => `${c.agentRunId}:${presentation.get(c.agentRunId) ?? "?"}`).join("|"),
     [cards, presentation],
   );
+
+  const pillGroup = (pillVms: AgentCardVM[]) =>
+    pillVms.length > 0 ? (
+      <div className={styles.pillGroup}>
+        {pillVms.map((vm) => (
+          <button
+            key={vm.agentRunId}
+            type="button"
+            data-agent-run-id={vm.agentRunId}
+            className={`${styles.pillToggle} ${cardStyles.reposition}`}
+            onClick={() => togglePill(vm.agentRunId)}
+            aria-expanded={openPills.has(vm.agentRunId)}
+            title={
+              openPills.has(vm.agentRunId)
+                ? `Collapse ${vm.shortName}`
+                : `Show ${vm.shortName}'s work`
+            }
+          >
+            {openPills.has(vm.agentRunId) ? (
+              <AgentWorkCard vm={vm} now={now} />
+            ) : (
+              <AgentIdentityPill vm={vm} now={now} />
+            )}
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   return (
     <div className={styles.column}>
@@ -92,58 +133,70 @@ export function CampaignColumn({
           <CampaignCompletionReceipt
             receipt={runVmToCampaignReceipt(run)}
             accent={hueByIndex(campaign.hue).accent}
-            compact
           />
-          {pills.length > 0 ? (
-            <div className={styles.pillGroup}>
-              {pills.map((vm) => (
-                <AgentIdentityPill key={vm.agentRunId} vm={vm} now={now} />
-              ))}
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <div className={styles.cardsArea} ref={cardsRef}>
-          <ConnectorLayer containerRef={cardsRef} edges={edges} revision={revision} />
-
-          {expanded.length > 0 ? (
+          <PublishedBriefStack cards={run.publishedCards} hue={campaign.hue} />
+          {/* Cards still inside their readable window (or failed agents worth a
+              look) stay visible below the receipt instead of vanishing. */}
+          {expanded.length > 0 || compact.length > 0 ? (
             <div className={styles.cardGroup}>
               {expanded.map((vm) => (
-                <div
-                  key={vm.agentRunId}
-                  data-agent-run-id={vm.agentRunId}
-                  className={cardStyles.reposition}
-                >
+                <div key={vm.agentRunId} data-agent-run-id={vm.agentRunId} className={cardStyles.reposition}>
                   <AgentWorkCard vm={vm} now={now} />
                 </div>
               ))}
-            </div>
-          ) : null}
-
-          {compact.length > 0 ? (
-            <div className={styles.cardGroup}>
               {compact.map((vm) => (
-                <div
-                  key={vm.agentRunId}
-                  data-agent-run-id={vm.agentRunId}
-                  className={cardStyles.reposition}
-                >
+                <div key={vm.agentRunId} data-agent-run-id={vm.agentRunId} className={cardStyles.reposition}>
                   <CompactAgentCard vm={vm} now={now} />
                 </div>
               ))}
             </div>
           ) : null}
+          {pillGroup(pills)}
+        </>
+      ) : (
+        <>
+          <div className={styles.cardsArea} ref={cardsRef}>
+            <ConnectorLayer containerRef={cardsRef} edges={edges} revision={revision} />
 
-          {pills.length > 0 ? (
-            <div className={styles.pillGroup}>
-              {pills.map((vm) => (
-                <div key={vm.agentRunId} data-agent-run-id={vm.agentRunId} className={cardStyles.reposition}>
-                  <AgentIdentityPill vm={vm} now={now} />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+            {expanded.length > 0 ? (
+              <div className={styles.cardGroup}>
+                {expanded.map((vm) => (
+                  <div
+                    key={vm.agentRunId}
+                    data-agent-run-id={vm.agentRunId}
+                    className={cardStyles.reposition}
+                  >
+                    <AgentWorkCard vm={vm} now={now} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {compact.length > 0 ? (
+              <div className={styles.cardGroup}>
+                {compact.map((vm) => (
+                  <div
+                    key={vm.agentRunId}
+                    data-agent-run-id={vm.agentRunId}
+                    className={cardStyles.reposition}
+                  >
+                    <CompactAgentCard vm={vm} now={now} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {pillGroup(pills)}
+
+            {/* The brief accumulates as a paper substrate BENEATH the agent
+                swarm — glassy dark cards above, output stacking up below. */}
+            {run.publishedCards.length > 0 ? (
+              <div className={styles.briefSubstrate}>
+                <PublishedBriefStack cards={run.publishedCards} hue={campaign.hue} />
+              </div>
+            ) : null}
+          </div>
+        </>
       )}
     </div>
   );

@@ -6,14 +6,29 @@
 // fetching, no model calls, no writes: onCancel/onAnswerJudgement are omitted so
 // the gallery is read-only here.
 //
+// Playback defaults to CONDENSED mode: the recorded run (20–46 min) plays in
+// exactly 15 minutes via a playback-side timeline remap (gaps capped, then
+// uniformly scaled — player.ts; the manifest itself is never mutated). An
+// honest chip states the compression and toggles back to real time.
+//
+// Folding is INCREMENTAL: each emitted batch folds only the new events into a
+// per-campaign accumulator (fold.ts createFold/foldInto) instead of refolding
+// the whole buffer — O(new) per batch, which matters now that worker events are
+// 5–10x more verbose.
+//
 // The "Recorded real run · <date>" label is PERSISTENT and non-dismissable:
 // it is shown in the Factory Ledger (connectionLabel), pinned as a fixed badge
 // visible in every viewport regardless of scroll, and set as document.title.
 
-import { useEffect, useMemo } from "react";
-import { foldEvents, type RunVM } from "@/lib/factory/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createFold, foldEvents, foldInto, type FoldAccumulator } from "@/lib/factory/client";
 import type { FactoryEvent } from "@/lib/factory/contracts";
-import { FactoryGallery, deriveShortName, type GalleryCampaign } from "@/components/factory/gallery";
+import {
+  COMPLETION_READABLE_MS,
+  FactoryGallery,
+  deriveShortName,
+  type GalleryCampaign,
+} from "@/components/factory/gallery";
 import { hueIndexForPosition } from "@/components/factory/cards";
 import { useReplayPlayer } from "@/lib/factory/replay/useReplayPlayer";
 import type { ReplayManifestBody } from "@/lib/factory/replay";
@@ -40,8 +55,66 @@ export function ReplayClient({
 }) {
   // A stable reference for the player: the manifest events don't change.
   const allEvents = useMemo<FactoryEvent[]>(() => body.events, [body]);
-  const { events, state, toggle, jumpToEnd, restart, setSpeed } = useReplayPlayer(allEvents, {
+
+  // Seeded columns (problem/place anchors) shown before the first event lands —
+  // identical to the live gallery's seeded placeholders.
+  const seedCampaigns = useCallback(
+    (): GalleryCampaign[] =>
+      body.campaigns.map((c, i) => {
+        const run = foldEvents(c.campaignId, [], { problem: c.problem, place: c.place });
+        return { run, hue: hueIndexForPosition(i), shortName: deriveShortName(run, i) };
+      }),
+    [body.campaigns],
+  );
+
+  // Incremental per-campaign fold. The accumulators live in a ref and are only
+  // touched from the player's batch callbacks (timers/handlers — never render):
+  // each flushed batch folds ONLY its new events (fold.ts foldInto), so verbose
+  // recordings cost O(new) per flush instead of refolding the whole buffer.
+  const [campaigns, setCampaigns] = useState<GalleryCampaign[]>(seedCampaigns);
+  const accsRef = useRef<Map<string, FoldAccumulator> | null>(null);
+
+  const resetAccumulators = useCallback(() => {
+    accsRef.current = new Map(
+      body.campaigns.map((c) => [
+        c.campaignId,
+        createFold(c.campaignId, { problem: c.problem, place: c.place }),
+      ]),
+    );
+  }, [body.campaigns]);
+
+  const onBatch = useCallback(
+    (batch: FactoryEvent[]) => {
+      if (!accsRef.current) resetAccumulators();
+      const accs = accsRef.current!;
+      const byCampaign = new Map<string, FactoryEvent[]>();
+      for (const e of batch) {
+        const list = byCampaign.get(e.campaignId);
+        if (list) list.push(e);
+        else byCampaign.set(e.campaignId, [e]);
+      }
+      setCampaigns(
+        body.campaigns.map((c, i) => {
+          const acc = accs.get(c.campaignId)!;
+          const slice = byCampaign.get(c.campaignId);
+          const run = slice && slice.length > 0 ? foldInto(acc, slice) : acc.snapshot;
+          return { run, hue: hueIndexForPosition(i), shortName: deriveShortName(run, i) };
+        }),
+      );
+    },
+    [body.campaigns, resetAccumulators],
+  );
+
+  const onBufferReset = useCallback(() => {
+    resetAccumulators();
+    setCampaigns(seedCampaigns());
+  }, [resetAccumulators, seedCampaigns]);
+
+  const { state, toggle, jumpToEnd, restart, setSpeed, setMode } = useReplayPlayer(allEvents, {
     autoStart: true,
+    initialMode: "condensed",
+    onBatch,
+    onBufferReset,
   });
 
   // Permanent, honest tab title.
@@ -53,24 +126,21 @@ export function ReplayClient({
     };
   }, [label]);
 
-  // Fold the emitted slice per campaign, in the manifest's stable column order.
-  const campaigns: GalleryCampaign[] = useMemo(() => {
-    const byCampaign = new Map<string, FactoryEvent[]>();
-    for (const c of body.campaigns) byCampaign.set(c.campaignId, []);
-    for (const e of events) {
-      const list = byCampaign.get(e.campaignId);
-      if (list) list.push(e);
-      else byCampaign.set(e.campaignId, [e]);
-    }
-    return body.campaigns.map((c, i) => {
-      const evs = byCampaign.get(c.campaignId) ?? [];
-      const run: RunVM = foldEvents(c.campaignId, evs, { problem: c.problem, place: c.place });
-      return { run, hue: hueIndexForPosition(i), shortName: deriveShortName(run, i) };
-    });
-  }, [events, body.campaigns]);
-
   const isPlaying = state.status === "playing";
   const isEnded = state.status === "ended";
+  const isCondensed = state.mode === "condensed";
+
+  // Honest compression label: real recorded span → the condensed target.
+  const liveMinutes = Math.max(1, Math.round(state.totalMs / 60000));
+  const condensedChip = `Condensed · ${liveMinutes} min live run → ${clock(state.playbackTotalMs)}`;
+
+  // Completion choreography (readable-window before pill collapse) is defined
+  // in real wall time, but the gallery's `now` is the recorded-frame virtual
+  // clock. Scale the window by the effective virtual-per-real speed so grayed
+  // completed cards survive compression instead of blinking into pills.
+  const compression =
+    isCondensed && state.playbackTotalMs > 0 ? state.totalMs / state.playbackTotalMs : 1;
+  const completionReadableMs = COMPLETION_READABLE_MS * state.speed * compression;
 
   return (
     <div>
@@ -112,10 +182,15 @@ export function ReplayClient({
 
       {/* The gallery renderer — identical to live. connectionLabel puts the same
           permanent label into the Factory Ledger area. No live handlers. */}
-      <FactoryGallery campaigns={campaigns} now={state.virtualNowMs} connectionLabel={label} />
+      <FactoryGallery
+        campaigns={campaigns}
+        now={state.virtualNowMs}
+        connectionLabel={label}
+        completionReadableMs={completionReadableMs}
+      />
 
-      {/* Playback controls. Play/pause/jump/replay for everyone; the speed
-          multiplier is presenter-only (rehearsal aid), 1x otherwise. */}
+      {/* Playback controls. Play/pause/jump/replay + condensed toggle for
+          everyone; the speed multiplier is presenter-only (rehearsal aid). */}
       <div
         role="group"
         aria-label="Replay controls"
@@ -150,8 +225,30 @@ export function ReplayClient({
         <span
           style={{ fontVariantNumeric: "tabular-nums", opacity: 0.75, minWidth: 92, textAlign: "center" }}
         >
-          {clock(state.virtualMs)} / {clock(state.totalMs)}
+          {clock(state.playbackMs)} / {clock(state.playbackTotalMs)}
         </span>
+        {/* Honest condensed-mode chip, doubles as the real-time toggle. */}
+        <button
+          type="button"
+          onClick={() => setMode(isCondensed ? "realtime" : "condensed")}
+          aria-pressed={isCondensed}
+          title={
+            isCondensed
+              ? `Playing the ${liveMinutes} min recorded run in ${clock(state.playbackTotalMs)}. Click for real time.`
+              : "Click to condense playback to 15 minutes"
+          }
+          style={{
+            ...btn,
+            padding: "3px 10px",
+            fontSize: 11,
+            whiteSpace: "nowrap",
+            background: isCondensed ? "rgba(246,193,78,0.16)" : "transparent",
+            borderColor: isCondensed ? "rgba(246,193,78,0.5)" : "rgba(255,255,255,0.16)",
+            color: isCondensed ? "#f6d873" : "#f2f3f5",
+          }}
+        >
+          {isCondensed ? condensedChip : `Real time · ${liveMinutes} min`}
+        </button>
         {presenter ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, opacity: 0.9 }}>
             {SPEEDS.map((s) => (

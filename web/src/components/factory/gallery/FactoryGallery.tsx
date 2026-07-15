@@ -22,6 +22,10 @@ export interface FactoryGalleryProps {
   campaigns: GalleryCampaign[];
   now: number;
   connectionLabel?: string; // shown quietly in the ledger (e.g. "live", "recorded run")
+  /** Readable window (in `now`'s time frame) before terminal cards pill.
+   *  Condensed replay passes a value scaled by effective playback speed, since
+   *  its `now` is a compressed virtual clock. Live omits it (default). */
+  completionReadableMs?: number;
   onCancel?: (campaignId: string) => void; // presenter-only per-campaign cancel
   onAnswerJudgement?: (
     campaignId: string,
@@ -35,6 +39,7 @@ export function FactoryGallery({
   campaigns,
   now,
   connectionLabel,
+  completionReadableMs,
   onCancel,
   onAnswerJudgement,
 }: FactoryGalleryProps) {
@@ -44,7 +49,10 @@ export function FactoryGallery({
   );
 
   const allCards = useMemo(() => perCampaign.flatMap((p) => p.cards), [perCampaign]);
-  const presentation = useMemo(() => selectPresentation(allCards, { now }), [allCards, now]);
+  const presentation = useMemo(
+    () => selectPresentation(allCards, { now, readableMs: completionReadableMs }),
+    [allCards, now, completionReadableMs],
+  );
   const ledger = useMemo(() => buildLedger(campaigns), [campaigns]);
 
   return (

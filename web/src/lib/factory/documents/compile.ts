@@ -23,9 +23,7 @@ import {
   SECTION_RENDERERS,
   blocksToHtml,
   blocksToText,
-  escapeHtml,
   isUnresolvedLabel,
-  withVerifyHtml,
   type Block,
 } from "./render";
 import { buildEvidenceAndNextChecks, evidenceSection } from "./evidence";
@@ -98,10 +96,45 @@ function humanSectionStatus(status: SectionStatus): string {
   }
 }
 
+// The affectedOutputs vocabulary is pinned in the agent prompts (shared.ts
+// AFFECTED_OUTPUTS_GUIDE), but recorded runs predate that and models still
+// near-miss ("problem statement", "evidence base"). Fold case/spacing/
+// underscores and map the observed variants so claim flags reach the documents
+// they describe instead of silently matching nothing.
+const OUTPUT_KEY_ALIASES: Record<string, string> = {
+  // observed in the recorded live batch
+  problemstatement: "problem",
+  evidencebase: "evidence",
+  // step titles and other near-miss names, folded
+  theproblem: "problem",
+  researchandevidence: "evidence",
+  research: "evidence",
+  objectiveandtheoryofchange: "objective",
+  objectivetheoryofchange: "objective",
+  theoryofchange: "objective",
+  thedecisionroute: "decision_route",
+  powerandstakeholders: "power",
+  powerstakeholdermap: "power",
+  powerandstakeholdermap: "power",
+  stakeholdermap: "power",
+  pressureanalysis: "pressure",
+  campaignstrategy: "strategy",
+  tacticsandsequencing: "tactics",
+  tacticsandtimeline: "tactics",
+  tacticstimeline: "tactics",
+  organisingplan: "organising",
+  campaigndocuments: "documents",
+};
+
+function normalizeOutputKey(raw: string): string {
+  const folded = raw.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return OUTPUT_KEY_ALIASES[folded] ?? folded;
+}
+
 /** claims whose affectedOutputs touch any of the given section keys or the doc key */
 function claimsFor(claims: Claim[], sectionKeys: JourneyStepKey[], docKey: CanonicalDocumentKey): Claim[] {
-  const targets = new Set<string>([...sectionKeys, docKey]);
-  return claims.filter((c) => (c.affectedOutputs ?? []).some((o) => targets.has(o)));
+  const targets = new Set<string>([...sectionKeys, docKey].map(normalizeOutputKey));
+  return claims.filter((c) => (c.affectedOutputs ?? []).some((o) => targets.has(normalizeOutputKey(o))));
 }
 
 function unresolvedLoadBearing(claims: Claim[]): Claim[] {
@@ -111,10 +144,13 @@ function unresolvedLoadBearing(claims: Claim[]): Claim[] {
 /**
  * Status for a compiled document from its underlying section statuses + claims
  * (ADR 0007):
- *  - all sections accepted and no unresolved load-bearing claims → "ready"
+ *  - no content-bearing section yet → "assembling" (or "under review" while a
+ *    proposal is being decided) — claim flags describe CONTENT, so a document
+ *    with nothing in it can never be "needs verification" (and therefore never
+ *    exportable)
  *  - any needs_verification section OR unresolved load-bearing claim → "needs verification"
+ *  - all sections accepted and no unresolved load-bearing claims → "ready"
  *  - some accepted / under review → "under review"
- *  - otherwise (nothing accepted yet) → "assembling"
  */
 export function sectionDocStatus(
   state: CampaignState,
@@ -124,6 +160,17 @@ export function sectionDocStatus(
 ): { status: DocumentStatus; flags: string[] } {
   const flags: string[] = [];
   const statuses = sectionKeys.map((k) => state.sections[k]?.status ?? "empty");
+
+  // Content-bearing means a section the compiler actually renders (accepted or
+  // accepted-then-flagged). Without one, the honest status is "assembling":
+  // "needs verification" on an empty document would unlock export of nothing.
+  const hasContent = statuses.some((s) => s === "accepted" || s === "needs_verification");
+  if (!hasContent) {
+    return {
+      status: statuses.some((s) => s === "under_review") ? "under review" : "assembling",
+      flags,
+    };
+  }
 
   const relevant = claimsFor(claims, sectionKeys, docKey);
   const unresolved = unresolvedLoadBearing(relevant);
@@ -137,10 +184,7 @@ export function sectionDocStatus(
   if (statuses.length > 0 && statuses.every((s) => s === "accepted")) {
     return { status: "ready", flags };
   }
-  if (statuses.some((s) => s === "accepted" || s === "under_review")) {
-    return { status: "under review", flags };
-  }
-  return { status: "assembling", flags };
+  return { status: "under review", flags };
 }
 
 /** Render one brief section into blocks, honestly marking unaccepted sections. */
@@ -167,7 +211,58 @@ function renderSectionForBrief(key: JourneyStepKey, sec: CampaignSectionState | 
   return blocks;
 }
 
-function compileBrief(state: CampaignState, claims: Claim[]): { html: string; plainText: string } {
+/** One line of the step-10 overview: a compiled document and its status. */
+interface DocStatusSummary {
+  num: number;
+  name: string;
+  status: DocumentStatus;
+}
+
+/**
+ * Step 10 ("Campaign documents") is DERIVED, not agent-written: no agent emits
+ * set_section for it — the nine documents themselves are its content, and
+ * their compiled statuses exist at compile time. Summarising them here is real
+ * state, not invented narrative; any explicitly accepted overview content is
+ * still rendered first.
+ */
+function renderDocumentsSection(
+  sec: CampaignSectionState | undefined,
+  docSummaries: readonly DocStatusSummary[],
+): Block[] {
+  const blocks: Block[] = [{ t: "h2", text: STEP_TITLE.get("documents") ?? "Campaign documents" }];
+  const status = sec?.status ?? "empty";
+  if (status === "accepted" || status === "needs_verification") {
+    blocks.push(...SECTION_RENDERERS.documents(sec?.content));
+    if (status === "needs_verification") {
+      blocks.push({
+        t: "note",
+        text: "This section is flagged needs verification — confirm before use.",
+      });
+    }
+  }
+  blocks.push({
+    t: "p",
+    text: "Nine campaign documents compile from the reviewer-accepted sections above. Their status when this brief was compiled:",
+  });
+  blocks.push({
+    t: "kv",
+    rows: docSummaries.map((d): [string, string] => [`${d.num}. ${d.name}`, d.status]),
+  });
+  const notReady = docSummaries.filter((d) => d.status !== "ready").length;
+  if (notReady > 0) {
+    blocks.push({
+      t: "note",
+      text: `${notReady} of ${docSummaries.length} documents are not yet ready. Nothing has been invented to fill them.`,
+    });
+  }
+  return blocks;
+}
+
+function compileBrief(
+  state: CampaignState,
+  claims: Claim[],
+  docSummaries: readonly DocStatusSummary[],
+): { html: string; plainText: string } {
   const htmlParts: string[] = [];
   const textParts: string[] = [];
 
@@ -180,9 +275,13 @@ function compileBrief(state: CampaignState, claims: Claim[]): { html: string; pl
     textParts.push(blocksToText(headBlocks));
   }
 
-  // the ten-step narrative (steps 1–10, in order)
+  // the ten-step narrative (steps 1–10, in order; step 10 derives from the
+  // compiled document statuses instead of expecting a set_section)
   for (const step of JOURNEY_STEPS) {
-    const blocks = renderSectionForBrief(step.key, state.sections[step.key]);
+    const blocks =
+      step.key === "documents"
+        ? renderDocumentsSection(state.sections[step.key], docSummaries)
+        : renderSectionForBrief(step.key, state.sections[step.key]);
     htmlParts.push(blocksToHtml(blocks));
     textParts.push(blocksToText(blocks));
   }
@@ -241,9 +340,10 @@ function packStatus(
   const flags: string[] = [];
   const resources = docState?.resources ?? [];
   if (!resources.length) {
-    // no content yet: keep any stored non-terminal status, else assembling
-    const stored = docState?.status;
-    return { status: stored && stored !== "assembling" ? stored : "assembling", flags };
+    // No content yet: keep the stored NON-TERMINAL status only. A stored
+    // terminal status ("ready" / "needs verification") without resources would
+    // make an empty pack exportable, so it honestly stays "assembling".
+    return { status: docState?.status === "under review" ? "under review" : "assembling", flags };
   }
   const hasNotes = resources.some((r) => (r.verificationNotes?.length ?? 0) > 0);
   if (hasNotes) flags.push("Contains explicit verification placeholders.");
@@ -312,11 +412,32 @@ export function compileDocuments(state: CampaignState, claims: Claim[]): Compile
   );
   const claimList = claims ?? [];
 
+  // Pass 1: every document's status (independent of rendered bodies). The
+  // brief's step-10 section reports these, so they must exist before rendering.
+  const statusByKey = new Map<CanonicalDocumentKey, { status: DocumentStatus; flags: string[] }>();
+  for (const def of CANONICAL_DOCUMENTS) {
+    if (PACK_KEYS.has(def.key)) {
+      statusByKey.set(def.key, packStatus(docStateByKey.get(def.key), claimList, def.key));
+    } else {
+      const subKey = def.key as Exclude<
+        CanonicalDocumentKey,
+        "lobbying_pack" | "media_pack" | "digital_pack"
+      >;
+      statusByKey.set(def.key, sectionDocStatus(state, DOC_SECTIONS[subKey], claimList, def.key));
+    }
+  }
+  const docSummaries: DocStatusSummary[] = CANONICAL_DOCUMENTS.map((def) => ({
+    num: def.num,
+    name: def.name,
+    status: statusByKey.get(def.key)!.status,
+  }));
+
+  // Pass 2: render.
   return CANONICAL_DOCUMENTS.map((def): CompiledDocument => {
+    const { status, flags } = statusByKey.get(def.key)!;
     const isPack = PACK_KEYS.has(def.key);
     if (isPack) {
       const docState = docStateByKey.get(def.key);
-      const { status, flags } = packStatus(docState, claimList, def.key);
       const { html, plainText } = compilePack(def.name, docState);
       return {
         key: def.key,
@@ -337,9 +458,10 @@ export function compileDocuments(state: CampaignState, claims: Claim[]): Compile
       "lobbying_pack" | "media_pack" | "digital_pack"
     >;
     const sectionKeys = DOC_SECTIONS[subKey];
-    const { status, flags } = sectionDocStatus(state, sectionKeys, claimList, def.key);
     const { html, plainText } =
-      def.key === "campaign_brief" ? compileBrief(state, claimList) : compileSubDoc(subKey, def.name, state);
+      def.key === "campaign_brief"
+        ? compileBrief(state, claimList, docSummaries)
+        : compileSubDoc(subKey, def.name, state);
     return {
       key: def.key,
       num: def.num,

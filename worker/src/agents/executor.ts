@@ -23,6 +23,7 @@ import type { AgentTurnFn, ExecutorDeps } from "./deps.js";
 import { buildTools } from "./gateway.js";
 import {
   diag,
+  EmptyOutputError,
   runModelTurn,
   TurnAbortedError,
   TurnTimeoutError,
@@ -67,7 +68,20 @@ export const executeAgentTurn: AgentTurnFn = async (envelope, deps) => {
       work,
     };
 
-    const turn = await runWithOperationalRetry(spec, deps, work);
+    let turn: ModelTurnResult | null;
+    try {
+      turn = await runWithOperationalRetry(spec, deps, work, envelope.deadlineAt);
+    } catch (e) {
+      if (e instanceof EmptyOutputError) {
+        // The model produced empty content twice (model-call already ran its
+        // explicit correction retry). Fail the turn with a distinct reason
+        // rather than submitting an empty proposal for the reviewer to reject.
+        work.work("Empty output — no proposal submitted", "failed");
+        work.flush();
+        return failedResult(envelope, "The agent produced empty output twice; its proposal was withheld.", "empty_output");
+      }
+      throw e;
+    }
     if (!turn) {
       work.flush();
       return failedResult(envelope, "The agent could not complete after a retry (timeout or provider failure).");
@@ -83,33 +97,50 @@ export const executeAgentTurn: AgentTurnFn = async (envelope, deps) => {
 };
 
 // One visible operational retry on timeout / provider failure. Cancellation
-// (TurnAbortedError) is rethrown, never retried. Returns null after a failed
-// retry so the caller can emit a failed result rather than crash the node.
+// (TurnAbortedError) and empty output (EmptyOutputError — model-call already
+// retried in-turn) are rethrown, never retried. Attempt 2's timeout is clipped
+// to the time left before the envelope deadline so a retry can never double a
+// long turn timeout (one flaky agent must not spend 14 minutes of a 20-minute
+// run); with under 30s left the retry is skipped entirely. Returns null after
+// a failed/skipped retry so the caller can emit a failed result rather than
+// crash the node.
+const MIN_RETRY_HEADROOM_MS = 30_000;
+
 async function runWithOperationalRetry(
   spec: ModelTurnSpec,
   deps: ExecutorDeps,
   work: WorkEmitter,
+  deadlineAt?: string,
 ): Promise<ModelTurnResult | null> {
   try {
     return await runModelTurn(spec, deps);
   } catch (e) {
     diag(`${spec.def.key} attempt 1 failed`, e);
-    if (e instanceof TurnAbortedError) throw e;
-    void deps.emit({
-      type: "agent.retry",
-      journeyStep: spec.journeyStep,
-      payload: {
-        summary: `Retrying after ${e instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`,
-        verb: "retrying",
-        agentKey: spec.def.key,
-      },
-    });
+    if (e instanceof TurnAbortedError || e instanceof EmptyOutputError) throw e;
+    const nowMs = (deps.now?.() ?? new Date()).getTime();
+    const deadlineMs = deadlineAt ? Date.parse(deadlineAt) : NaN;
+    const headroomMs = Number.isFinite(deadlineMs) ? deadlineMs - nowMs : spec.timeoutMs;
+    if (headroomMs < MIN_RETRY_HEADROOM_MS) {
+      diag(`${spec.def.key} retry skipped`, new Error(`${headroomMs}ms left before envelope deadline`));
+      return null;
+    }
+    deps
+      .emit({
+        type: "agent.retry",
+        journeyStep: spec.journeyStep,
+        payload: {
+          summary: `Retrying after ${e instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`,
+          verb: "retrying",
+          agentKey: spec.def.key,
+        },
+      })
+      .catch((err) => console.error(`[agents] ${spec.def.key}: agent.retry emit failed:`, err));
     work.work("Retrying", "retrying");
     try {
-      return await runModelTurn(spec, deps);
+      return await runModelTurn({ ...spec, timeoutMs: Math.min(spec.timeoutMs, headroomMs) }, deps);
     } catch (e2) {
       diag(`${spec.def.key} attempt 2 failed`, e2);
-      if (e2 instanceof TurnAbortedError) throw e2;
+      if (e2 instanceof TurnAbortedError || e2 instanceof EmptyOutputError) throw e2;
       return null;
     }
   }
@@ -196,6 +227,7 @@ async function emitEvidenceEvents(
         agentKey,
       },
     });
+    await emitPerClaimRows(body.claims, deps, journeyStep, agentKey);
   }
   if (body.conflict) {
     await deps.emit({
@@ -216,20 +248,73 @@ async function emitEvidenceEvents(
   }
 }
 
+// Per-claim evidence rows for the agent card backscroll: a ≤200-char excerpt of
+// each claim plus its verification label. The fold counts every evidence.found
+// event in the run's evidence tally, so per-claim evidence.found events would
+// inflate it — these go out as work.update rows (payload.summary + verb only)
+// instead, and the aggregate evidence.found above stays authoritative. Batched
+// (3 claims per row; 5 when more than 10 claims) and paced ~600ms apart to stay
+// under the emitter's 2 work.update/sec cap; capped at 5 rows with a remainder
+// note so one prolific agent cannot flood the backscroll.
+const CLAIM_EXCERPT_CHARS = 200;
+const MAX_CLAIM_ROWS = 5;
+const CLAIM_ROW_SPACING_MS = 600;
+
+function claimLine(c: AgentResultBody["claims"][number]): string {
+  const excerpt = c.text.replace(/\s+/g, " ").trim().slice(0, CLAIM_EXCERPT_CHARS);
+  return `“${excerpt}” — ${c.status}`;
+}
+
+async function emitPerClaimRows(
+  claims: AgentResultBody["claims"],
+  deps: ExecutorDeps,
+  journeyStep: number | undefined,
+  agentKey: string,
+): Promise<void> {
+  const size = claims.length > 10 ? 5 : 3;
+  const groups: string[][] = [];
+  for (let i = 0; i < claims.length; i += size) {
+    groups.push(claims.slice(i, i + size).map(claimLine));
+  }
+  const shown = groups.slice(0, MAX_CLAIM_ROWS);
+  const remainder = claims.length - shown.reduce((n, g) => n + g.length, 0);
+  for (let i = 0; i < shown.length; i++) {
+    if (deps.signal.aborted) return;
+    if (i > 0) await sleepMs(CLAIM_ROW_SPACING_MS);
+    const suffix =
+      i === shown.length - 1 && remainder > 0 ? ` · …and ${remainder} more claim${remainder === 1 ? "" : "s"}` : "";
+    await deps.emit({
+      type: "work.update",
+      journeyStep,
+      payload: { summary: `${shown[i].join("  ·  ")}${suffix}`, verb: "recording", agentKey },
+    });
+  }
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const t = setTimeout(resolve, ms);
+    (t as { unref?: () => void }).unref?.();
+  });
+}
+
 function terminalStatus(body: AgentResultBody): AgentTerminalStatus {
   // A turn that produced neither a proposal nor a claim decision is partial.
   if (body.proposals.length === 0 && !body.claimDecisions) return "partial";
   return "complete";
 }
 
-function failedResult(envelope: AgentTaskEnvelope, reason: string): AgentResult {
+// `code` gives the failure a machine-greppable marker (e.g. "empty_output") so
+// downstream consumers can distinguish it from operational failures.
+function failedResult(envelope: AgentTaskEnvelope, reason: string, code?: string): AgentResult {
+  const summary = code ? `${reason} (${code})` : reason;
   return {
     agentRunId: envelope.agentRunId,
     status: "failed",
-    workSummary: reason,
+    workSummary: summary,
     claims: [],
     proposals: [],
-    unknowns: [reason],
+    unknowns: [summary],
     confidence: "low",
     handoffs: [],
   };

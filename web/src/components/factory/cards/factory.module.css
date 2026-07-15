@@ -23,6 +23,29 @@
   }
 }
 
+/* Glassy overlay surface: the dark translucent card picks up the light page
+   (and the paper brief substrate) through a backdrop blur — layered machine
+   depth, not a flat dashboard. Compositor-only; falls back to plain alpha. */
+.glass {
+  backdrop-filter: blur(9px) saturate(1.15);
+  -webkit-backdrop-filter: blur(9px) saturate(1.15);
+}
+
+/* Running-state pulse on the status dot: the swarm reads as alive from the
+   back of the room. Opacity-only (compositor), disabled with reduced motion. */
+.livePulse {
+  animation: cfLivePulse 1.5s ease-in-out infinite;
+}
+@keyframes cfLivePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* Reposition (240ms ease-out-quart) — applied to the absolutely-positioned
    wrapper the gallery moves; we only ever transition transform. */
 .reposition {
@@ -93,7 +116,8 @@
   .cardEnter,
   .collapse,
   .backscrollRow,
-  .pulseDot {
+  .pulseDot,
+  .livePulse {
     animation: none !important;
   }
   .reposition {

@@ -1,11 +1,13 @@
 // Runtime, research, cost, and latency limits (parameters §4–§5).
 // All spend figures are USD unless suffixed otherwise.
 
+import type { RunProfile } from "./api";
+
 export const RUNTIME_LIMITS = {
   campaignsPerPublicLaunch: 1,
   campaignsPerPresenterBatch: 5, // 1–5
   globalActiveModelCalls: 25,
-  activeCallsPerPresenterCampaign: 5,
+  activeCallsPerPresenterCampaign: 8,
   activeCallsPerPublicCampaign: 8,
   concurrentResearchCalls: 10,
   agentsPerCampaignTarget: 15,
@@ -14,8 +16,24 @@ export const RUNTIME_LIMITS = {
   researchSpecialistTimeoutMs: 300000,
   strategyReviewerTimeoutMs: 360000,
   softCampaignTargetMs: 12 * 60000,
-  hardCampaignLimitMs: 20 * 60000,
+  // 25 min (was 20): the recording batch must complete briefs — slightly late
+  // beats truncated (user-approved, 15 Jul 2026).
+  hardCampaignLimitMs: 25 * 60000,
 } as const;
+
+// Express profile (audience path): typical completion ≤ 12 min, hard 15 min.
+// Same shape as RUNTIME_LIMITS so call sites can swap by profile.
+export const EXPRESS_RUNTIME_LIMITS = {
+  ...RUNTIME_LIMITS,
+  softCampaignTargetMs: 9 * 60000,
+  hardCampaignLimitMs: 15 * 60000,
+} as const;
+
+export type RuntimeLimits = typeof RUNTIME_LIMITS | typeof EXPRESS_RUNTIME_LIMITS;
+
+export function runtimeLimitsFor(profile: RunProfile): RuntimeLimits {
+  return profile === "express" ? EXPRESS_RUNTIME_LIMITS : RUNTIME_LIMITS;
+}
 
 export const RESEARCH_LIMITS = {
   webSearchesPerCampaign: 20,

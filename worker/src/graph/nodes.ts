@@ -6,11 +6,11 @@
 
 import { randomUUID } from "node:crypto";
 import type { RunnableConfig } from "@langchain/core/runnables";
-import { agentDef, type AgentKey, type SpecialistKey } from "@web/lib/factory/contracts/roster.js";
+import { agentDef, agentDefFor, type AgentKey, type SpecialistKey } from "@web/lib/factory/contracts/roster.js";
 import { journeyStepByKey, type JourneyStepKey } from "@web/lib/factory/contracts/journey.js";
 import { MAX_JUDGEMENT_REQUESTS_PER_RUN } from "@web/lib/factory/contracts/state.js";
 import type { CampaignState, ChangeProposal, ProposalOp } from "@web/lib/factory/contracts/state.js";
-import { RUNTIME_LIMITS } from "@web/lib/factory/contracts/limits.js";
+import { runtimeLimitsFor, type RuntimeLimits } from "@web/lib/factory/contracts/limits.js";
 import type { AgentTaskEnvelope, AgentResult } from "@web/lib/factory/contracts/envelope.js";
 import type { ExecutorDeps } from "../agents/deps.js";
 import { contextFrom, type RuntimeContext } from "./context.js";
@@ -19,7 +19,9 @@ import type { ReviewPass } from "./review-contract.js";
 import { checkCost } from "../cost.js";
 import * as store from "../store/index.js";
 
-type Patch = Partial<GraphStateType>;
+// Node return type is the channel UPDATE shape (pendingProposals accepts the
+// "clear" sentinel; terminalGaps appends), not the stored value shape.
+type Patch = typeof GraphState.Update;
 
 const MAX_INLINE_DOC_BYTES = 32 * 1024;
 
@@ -29,15 +31,16 @@ function deadlineIso(ms: number): string {
 
 // ---- Halt guard: cancellation + hard time limit + cost hard stop ------------
 
-// Hard execution limit (parameters §5): crossing hardCampaignLimitMs stops
-// STARTING new model nodes; deterministic finalisation still runs and the
-// remaining work is recorded as Terminal Gaps — same semantics as the cost
-// hard stop. Returns the halt reason, or null while within the limit.
-function hardTimeLimit(startedAt: string | undefined): string | null {
+// Hard execution limit (parameters §5): crossing hardCampaignLimitMs (profile-
+// dependent: full 25 min, express 15 min) stops STARTING new model nodes;
+// deterministic finalisation still runs and the remaining work is recorded as
+// Terminal Gaps — same semantics as the cost hard stop. Returns the halt
+// reason, or null while within the limit.
+function hardTimeLimit(startedAt: string | undefined, limits: RuntimeLimits): string | null {
   if (!startedAt) return null;
   const elapsedMs = Date.now() - new Date(startedAt).getTime();
-  if (elapsedMs < RUNTIME_LIMITS.hardCampaignLimitMs) return null;
-  const limitMin = RUNTIME_LIMITS.hardCampaignLimitMs / 60000;
+  if (elapsedMs < limits.hardCampaignLimitMs) return null;
+  const limitMin = limits.hardCampaignLimitMs / 60000;
   return `Hard execution limit reached (${Math.round(elapsedMs / 60000)} min elapsed; limit ${limitMin} min)`;
 }
 
@@ -57,7 +60,7 @@ async function guard(
     const reason = "run cancelled";
     return { halted: true, haltReason: reason, terminalGaps: sections.map((s) => gapText(s, reason)) };
   }
-  const timeUp = hardTimeLimit(run?.startedAt);
+  const timeUp = hardTimeLimit(run?.startedAt, runtimeLimitsFor(ctx.profile));
   if (timeUp) {
     return { halted: true, haltReason: timeUp, terminalGaps: sections.map((s) => gapText(s, timeUp)) };
   }
@@ -98,6 +101,60 @@ function proposalTargets(pending: PendingProposal[]): string[] {
   return [...targets];
 }
 
+// The distinct sections/documents ONE proposal would change (for per-proposal
+// Terminal Gaps on rejection).
+function singleProposalTargets(pp: PendingProposal): string[] {
+  return proposalTargets([pp]);
+}
+
+// ---- Accepted-content excerpts (W3's published campaign cards) ---------------
+
+// Statement/summary-like fields surface first in an excerpt.
+const EXCERPT_PREFERRED_KEYS = new Set([
+  "statement",
+  "summary",
+  "narrative",
+  "interpretation",
+  "formal",
+  "dm",
+  "action",
+  "whoActs",
+  "mvw",
+  "success",
+]);
+
+// Plain-text excerpt of accepted section content: readable strings pulled out
+// of the structured content object (preferred fields first), joined with
+// separators — never raw JSON braces. ≤ `max` chars.
+function sectionExcerpt(content: unknown, max = 280): string {
+  const preferred: string[] = [];
+  const rest: string[] = [];
+  const visit = (value: unknown, key?: string, depth = 0): void => {
+    if (depth > 4 || preferred.length + rest.length > 24) return;
+    if (typeof value === "string") {
+      const text = value.replace(/\s+/g, " ").trim();
+      if (text.length < 3) return;
+      (key && EXCERPT_PREFERRED_KEYS.has(key) ? preferred : rest).push(text);
+    } else if (Array.isArray(value)) {
+      for (const item of value) visit(item, key, depth + 1);
+    } else if (value && typeof value === "object") {
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) visit(v, k, depth + 1);
+    }
+  };
+  visit(content);
+  const joined = [...preferred, ...rest].join(" · ");
+  if (joined.length <= max) return joined;
+  return `${joined.slice(0, max - 1).trimEnd()}…`;
+}
+
+// Where an accepted artefact flows next (for artefact.handoff summaries).
+const HANDOFF_NEXT: Record<ReviewPass, string> = {
+  evidence: "Analysis",
+  analysis: "Strategy",
+  strategy: "Planning & Production",
+  final: "Document compilation",
+};
+
 // ---- One agent turn (delegated to w3) --------------------------------------
 
 function buildDeps(
@@ -112,7 +169,7 @@ function buildDeps(
     gate: ctx.gate,
     sql: ctx.sql,
     recordUsage: ctx.recordUsage,
-    agentDef: agentDef(key),
+    agentDef: agentDefFor(key, ctx.profile),
     modelMode: ctx.modelMode,
     signal: ctx.signal,
     apiKey: ctx.apiKey,
@@ -126,7 +183,7 @@ async function runAgent(
   key: AgentKey,
   parentAgentRunId?: string,
 ): Promise<PendingProposal[]> {
-  const def = agentDef(key);
+  const def = agentDefFor(key, ctx.profile);
   const agentRunId = randomUUID();
   const primaryStep = def.journeySteps[0];
   const version = state.stateVersion;
@@ -143,6 +200,7 @@ async function runAgent(
     model: def.model,
     effort: def.effort,
   });
+  const task = `${def.responsibility}. Problem: "${state.problem}". Place: "${state.place}".`;
   await ctx.emitter.emit({
     type: "agent.started",
     agentRunId,
@@ -153,6 +211,8 @@ async function runAgent(
       verb: "starting",
       agentKey: key,
       agentDisplayName: def.displayName,
+      // W3's cards show WHAT the agent is doing, not just that it started.
+      detail: { task: task.slice(0, 200) },
     },
   });
 
@@ -163,7 +223,7 @@ async function runAgent(
     parentAgentRunId,
     stateVersion: version,
     journeySteps: def.journeySteps,
-    task: `${def.responsibility}. Problem: "${state.problem}". Place: "${state.place}".`,
+    task,
     contextRefs: [],
     evidenceRefs: [],
     constraints: [],
@@ -208,6 +268,31 @@ async function runAgent(
   }
   if (!result) return [];
 
+  // Executor RETURNED a failed result (timeout after retry, provider failure,
+  // effectively-empty output, …). Same honesty contract as the throw path
+  // above: visible failure + a Terminal Gap for this agent's responsibilities —
+  // never a silently missing section. Nothing downstream applies from it.
+  if (result.status === "failed") {
+    const reason = result.workSummary || "agent returned a failed result";
+    await store.setAgentRunStatus(ctx.sql, agentRunId, "failed", {
+      workSummary: result.workSummary,
+      confidence: result.confidence,
+    });
+    await ctx.emitter.emit({
+      type: "agent.failed",
+      agentRunId,
+      journeyStep: primaryStep,
+      payload: { summary: `${def.displayName} failed: ${reason}`.slice(0, 280), agentKey: key, agentDisplayName: def.displayName },
+    });
+    await ctx.emitter.emit({
+      type: "gap.terminal",
+      agentRunId,
+      journeyStep: primaryStep,
+      payload: { summary: gapText(def.shortName, reason.slice(0, 160)), agentKey: key },
+    });
+    return [];
+  }
+
   // Persist claims (assign id/author/version); collect for evidence-ref resolution.
   const assignedClaimIds: string[] = [];
   for (const draft of result.claims) {
@@ -227,8 +312,14 @@ async function runAgent(
   // way, so nothing blocks.
   if (result.judgementRequest) {
     const jr = result.judgementRequest;
-    const existingCount = (await store.listJudgements(ctx.sql, state.campaignId)).length;
-    if (existingCount >= MAX_JUDGEMENT_REQUESTS_PER_RUN) {
+    // Reserve a slot through the per-run serialised counter (context.ts): a
+    // plain read-then-insert races under Promise.all clusters and can exceed
+    // the cap. The counter loads the DB count once (resume-safe) and hands out
+    // at most MAX_JUDGEMENT_REQUESTS_PER_RUN reservations per process run.
+    const reserved = await ctx.judgementSlots.reserve(
+      async () => (await store.listJudgements(ctx.sql, state.campaignId)).length,
+    );
+    if (!reserved) {
       await ctx.emitter.emit({
         type: "evidence.gap",
         agentRunId,
@@ -368,20 +459,20 @@ const SPECIALIST_HINTS: Array<[RegExp, SpecialistKey]> = [
   [/precedent|similar|opposition|objection|comparable/i, "precedent_opposition"],
 ];
 
-function selectSpecialists(problem: string, place: string): SpecialistKey[] {
+function selectSpecialists(problem: string, place: string, count = 2): SpecialistKey[] {
   const text = `${problem} ${place}`;
   const picked: SpecialistKey[] = [];
   for (const [re, key] of SPECIALIST_HINTS) {
     if (re.test(text) && !picked.includes(key)) picked.push(key);
-    if (picked.length === 2) break;
+    if (picked.length === count) break;
   }
-  while (picked.length < 2) {
+  while (picked.length < count) {
     const fallback: SpecialistKey[] = ["local_government", "local_media"];
     const next = fallback.find((k) => !picked.includes(k));
     if (!next) break;
     picked.push(next);
   }
-  return picked.slice(0, 2);
+  return picked.slice(0, count);
 }
 
 // ---- Nodes ------------------------------------------------------------------
@@ -392,18 +483,9 @@ export function researchDirectorNode() {
     const halt = await guard(ctx, state, ["problem"], true);
     if (halt) return halt;
     const proposals = await runAgent(ctx, state, "research_director");
-
-    const specialists = selectSpecialists(state.problem, state.place);
-    for (const key of specialists) {
-      const def = agentDef(key);
-      await ctx.emitter.emit({
-        type: "specialist.approved",
-        payload: { summary: `Selected specialist: ${def.displayName}`, agentKey: key, detail: { useWhen: (def as { useWhen?: string }).useWhen } },
-      });
-    }
-    // Append (nodes run serially; reviewers clear). Proposals accumulate until
-    // the next reviewer pass consumes them.
-    return { pendingProposals: [...state.pendingProposals, ...proposals], selectedSpecialists: specialists };
+    // Contribute only this node's proposals; the channel reducer appends
+    // (the specialists run in the SAME superstep) and reviewers clear.
+    return { pendingProposals: proposals };
   };
 }
 
@@ -412,16 +494,30 @@ export function specialistsClusterNode() {
     const ctx = contextFrom(config);
     const halt = await guard(ctx, state, ["evidence"], true);
     if (halt) return halt;
-    const keys = state.selectedSpecialists;
+    // Selection is a deterministic regex over problem+place — it needs nothing
+    // from the director, so this wave runs CONCURRENTLY with the director
+    // (build.ts fans both out of START; the adjudicator joins on both).
+    // Specialist context comes from the task string (problem+place) plus
+    // whatever claims exist at execution time — fewer while the director is
+    // still running, which is fine.
+    // Express profile runs ONE specialist; full runs two.
+    const keys = state.selectedSpecialists.length
+      ? state.selectedSpecialists
+      : selectSpecialists(state.problem, state.place, ctx.profile === "express" ? 1 : 2);
     for (const key of keys) {
+      const def = agentDef(key);
+      await ctx.emitter.emit({
+        type: "specialist.approved",
+        payload: { summary: `Selected specialist: ${def.displayName}`, agentKey: key, detail: { useWhen: (def as { useWhen?: string }).useWhen } },
+      });
       await ctx.emitter.emit({
         type: "specialist.spawned",
-        payload: { summary: `${agentDef(key).displayName} spawned`, agentKey: key },
+        payload: { summary: `${def.displayName} spawned`, agentKey: key },
       });
     }
     // 2 selected specialists in parallel (real concurrent model calls, gated).
     const results = await Promise.all(keys.map((k) => runAgent(ctx, state, k)));
-    return { pendingProposals: [...state.pendingProposals, ...results.flat()] };
+    return { pendingProposals: results.flat(), selectedSpecialists: keys };
   };
 }
 
@@ -432,7 +528,7 @@ export function agentClusterNode(keys: AgentKey[], sections: string[]) {
     const halt = await guard(ctx, state, sections, true);
     if (halt) return halt;
     const results = await Promise.all(keys.map((k) => runAgent(ctx, state, k)));
-    return { pendingProposals: [...state.pendingProposals, ...results.flat()] };
+    return { pendingProposals: results.flat() };
   };
 }
 
@@ -445,7 +541,7 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
     // Dropping un-reviewed proposals must be HONEST: their target sections/
     // documents are recorded as Terminal Gaps, never silently discarded.
     const dropPending = (reason: string): Patch => ({
-      pendingProposals: [],
+      pendingProposals: "clear",
       terminalGaps: proposalTargets(pending).map((t) => `${t} not accepted (${reason})`),
     });
     if (state.halted) return dropPending(state.haltReason ?? "run halted");
@@ -453,14 +549,21 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
     if (ctx.signal.aborted || run?.status === "cancelled") {
       return { halted: true, haltReason: "run cancelled", ...dropPending("run cancelled") };
     }
-    const timeUp = hardTimeLimit(run?.startedAt); // the reviewer is a model node too
+    const limits = runtimeLimitsFor(ctx.profile);
+    const timeUp = hardTimeLimit(run?.startedAt, limits); // the reviewer is a model node too
     if (timeUp) {
       return { halted: true, haltReason: timeUp, ...dropPending(timeUp) };
     }
-    if (pending.length === 0) return { pendingProposals: [] };
+    if (pending.length === 0) return { pendingProposals: "clear" };
+
+    // Time-aware routing: past the soft campaign target the strategy revision
+    // loop (two extra Opus waves) is unaffordable — a returned strategy
+    // proposal becomes an honest Terminal Gap instead of a revision.
+    const elapsedMs = run?.startedAt ? Date.now() - new Date(run.startedAt).getTime() : 0;
+    const overSoftTarget = elapsedMs > limits.softCampaignTargetMs;
 
     const reviewerAgentRunId = state.reviewerAgentRunId;
-    const reviewerDef = agentDef("synthesis_reviewer");
+    const reviewerDef = agentDefFor("synthesis_reviewer", ctx.profile);
     const deps: ExecutorDeps = {
       emit: ctx.emitter.forAgent({ agentRunId: reviewerAgentRunId, journeyStep: journeySteps[0] }),
       gate: ctx.gate,
@@ -515,6 +618,21 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
     // Counts for the Step Build Receipt (W4 nice-to-have).
     const agentCount = (await store.listAgentRuns(ctx.sql, state.campaignId)).length;
     const sourceCount = (await store.getSources(ctx.sql, state.campaignId)).length;
+    // artefact.handoff is capped at one per producing agent within this pass.
+    const handedOff = new Set<string>();
+
+    // A rejected/returned proposal with NO revision loop leaves its sections
+    // missing — that must be a visible Terminal Gap, never a silent drop.
+    const emitRejectionGaps = async (pp: PendingProposal, rationale: string, kind: string) => {
+      const excerpt = (rationale || "no reason given").replace(/\s+/g, " ").slice(0, 140);
+      for (const target of singleProposalTargets(pp)) {
+        await ctx.emitter.emit({
+          type: "gap.terminal",
+          agentRunId: pp.proposal.agentRunId,
+          payload: { summary: gapText(target, `${kind}: ${excerpt}`), agentKey: pp.agentKey },
+        });
+      }
+    };
 
     for (const pp of pending) {
       const proposal = pp.proposal;
@@ -531,6 +649,7 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
           agentRunId: proposal.agentRunId,
           payload: { summary: r.rationale || "Proposal rejected", proposalId: proposal.id, agentKey: pp.agentKey },
         });
+        await emitRejectionGaps(pp, r.rationale, "reviewer rejected");
         continue;
       }
       if (r.decision === "return") {
@@ -539,7 +658,27 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
           agentRunId: proposal.agentRunId,
           payload: { summary: r.rationale || "Returned for one revision", proposalId: proposal.id, agentKey: pp.agentKey },
         });
-        if (pass === "strategy" && state.strategyRevisions < 1) needsStrategyRevision = true;
+        // Only the strategy pass has a revision loop, only within the soft
+        // time target, and NEVER on the express profile. Everywhere else a
+        // "return" is terminal for the section.
+        const loopAvailable =
+          pass === "strategy" && state.strategyRevisions < 1 && ctx.profile !== "express";
+        if (loopAvailable && !overSoftTarget) {
+          needsStrategyRevision = true;
+        } else {
+          if (loopAvailable && overSoftTarget) {
+            await ctx.emitter.emit({
+              type: "work.update",
+              agentRunId: reviewerAgentRunId,
+              journeyStep: journeySteps[0],
+              payload: {
+                summary: `Skipping strategy revision — ${Math.round(elapsedMs / 60000)} min elapsed exceeds the ${limits.softCampaignTargetMs / 60000} min soft target`,
+                agentKey: "synthesis_reviewer",
+              },
+            });
+          }
+          await emitRejectionGaps(pp, r.rationale, "reviewer returned; no revision loop");
+        }
         continue;
       }
 
@@ -579,11 +718,29 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
         agentRunId: proposal.agentRunId,
         payload: { summary: r.rationale || "Accepted", proposalId: proposal.id, agentKey: pp.agentKey },
       });
+      // Excerpt of the accepted content for W3's published campaign cards:
+      // taken from the FIRST section this proposal touched (post-apply state).
+      const firstSectionOp = rebased.ops.find(
+        (op): op is Extract<ProposalOp, { op: "set_section" | "merge_section" }> =>
+          op.op === "set_section" || op.op === "merge_section",
+      );
+      const firstStep = firstSectionOp ? (firstSectionOp.step as JourneyStepKey) : undefined;
+      const appliedExcerpt = firstStep
+        ? {
+            excerpt: sectionExcerpt(nextState.sections[firstStep]?.content),
+            sectionTitle: journeyStepByKey(firstStep).title,
+          }
+        : undefined;
       await ctx.emitter.emit({
         type: "proposal.applied",
         agentRunId: proposal.agentRunId,
         stateVersion: version,
-        payload: { summary: `Applied to campaign state v${version}`, proposalId: proposal.id, agentKey: pp.agentKey },
+        payload: {
+          summary: `Applied to campaign state v${version}`,
+          proposalId: proposal.id,
+          agentKey: pp.agentKey,
+          ...(appliedExcerpt ? { detail: appliedExcerpt } : {}),
+        },
       });
 
       // Emit the FULL accepted content per op (events are the transport).
@@ -608,6 +765,8 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
                 nextChecks: nextState.nextChecks,
                 agentCount,
                 sourceCount,
+                excerpt: sectionExcerpt(sectionState?.content),
+                sectionTitle: journeyStepByKey(step).title,
               },
             },
           });
@@ -633,6 +792,31 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
           });
         }
       }
+
+      // Accepted work flows to the next wave — make the handoff visible
+      // (artefact.handoff, ≤1 per producing agent per pass).
+      if (!handedOff.has(proposal.agentRunId)) {
+        handedOff.add(proposal.agentRunId);
+        const packOp = rebased.ops.find(
+          (op): op is Extract<ProposalOp, { op: "set_pack" }> => op.op === "set_pack",
+        );
+        const artefact = firstStep
+          ? journeyStepByKey(firstStep).title
+          : packOp
+            ? packOp.document.replace(/_/g, " ")
+            : "accepted work";
+        await ctx.emitter.emit({
+          type: "artefact.handoff",
+          agentRunId: proposal.agentRunId,
+          journeyStep: journeySteps[0],
+          stateVersion: version,
+          payload: {
+            summary: `Handed ${artefact} to ${HANDOFF_NEXT[pass]}`,
+            agentKey: pp.agentKey,
+            proposalId: proposal.id,
+          },
+        });
+      }
     }
 
     if (outcome.passStepReport) {
@@ -644,7 +828,7 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
       });
     }
 
-    const patch: Patch = { pendingProposals: [], stateVersion: version, acceptedSteps };
+    const patch: Patch = { pendingProposals: "clear", stateVersion: version, acceptedSteps };
     if (needsStrategyRevision) {
       patch.needsStrategyRevision = true;
       patch.strategyRevisions = state.strategyRevisions + 1;

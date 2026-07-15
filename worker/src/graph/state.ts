@@ -28,8 +28,15 @@ export const GraphState = Annotation.Root({
   stateVersion: Annotation<number>({ reducer: replace, default: () => 0 }),
   selectedSpecialists: Annotation<SpecialistKey[]>({ reducer: replace, default: () => [] }),
 
-  // Proposals from the most recent cluster, consumed + cleared by the reviewer.
-  pendingProposals: Annotation<PendingProposal[]>({ reducer: replace, default: () => [] }),
+  // Proposals from the most recent cluster(s), consumed + cleared by the
+  // reviewer. Append reducer (NOT replace): the director and specialists run in
+  // the SAME superstep, and with a replace reducer the second write would drop
+  // the first cluster's proposals. Nodes contribute only their OWN proposals;
+  // reviewers clear the channel with the "clear" sentinel.
+  pendingProposals: Annotation<PendingProposal[], PendingProposal[] | "clear">({
+    reducer: (a, b) => (b === "clear" ? [] : [...(a ?? []), ...(b ?? [])]),
+    default: () => [],
+  }),
 
   acceptedSteps: Annotation<string[]>({
     reducer: (a, b) => Array.from(new Set([...(a ?? []), ...(b ?? [])])),

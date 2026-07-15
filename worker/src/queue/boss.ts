@@ -11,6 +11,7 @@
 
 import PgBoss from "pg-boss";
 import { QUEUE_SCHEMA } from "@web/lib/factory/contracts/tables.js";
+import type { RunProfile } from "@web/lib/factory/contracts/api.js";
 import { RUNTIME_LIMITS } from "@web/lib/factory/contracts/limits.js";
 import { config, needsSsl, requireDatabaseUrl } from "../config.js";
 import { sql } from "../db/pool.js";
@@ -21,11 +22,21 @@ export const RUN_DEAD_QUEUE = "campaign-run-dead";
 export interface RunJobData {
   campaignId: string;
   batchId?: string;
+  // Run profile is ALSO persisted in factory_runs.meta at create time — the
+  // boot orphan-recovery re-enqueue does not carry it, so run.ts falls back to
+  // the run row. Job data is just the fast path.
+  profile?: RunProfile;
 }
 
-// Long enough that a full campaign (hard limit 20 min) finishes inside one
-// lease, so a healthy long run is never re-delivered as a duplicate.
-const JOB_EXPIRE_SECONDS = Math.ceil(RUNTIME_LIMITS.hardCampaignLimitMs / 1000) + 600;
+// Long enough that a full campaign finishes inside one lease, so a healthy
+// long run is never re-delivered as a duplicate. The hard time limit stops
+// STARTING new model nodes, but a node already in flight when the limit lands
+// can still overrun by up to one worst-case agent turn with its single
+// operational retry (2 × 420 s specialist/director timeout), plus margin for
+// the reviewer/finalise tail — so the lease covers hardLimit + 2×420 s + 300 s.
+const WORST_CASE_NODE_OVERRUN_SECONDS = 2 * 420 + 300;
+const JOB_EXPIRE_SECONDS =
+  Math.ceil(RUNTIME_LIMITS.hardCampaignLimitMs / 1000) + WORST_CASE_NODE_OVERRUN_SECONDS;
 
 export type RunFn = (data: RunJobData) => Promise<void>;
 export type DeadFn = (data: RunJobData, reason: string) => Promise<void>;

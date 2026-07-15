@@ -82,6 +82,137 @@
   gap: 8px;
 }
 
+/* --- Published brief pieces: light paper artefacts vs the dark agent chrome.
+   They accumulate down the column as sections are accepted and NEVER collapse
+   into pills — end state is receipt + this stack. --- */
+.briefStack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.briefStackHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+.briefStackTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(27, 29, 30, 0.55);
+}
+.briefStackCount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: rgba(27, 29, 30, 0.5);
+}
+.briefCard {
+  background: rgba(255, 253, 247, 0.93); /* warm paper, distinct from the dark ink agent cards */
+  border: 1px solid rgba(27, 29, 30, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.07);
+  color: #1b1d1e;
+  overflow: hidden;
+  animation: cfBriefIn 260ms var(--cf-brief-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* While the run is live, the brief stack is a SUBSTRATE inside the cards area:
+   it slides beneath the agent swarm (z-index 0 vs the card groups' 1) so the
+   output physically accumulates under the agents working on it. Once the
+   receipt shows, the stack is rendered standalone (no overlap). */
+.briefSubstrate {
+  position: relative;
+  z-index: 0;
+  /* cardsArea has a 10px column gap; -20px nets a ~10px underlap so the top
+     paper edge visibly slides beneath the bottom row of agent cards while the
+     section titles stay clear of the overlap (readability floor). */
+  margin-top: -20px;
+}
+@keyframes cfBriefIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.briefCardHead {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  background: none;
+  border: 0;
+  padding: 6px 9px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.briefCardStep {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: rgba(27, 29, 30, 0.5);
+  flex-shrink: 0;
+}
+.briefCardTitle {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.briefCardExcerpt {
+  margin: 0;
+  padding: 0 9px 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(27, 29, 30, 0.78);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Bare button wrapper so identity pills (and pill-expanded cards) toggle. */
+.pillToggle {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  display: inline-flex;
+  color: inherit;
+  font: inherit;
+}
+.pillToggle:focus-visible {
+  outline: 2px solid rgba(138, 208, 255, 0.6);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .briefCard {
+    animation: none !important;
+  }
+}
+
 /* Factory Ledger — fixed below the nav, ≤44px tall. */
 .ledger {
   position: sticky;

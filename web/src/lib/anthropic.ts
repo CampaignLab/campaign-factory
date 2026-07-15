@@ -34,9 +34,60 @@ export interface CallParams {
 export interface CallOptions {
   maxPauseResumes?: number; // server-tool (web search) pause_turn resumes
   onText?: (delta: string) => void; // streamed text deltas (Stage A live feed)
-  onToolNote?: (note: string) => void; // "searching the web…" etc.
+  /** Tool activity note + a present-participle verb ("searching", "reading"). */
+  onToolNote?: (note: string, verb?: string) => void;
+  /** Raw generation deltas while the model streams (live activity feed). */
+  onProgress?: (kind: "text" | "thinking", delta: string) => void;
   onUsage?: UsageSink; // token usage → spend ledger / kill-switch
   signal?: AbortSignal; // true request-level abort (factory cancel/timeout)
+}
+
+// ---- Prompt caching --------------------------------------------------------
+// The prefix renders tools → system → messages; a breakpoint on the system
+// block therefore caches tools + system together. We add at most three
+// ephemeral breakpoints per request (max allowed is 4): last custom tool,
+// system, and the last user message — the last one is what lets pause_turn
+// resumes and multi-turn tool loops re-read the conversation prefix instead of
+// reprocessing it at full input price every round. Inputs are never mutated;
+// annotated copies are built per request.
+const EPHEMERAL = { type: "ephemeral" } as const;
+
+function annotateToolsForCache(tools: unknown[]): unknown[] {
+  if (!tools.length) return tools;
+  const last = tools[tools.length - 1] as { input_schema?: unknown; cache_control?: unknown } | null;
+  // Only annotate plain custom tool definitions; server tools (web_search_*,
+  // code_execution_*) keep their exact wire shape.
+  if (!last || typeof last !== "object" || last.cache_control || !last.input_schema) return tools;
+  return [...tools.slice(0, -1), { ...last, cache_control: EPHEMERAL }];
+}
+
+function annotateMessagesForCache(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "user") continue;
+    if (typeof m.content === "string") {
+      if (!m.content.trim()) return messages;
+      const annotated: Anthropic.MessageParam = {
+        ...m,
+        content: [{ type: "text", text: m.content, cache_control: EPHEMERAL }],
+      };
+      return [...messages.slice(0, i), annotated, ...messages.slice(i + 1)];
+    }
+    if (Array.isArray(m.content)) {
+      for (let j = m.content.length - 1; j >= 0; j--) {
+        const b = m.content[j] as { type?: string; text?: string; cache_control?: unknown };
+        if (!b || b.cache_control) return messages;
+        // Only text / tool_result blocks accept cache_control; skip others.
+        if (b.type !== "text" && b.type !== "tool_result") continue;
+        if (b.type === "text" && !(b.text ?? "").trim()) continue;
+        const blocks = [...m.content];
+        blocks[j] = { ...(b as object), cache_control: EPHEMERAL } as (typeof blocks)[number];
+        return [...messages.slice(0, i), { ...m, content: blocks }, ...messages.slice(i + 1)];
+      }
+    }
+    return messages; // last user message has no annotatable block
+  }
+  return messages;
 }
 
 function buildParams(p: CallParams): Record<string, unknown> {
@@ -46,15 +97,20 @@ function buildParams(p: CallParams): Record<string, unknown> {
   const params: Record<string, unknown> = {
     model: p.model,
     max_tokens: p.max_tokens,
-    messages: p.messages,
+    messages: annotateMessagesForCache(p.messages),
   };
-  if (p.system) params.system = p.system;
-  if (p.tools) params.tools = p.tools;
+  // System as a text block so it can carry the cache breakpoint (caches the
+  // tools + system prefix together — see note above buildParams helpers).
+  if (p.system) params.system = [{ type: "text", text: p.system, cache_control: EPHEMERAL }];
+  if (p.tools) params.tools = annotateToolsForCache(p.tools);
   if (p.container) params.container = p.container;
   if (Object.keys(output_config).length) params.output_config = output_config;
   // Sonnet 5 runs adaptive by default; Opus needs it set explicitly. Haiku 4.5
-  // does not support adaptive thinking, so callers omit it.
-  if (p.adaptiveThinking) params.thinking = { type: "adaptive" };
+  // does not support adaptive thinking, so callers omit it. display:summarized
+  // opts back into readable thinking text (default is omitted on current
+  // models) so the live activity feed can surface "Thinking: …" snippets —
+  // display affects visibility only, never billing.
+  if (p.adaptiveThinking) params.thinking = { type: "adaptive", display: "summarized" };
   return params;
 }
 
@@ -104,12 +160,47 @@ async function streamOnce(
     });
   }
   if (opts.onText) stream.on("text", (delta: string) => opts.onText!(delta));
-  if (opts.onToolNote) {
+  if (opts.onToolNote || opts.onProgress) {
+    // Server-tool inputs stream as input_json_delta fragments on the block's
+    // index; accumulate them so the note can carry the real search query. The
+    // note fires at content_block_stop, once per tool use, when the input is
+    // complete.
+    const serverToolInput = new Map<number, { name: string; json: string }>();
     stream.on("streamEvent", (event) => {
       if (event.type === "content_block_start") {
-        const t = event.content_block.type;
-        if (t === "server_tool_use") opts.onToolNote!("searching the web…");
-        else if (t === "web_search_tool_result") opts.onToolNote!("reading search results…");
+        const cb = event.content_block as { type: string; name?: string };
+        if (cb.type === "server_tool_use") {
+          serverToolInput.set(event.index, { name: cb.name ?? "", json: "" });
+        } else if (cb.type === "web_search_tool_result") {
+          opts.onToolNote?.("Reading search results…", "reading");
+        }
+      } else if (event.type === "content_block_delta") {
+        const d = event.delta as { type: string; partial_json?: string; text?: string; thinking?: string };
+        if (d.type === "input_json_delta" && typeof d.partial_json === "string") {
+          const st = serverToolInput.get(event.index);
+          if (st && st.json.length < 4000) st.json += d.partial_json;
+        } else if (d.type === "text_delta" && d.text) {
+          opts.onProgress?.("text", d.text);
+        } else if (d.type === "thinking_delta" && d.thinking) {
+          opts.onProgress?.("thinking", d.thinking);
+        }
+      } else if (event.type === "content_block_stop") {
+        const st = serverToolInput.get(event.index);
+        if (!st) return;
+        serverToolInput.delete(event.index);
+        if (!opts.onToolNote) return;
+        if (st.name === "web_search") {
+          let query = "";
+          try {
+            const input = JSON.parse(st.json || "{}") as { query?: unknown };
+            if (typeof input.query === "string") query = input.query.replace(/\s+/g, " ").trim().slice(0, 140);
+          } catch {
+            /* incomplete input JSON — fall back to the generic note */
+          }
+          opts.onToolNote(query ? `Searching: "${query}"` : "Searching the web…", "searching");
+        } else {
+          opts.onToolNote(`Running ${st.name || "a server tool"}…`, "running");
+        }
       }
     });
   }
@@ -137,7 +228,12 @@ export async function call(
   let containerId: string | undefined = msg.container?.id ?? p.container ?? undefined;
   const maxResumes = opts.maxPauseResumes ?? 3;
   for (let i = 0; i < maxResumes && msg.stop_reason === "pause_turn"; i++) {
-    const messages = [...(p.messages as Anthropic.MessageParam[]), { role: "assistant" as const, content: msg.content }];
+    // Re-annotate so the resume carries the same message cache breakpoint as
+    // the original request (identical prefix bytes → cache read).
+    const messages = annotateMessagesForCache([
+      ...(p.messages as Anthropic.MessageParam[]),
+      { role: "assistant" as const, content: msg.content },
+    ]);
     msg = await streamOnce(client, { ...base, messages, ...(containerId ? { container: containerId } : {}) }, opts);
     opts.onUsage?.(p.model, msg.usage as Usage);
     containerId = msg.container?.id ?? containerId;

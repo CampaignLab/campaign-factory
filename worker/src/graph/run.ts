@@ -8,6 +8,12 @@
 import { randomUUID } from "node:crypto";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import type { RunStatus } from "@web/lib/factory/contracts/core.js";
+import type { RunProfile } from "@web/lib/factory/contracts/api.js";
+import { agentDef } from "@web/lib/factory/contracts/roster.js";
+import { MAX_JUDGEMENT_REQUESTS_PER_RUN } from "@web/lib/factory/contracts/state.js";
+// Direct-module import (same pattern as finalise.ts) — the worker store barrel
+// does not re-export document reads.
+import { listLatestDocuments } from "@web/lib/factory/store/documents.js";
 import { config } from "../config.js";
 import { sql } from "../db/pool.js";
 import type { Sql } from "../db/pool.js";
@@ -18,7 +24,7 @@ import * as store from "../store/index.js";
 import { registerRun, releaseRun } from "../runtime/registry.js";
 import { getCheckpointer } from "./checkpointer.js";
 import { buildCampaignGraph } from "./build.js";
-import { withContext, type RuntimeContext } from "./context.js";
+import { withContext, makeJudgementSlots, type RuntimeContext } from "./context.js";
 import type { GraphStateType } from "./state.js";
 import type { RunJobData, DeadFn, RunFn } from "../queue/boss.js";
 import type { RuntimeAgents } from "./executor-loader.js";
@@ -54,7 +60,7 @@ function makeRecordUsage(s: Sql): RecordUsage {
 }
 
 export function makeRunner(agents: RuntimeAgents): RunFn {
-  return async ({ campaignId, batchId }: RunJobData): Promise<void> => {
+  return async ({ campaignId, batchId, profile: jobProfile }: RunJobData): Promise<void> => {
     const s = sql();
     const run = await store.getRun(s, campaignId);
     if (!run) {
@@ -62,6 +68,11 @@ export function makeRunner(agents: RuntimeAgents): RunFn {
       throw new Error(`runCampaign: no factory_runs row for ${campaignId}`);
     }
     const effectiveBatchId = batchId ?? run.batchId ?? undefined;
+    // Profile: job data (fast path) → run.meta (durable; orphan-recovery
+    // re-enqueues carry no profile) → "full". Enum-normalised: anything that is
+    // not exactly "express" runs the full graph.
+    const profile: RunProfile =
+      (jobProfile ?? run.meta.profile) === "express" ? "express" : "full";
     if (await alreadyFinalised(s, campaignId)) {
       // Idempotent re-delivery. Still attempt the batch roll-up: a crash in the
       // window between finalising the batch's last campaign and rolling the
@@ -86,12 +97,14 @@ export function makeRunner(agents: RuntimeAgents): RunFn {
         recordUsage: makeRecordUsage(s),
         modelMode: config.modelMode,
         mode: run.mode,
+        profile,
         batchId: effectiveBatchId,
         signal: handle.controller.signal,
         apiKey: config.modelMode === "live" ? config.anthropicApiKey : undefined,
         executeAgentTurn: agents.executeAgentTurn,
         review: agents.review,
         runQA: agents.runQA,
+        judgementSlots: makeJudgementSlots(MAX_JUDGEMENT_REQUESTS_PER_RUN),
       };
 
       const graph = buildCampaignGraph(getCheckpointer());
@@ -124,6 +137,7 @@ export function makeRunner(agents: RuntimeAgents): RunFn {
             summary: "Campaign Synthesis Reviewer started",
             agentKey: "synthesis_reviewer",
             agentDisplayName: "Campaign Synthesis Reviewer",
+            detail: { task: agentDef("synthesis_reviewer").responsibility.slice(0, 200) },
           },
         });
         await store.setRunStatus(s, campaignId, "running", { markStarted: true });
@@ -161,19 +175,45 @@ async function maybeCompleteBatch(s: Sql, batchId: string): Promise<void> {
   if (runs.length === 0 || !runs.every((r) => terminal.has(r.status))) return;
 
   const completed = runs.filter((r) => r.status === "completed").length;
-  const usable = runs.filter((r) => r.status === "completed" || r.status === "partial").length;
+
+  // "Usable" is the PRODUCT definition (receipts.ts isSubstantiallyUsable):
+  // at least one document reached "ready" — read from the document statuses
+  // finalise persisted, NOT from run status (a partial run with zero ready
+  // documents is not usable; counting it was flattering the receipt).
+  const usableByCampaign = new Map<string, boolean>();
+  for (const r of runs) {
+    const docs = await listLatestDocuments(s, r.campaignId);
+    usableByCampaign.set(r.campaignId, docs.some((d) => d.status === "ready"));
+  }
+  const usable = runs.filter((r) => usableByCampaign.get(r.campaignId)).length;
   const status: RunStatus =
     completed === runs.length ? "completed" : usable === 0 ? "failed" : "partial";
+
+  // Atomic roll-up claim: the batch's last two campaigns can finalise
+  // concurrently and both reach this point. Only the caller whose UPDATE
+  // transitions the batch OUT of a non-terminal status writes the receipt and
+  // emits receipt.batch — the loser's UPDATE matches zero rows.
+  const claimed = await s`
+    update factory.factory_batches
+       set status = ${status}, updated_at = now(), completed_at = now()
+     where batch_id = ${batchId}
+       and status not in ${s([...terminal])}
+    returning batch_id`;
+  if (claimed.length === 0) return; // another finaliser rolled the batch up
 
   const receipt = {
     batchId,
     size: runs.length,
     completed,
     usable,
-    campaigns: runs.map((r) => ({ campaignId: r.campaignId, status: r.status, costUsd: r.costUsd })),
+    campaigns: runs.map((r) => ({
+      campaignId: r.campaignId,
+      status: r.status,
+      costUsd: r.costUsd,
+      usable: usableByCampaign.get(r.campaignId) ?? false,
+    })),
     totalCostUsd: runs.reduce((a, r) => a + r.costUsd, 0),
   };
-  await store.setBatchStatus(s, batchId, status);
   await store.setBatchReceipt(s, batchId, receipt);
 
   // Emit on the last campaign's stream (any campaign in the batch works).

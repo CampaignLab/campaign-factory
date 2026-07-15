@@ -5,20 +5,24 @@
 //    then most-recently-spawned;
 //  - ≤3 expanded per campaign while ≥2 campaigns are active (relaxed when only
 //    one campaign is still working);
-//  - a completed agent stays readable ~1000ms (within 800–1200ms) then pills.
+//  - a completed agent stays readable (grayed-out, ~8s) then collapses to an
+//    identity pill. The window is overridable (opts.readableMs) so condensed
+//    replay can scale it by the effective playback speed — `now` is a virtual
+//    clock there, and an unscaled window would blink cards into pills.
 
 import { UI_LIMITS } from "@/lib/factory/contracts";
 import type { AgentCardVM, CardPresentation } from "@/components/factory/cards";
 
 // Readable window before a completed card collapses to an identity pill.
-export const COMPLETION_READABLE_MS = 1000;
+// Long enough that the audience actually sees the grayed "stood down" state.
+export const COMPLETION_READABLE_MS = 8000;
 
 const TERMINAL = new Set(["complete", "partial", "failed"]);
 
-function isPillReady(a: AgentCardVM, now: number): boolean {
+function isPillReady(a: AgentCardVM, now: number, readableMs: number): boolean {
   if (!TERMINAL.has(a.status)) return false;
   if (!a.completedAt) return true; // terminal with no stamp → treat as already collapsed
-  return now - Date.parse(a.completedAt) >= COMPLETION_READABLE_MS;
+  return now - Date.parse(a.completedAt) >= readableMs;
 }
 
 function priorityScore(a: AgentCardVM): number {
@@ -36,6 +40,9 @@ export interface PresentationOptions {
   now: number;
   maxExpanded?: number;
   perCampaignCap?: number;
+  /** Readable window (in `now`'s time frame) before a terminal card pills.
+   *  Defaults to COMPLETION_READABLE_MS; condensed replay passes a scaled value. */
+  readableMs?: number;
 }
 
 /** Decide expanded / compact / pill for every card in the gallery. */
@@ -46,11 +53,12 @@ export function selectPresentation(
   const { now } = opts;
   const maxExpanded = opts.maxExpanded ?? UI_LIMITS.maxExpandedCards;
   const perCampaignCap = opts.perCampaignCap ?? UI_LIMITS.maxExpandedCardsPerCampaignInBatch;
+  const readableMs = opts.readableMs ?? COMPLETION_READABLE_MS;
   const result = new Map<string, CardPresentation>();
 
   const nonPill: AgentCardVM[] = [];
   for (const c of cards) {
-    if (isPillReady(c, now)) result.set(c.agentRunId, "pill");
+    if (isPillReady(c, now, readableMs)) result.set(c.agentRunId, "pill");
     else nonPill.push(c);
   }
 

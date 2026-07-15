@@ -121,7 +121,12 @@ const H3List = ({ title, items }: { title: string; items?: string[] }) =>
   ) : null;
 
 function humanise(key: string): string {
-  const s = key.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+  // lane_council_records → "Council records" (specialists merge lane findings
+  // under lane_<key>; the prefix is plumbing, not content)
+  const s = key
+    .replace(/^lane_/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 

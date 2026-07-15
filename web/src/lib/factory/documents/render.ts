@@ -409,6 +409,8 @@ export function renderStrategy(content: unknown): Block[] {
     b.push({ t: "p", text: coalition });
   }
   pushList(b, "Priority audiences", strArr(c.audiences));
+  pushList(b, "Resources assumed", strArr(c.resources));
+  pushList(b, "Constraints", strArr(c.constraints));
   pushList(b, "What the campaign will avoid", strArr(c.avoid));
   const escalation = str(c.escalation);
   if (escalation) {
@@ -418,6 +420,11 @@ export function renderStrategy(content: unknown): Block[] {
   pushList(b, "Risks", strArr(c.risks));
   pushList(b, "Trade-offs", strArr(c.tradeoffs));
   pushList(b, "Signs it is working or failing", strArr(c.indicators));
+  const statusQuoCost = str(c.statusQuoCost);
+  if (statusQuoCost) {
+    b.push({ t: "h3", text: "Cost of the status quo" });
+    b.push({ t: "p", text: statusQuoCost, callout: "warm" });
+  }
   return b;
 }
 
@@ -440,9 +447,13 @@ export function renderTactics(content: unknown): Block[] {
     add("Purpose", "purpose");
     add("Timing", "timing");
     add("Dependencies", "dependencies");
+    add("Resources", "resources");
+    add("Pressure it applies", "pressure");
+    add("Expected effect", "expected");
     add("Success sign", "success");
-    add("Human approval", "approval");
+    add("What follows", "next");
     add("Escalation", "escalation");
+    add("Human approval", "approval");
     if (kv.length) b.push({ t: "kv", rows: kv });
   }
   return b;
@@ -471,6 +482,11 @@ export function renderOrganising(content: unknown): Block[] {
   if (oneToOne.length) {
     b.push({ t: "h3", text: "One-to-one conversation guide" });
     b.push({ t: "ol", items: oneToOne });
+  }
+  const outreach = str(c.outreach);
+  if (outreach) {
+    b.push({ t: "h3", text: "Outreach" });
+    b.push({ t: "p", text: outreach });
   }
   const ladder = objArr(c.ladder);
   if (ladder.length) {
@@ -509,7 +525,196 @@ export function renderDocumentsOverview(content: unknown): Block[] {
   return b;
 }
 
-export const SECTION_RENDERERS: Record<JourneyStepKey, (content: unknown) => Block[]> = {
+// ---- generic extras fallback -----------------------------------------------
+// The state reducer preserves EVERY field the accepted proposal carried, but a
+// bespoke renderer only reads the keys it knows. Anything else — specialist
+// lane blocks merged as `lane_<key>`, theoryOfChange, stages,
+// rejectedAlternative, localKnowledgeGaps, specialistSelection,
+// decisionRouteSketch, and whatever richer output an agent produced — must
+// still reach the compiled documents, or reviewer-accepted content is silently
+// dropped. This mirrors the on-page Extras fallback in
+// components/factory/assembly/SectionContent.tsx: extra fields render as
+// humanised, labelled subsections (paragraphs, lists, key/value rows — never
+// raw JSON).
+
+/** Humanise a content key: lane_council_records → "Council records",
+ *  theoryOfChange → "Theory of change". */
+export function humanizeKey(key: string): string {
+  const s = key
+    .replace(/^lane_/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : key;
+}
+
+const LEAF_TEXT_KEYS = ["text", "statement", "claim", "title", "name", "value"] as const;
+const LEAF_LABEL_KEYS = ["label", "status", "tier"] as const;
+
+function isPrimitive(v: unknown): v is string | number | boolean {
+  return typeof v === "string" || typeof v === "number" || typeof v === "boolean";
+}
+
+function isEmptyValue(v: unknown): boolean {
+  return v == null || v === "" || (Array.isArray(v) && v.length === 0);
+}
+
+/** One list item for a flat object inside an array: its leading text field,
+ *  then the remaining primitive fields, labelled. Parentheses (not square
+ *  brackets) for the label so it is never mistaken for a verify placeholder. */
+function objectItemText(o: Record<string, unknown>): string | undefined {
+  const textKey = LEAF_TEXT_KEYS.find((k) => typeof o[k] === "string" && (o[k] as string).trim());
+  const labelKey = LEAF_LABEL_KEYS.find((k) => typeof o[k] === "string" && (o[k] as string).trim());
+  const rest = Object.entries(o)
+    .filter(([k, v]) => k !== textKey && k !== labelKey && isPrimitive(v) && String(v).trim())
+    .map(([k, v]) => `${humanizeKey(k)}: ${String(v)}`);
+  const label = labelKey ? ` (${o[labelKey] as string})` : "";
+  if (textKey) {
+    const head = `${o[textKey] as string}${label}`;
+    return rest.length ? `${head} — ${rest.join(" · ")}` : head;
+  }
+  return rest.length ? `${rest.join(" · ")}${label}` : undefined;
+}
+
+/** An extra value of unknown shape → readable blocks. Never raw JSON. */
+function extraValueBlocks(value: unknown, depth: number): Block[] {
+  if (isEmptyValue(value) || depth > 4) return [];
+  if (isPrimitive(value)) return [{ t: "p", text: String(value) }];
+  if (Array.isArray(value)) {
+    if (value.every(isPrimitive)) return [{ t: "ul", items: value.map(String) }];
+    const blocks: Block[] = [];
+    const items: string[] = [];
+    const flush = () => {
+      if (items.length) {
+        blocks.push({ t: "ul", items: [...items] });
+        items.length = 0;
+      }
+    };
+    for (const v of value) {
+      if (isPrimitive(v)) {
+        items.push(String(v));
+        continue;
+      }
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        const o = v as Record<string, unknown>;
+        const flat = Object.values(o).every((x) => isEmptyValue(x) || isPrimitive(x));
+        if (flat) {
+          const line = objectItemText(o);
+          if (line) items.push(line);
+          continue;
+        }
+        flush();
+        blocks.push(...extraObjectBlocks(o, depth + 1));
+        continue;
+      }
+      flush();
+      blocks.push(...extraValueBlocks(v, depth + 1));
+    }
+    flush();
+    return blocks;
+  }
+  if (typeof value === "object") return extraObjectBlocks(value as Record<string, unknown>, depth);
+  return [];
+}
+
+function extraObjectBlocks(o: Record<string, unknown>, depth: number): Block[] {
+  if (depth > 4) return [];
+  const entries = Object.entries(o).filter(([, v]) => !isEmptyValue(v));
+  if (!entries.length) return [];
+  // an all-primitive object reads best as key/value rows
+  if (entries.every(([, v]) => isPrimitive(v))) {
+    return [{ t: "kv", rows: entries.map(([k, v]): [string, string] => [humanizeKey(k), String(v)]) }];
+  }
+  const blocks: Block[] = [];
+  for (const [k, v] of entries) {
+    if (isPrimitive(v)) {
+      blocks.push({ t: "p", text: `${humanizeKey(k)}: ${String(v)}` });
+      continue;
+    }
+    const body = extraValueBlocks(v, depth + 1);
+    if (!body.length) continue;
+    blocks.push({ t: "h4", text: humanizeKey(k) });
+    blocks.push(...body);
+  }
+  return blocks;
+}
+
+/** Render every content field the bespoke renderer did not consume. */
+export function extraFieldBlocks(content: unknown, consumed: readonly string[]): Block[] {
+  const c = rec(content);
+  const blocks: Block[] = [];
+  for (const [k, v] of Object.entries(c)) {
+    if (consumed.includes(k) || isEmptyValue(v)) continue;
+    const body = extraValueBlocks(v, 1);
+    if (!body.length) continue;
+    blocks.push({ t: "h3", text: humanizeKey(k) });
+    blocks.push(...body);
+  }
+  return blocks;
+}
+
+// Keys each bespoke renderer consumes; everything else the reducer preserved
+// flows through extraFieldBlocks so accepted content is never dropped.
+const CONSUMED_KEYS: Record<JourneyStepKey, readonly string[]> = {
+  problem: ["statement", "interpretation", "context"],
+  evidence: [
+    "summary",
+    "researchQuestions",
+    "keyDates",
+    "institutions",
+    "allies",
+    "opponents",
+    "localMedia",
+    "unresolved",
+  ],
+  objective: ["dm", "action", "by", "mvw", "success", "smart", "constraints"],
+  decision_route: [
+    "formal",
+    "implementer",
+    "practical",
+    "processes",
+    "interventionPoints",
+    "deadlines",
+    "unresolved",
+  ],
+  power: ["statusQuoCost", "stakeholders"],
+  pressure: ["statusQuoCost", "pressures"],
+  strategy: [
+    "narrative",
+    "phases",
+    "route",
+    "coalition",
+    "audiences",
+    "resources",
+    "constraints",
+    "avoid",
+    "escalation",
+    "risks",
+    "tradeoffs",
+    "indicators",
+    "statusQuoCost",
+  ],
+  tactics: ["tactics"],
+  organising: [
+    "whoActs",
+    "whyParticipate",
+    "asks",
+    "roles",
+    "oneToOne",
+    "outreach",
+    "ladder",
+    "coalition",
+    "channels",
+    "event",
+    "followup",
+    "sustain",
+    "metrics",
+    "humanEssential",
+  ],
+  documents: ["summary", "notes"],
+};
+
+const BESPOKE_RENDERERS: Record<JourneyStepKey, (content: unknown) => Block[]> = {
   problem: renderProblem,
   evidence: renderEvidence,
   objective: renderObjective,
@@ -521,3 +726,13 @@ export const SECTION_RENDERERS: Record<JourneyStepKey, (content: unknown) => Blo
   organising: renderOrganising,
   documents: renderDocumentsOverview,
 };
+
+export const SECTION_RENDERERS: Record<JourneyStepKey, (content: unknown) => Block[]> = Object.fromEntries(
+  (Object.keys(BESPOKE_RENDERERS) as JourneyStepKey[]).map((key) => [
+    key,
+    (content: unknown): Block[] => [
+      ...BESPOKE_RENDERERS[key](content),
+      ...extraFieldBlocks(content, CONSUMED_KEYS[key]),
+    ],
+  ]),
+) as Record<JourneyStepKey, (content: unknown) => Block[]>;

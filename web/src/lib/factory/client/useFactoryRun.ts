@@ -119,6 +119,17 @@ export function useFactoryRun(opts: UseFactoryRunOptions): UseFactoryRunResult {
         if (!prev) {
           eventMapRef.current.set(e.sequence, e);
           changed = true;
+        } else if (
+          // Resends carry the freshest payload (fold contract, fold.ts
+          // normaliseEvents): OVERWRITE duplicates, never drop them. Skip the
+          // flush only for byte-identical repeats (routine poll overlap).
+          prev.eventId !== e.eventId ||
+          prev.at !== e.at ||
+          prev.stateVersion !== e.stateVersion ||
+          JSON.stringify(prev.payload) !== JSON.stringify(e.payload)
+        ) {
+          eventMapRef.current.set(e.sequence, e);
+          changed = true;
         }
         if (e.sequence > lastSeqRef.current) lastSeqRef.current = e.sequence;
       }

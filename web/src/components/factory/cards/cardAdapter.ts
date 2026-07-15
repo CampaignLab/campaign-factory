@@ -52,6 +52,12 @@ function deriveActivity(a: FoldAgentVM): CardActivity | undefined {
   if (last.type === "artefact.handoff") return { kind: "handoff", label: last.summary };
   if (last.type.startsWith("proposal.")) return { kind: "review", label: last.summary };
   if (last.type.startsWith("evidence.")) return { kind: "tool", label: last.summary };
+  if (last.type === "work.update") {
+    // Real work verbs + content-bearing summaries (reading/writing/thinking…).
+    // Carry the summary as the label so the cards render the actual work, not a
+    // generic "Analysis in progress" placeholder.
+    return { kind: "analysis", label: last.summary || undefined, sinceAt: last.at };
+  }
   if (a.status === "running") {
     // Running but the last semantic event is old-ish → a silent model turn.
     return { kind: "analysis", label: last.summary, sinceAt: a.lastEventAt ?? a.startedAt };
@@ -84,9 +90,13 @@ function deriveProposal(a: FoldAgentVM): {
 /** Map one W4 fold agent projection onto the W5 card view model. */
 export function foldAgentToCardVM(a: FoldAgentVM, ctx: CardAdaptContext): AgentCardVM {
   const backscroll = a.backscroll.map(toRow);
+  // Real bounded task from agent.started detail.task (new recordings); fall back
+  // to the roster responsibility, then the started/queued summary (old
+  // recordings emit a near-useless "<name> started" — keep it last).
   const assignment =
-    a.backscroll.find((r) => r.type === "agent.started" || r.type === "agent.queued")?.summary ??
+    a.task ??
     a.responsibility ??
+    a.backscroll.find((r) => r.type === "agent.started" || r.type === "agent.queued")?.summary ??
     "";
   const { proposal, awaitingReview } = deriveProposal(a);
   const lastEventAt = a.lastEventAt ?? a.startedAt ?? backscroll[backscroll.length - 1]?.at ?? new Date(0).toISOString();
