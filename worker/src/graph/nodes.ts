@@ -1,0 +1,606 @@
+// Graph node implementations. Agent execution is delegated to w3's
+// executeAgentTurn / runSynthesisReview (injected via RuntimeContext). Nodes own
+// durable identity, event emission, proposal capture, deterministic proposal
+// APPLICATION (via w1-db's reducer), Step Report stamping, cost/cancel guards,
+// and Terminal Gaps. Agents never mutate state (ADR 0008).
+
+import { randomUUID } from "node:crypto";
+import type { RunnableConfig } from "@langchain/core/runnables";
+import { agentDef, type AgentKey, type SpecialistKey } from "@web/lib/factory/contracts/roster.js";
+import { journeyStepByKey, type JourneyStepKey } from "@web/lib/factory/contracts/journey.js";
+import type { CampaignState, ChangeProposal, ProposalOp } from "@web/lib/factory/contracts/state.js";
+import type { AgentTaskEnvelope, AgentResult } from "@web/lib/factory/contracts/envelope.js";
+import type { ExecutorDeps } from "../agents/deps.js";
+import { contextFrom, type RuntimeContext } from "./context.js";
+import { GraphState, type GraphStateType, type PendingProposal } from "./state.js";
+import type { ReviewPass } from "./review-contract.js";
+import { checkCost } from "../cost.js";
+import * as store from "../store/index.js";
+
+type Patch = Partial<GraphStateType>;
+
+const MAX_INLINE_DOC_BYTES = 32 * 1024;
+
+function deadlineIso(ms: number): string {
+  return new Date(Date.now() + ms).toISOString();
+}
+
+// ---- Halt guard: cancellation (signal or DB status) + cost hard stop --------
+
+async function cancelled(ctx: RuntimeContext, campaignId: string): Promise<boolean> {
+  if (ctx.signal.aborted) return true;
+  const run = await store.getRun(ctx.sql, campaignId);
+  return run?.status === "cancelled";
+}
+
+// Returns a halt patch (recording gaps for the sections this node would build)
+// or null to proceed.
+async function guard(
+  ctx: RuntimeContext,
+  state: GraphStateType,
+  sections: string[],
+  checkCostGuard: boolean,
+): Promise<Patch | null> {
+  if (state.halted) {
+    return { terminalGaps: sections.map((s) => gapText(s, state.haltReason ?? "run halted")) };
+  }
+  if (await cancelled(ctx, state.campaignId)) {
+    const reason = "run cancelled";
+    return { halted: true, haltReason: reason, terminalGaps: sections.map((s) => gapText(s, reason)) };
+  }
+  if (checkCostGuard) {
+    const cost = await checkCost(ctx.sql, state.campaignId, ctx.batchId);
+    await ctx.emitter.emit({
+      type: "cost.update",
+      visibility: "public",
+      payload: {
+        summary: `Spend $${cost.campaignSpendUSD.toFixed(2)}${cost.campaignWarning ? " (warning)" : ""}`,
+        detail: { campaignUSD: cost.campaignSpendUSD, batchUSD: cost.batchSpendUSD },
+      },
+    });
+    if (cost.hardStop) {
+      return {
+        halted: true,
+        haltReason: cost.reason,
+        terminalGaps: sections.map((s) => gapText(s, cost.reason ?? "cost hard stop")),
+      };
+    }
+  }
+  return null;
+}
+
+function gapText(section: string, reason: string): string {
+  return `${section} not built (${reason})`;
+}
+
+// ---- One agent turn (delegated to w3) --------------------------------------
+
+function buildDeps(
+  ctx: RuntimeContext,
+  agentRunId: string,
+  key: AgentKey,
+  parentAgentRunId: string | undefined,
+  primaryStep: number,
+): ExecutorDeps {
+  return {
+    emit: ctx.emitter.forAgent({ agentRunId, parentAgentRunId, journeyStep: primaryStep }),
+    gate: ctx.gate,
+    sql: ctx.sql,
+    recordUsage: ctx.recordUsage,
+    agentDef: agentDef(key),
+    modelMode: ctx.modelMode,
+    signal: ctx.signal,
+    apiKey: ctx.apiKey,
+    now: () => new Date(),
+  };
+}
+
+async function runAgent(
+  ctx: RuntimeContext,
+  state: GraphStateType,
+  key: AgentKey,
+  parentAgentRunId?: string,
+): Promise<PendingProposal[]> {
+  const def = agentDef(key);
+  const agentRunId = randomUUID();
+  const primaryStep = def.journeySteps[0];
+  const version = state.stateVersion;
+
+  await store.createAgentRun(ctx.sql, {
+    agentRunId,
+    campaignId: state.campaignId,
+    batchId: ctx.batchId,
+    agentKey: key,
+    displayName: def.displayName,
+    parentAgentRunId,
+    status: "running",
+    journeySteps: def.journeySteps,
+    model: def.model,
+    effort: def.effort,
+  });
+  await ctx.emitter.emit({
+    type: "agent.started",
+    agentRunId,
+    parentAgentRunId,
+    journeyStep: primaryStep,
+    payload: {
+      summary: `${def.displayName} started`,
+      verb: "starting",
+      agentKey: key,
+      agentDisplayName: def.displayName,
+    },
+  });
+
+  const envelope: AgentTaskEnvelope = {
+    batchId: ctx.batchId,
+    campaignId: state.campaignId,
+    agentRunId,
+    parentAgentRunId,
+    stateVersion: version,
+    journeySteps: def.journeySteps,
+    task: `${def.responsibility}. Problem: "${state.problem}". Place: "${state.place}".`,
+    contextRefs: [],
+    evidenceRefs: [],
+    constraints: [],
+    toolPolicy: def.toolPolicy,
+    deadlineAt: deadlineIso(def.timeoutMs),
+  };
+  const deps = buildDeps(ctx, agentRunId, key, parentAgentRunId, primaryStep);
+
+  // One visible operational retry after a timeout/provider/tool failure.
+  let result: AgentResult | null = null;
+  for (let attempt = 1; attempt <= 2 && result === null; attempt++) {
+    try {
+      result = await ctx.executeAgentTurn(envelope, deps);
+    } catch (err) {
+      if (attempt === 1) {
+        await ctx.emitter.emit({
+          type: "agent.retry",
+          agentRunId,
+          journeyStep: primaryStep,
+          payload: { summary: `${def.shortName} retrying after a failure`, agentKey: key },
+        });
+        continue;
+      }
+      // Give up: visible failure + a Terminal Gap, but the graph continues.
+      await store.setAgentRunStatus(ctx.sql, agentRunId, "failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      await ctx.emitter.emit({
+        type: "agent.failed",
+        agentRunId,
+        journeyStep: primaryStep,
+        payload: { summary: `${def.displayName} failed`, agentKey: key, agentDisplayName: def.displayName },
+      });
+      await ctx.emitter.emit({
+        type: "gap.terminal",
+        agentRunId,
+        journeyStep: primaryStep,
+        payload: { summary: gapText(def.shortName, "agent failed"), agentKey: key },
+      });
+      return [];
+    }
+  }
+  if (!result) return [];
+
+  // Persist claims (assign id/author/version); collect for evidence-ref resolution.
+  const assignedClaimIds: string[] = [];
+  for (const draft of result.claims) {
+    const claim = await store.upsertClaim(ctx.sql, {
+      ...draft,
+      authorAgentRunId: agentRunId,
+      adjudicatedBy: key === "evidence_adjudicator" ? agentRunId : undefined,
+      stateVersion: version,
+    });
+    assignedClaimIds.push(claim.id);
+  }
+
+  // Nonblocking Judgement Request: record + emit + apply provisional default.
+  if (result.judgementRequest) {
+    const jr = result.judgementRequest;
+    const judgementId = randomUUID();
+    const full = {
+      id: judgementId,
+      campaignId: state.campaignId,
+      agentRunId,
+      kind: jr.kind,
+      question: jr.question,
+      options: jr.options,
+      provisionalDefault: jr.provisionalDefault,
+      rationale: jr.rationale,
+      affectedOutputs: jr.affectedOutputs,
+      status: "defaulted" as const,
+      answer: jr.provisionalDefault,
+    };
+    await store.insertJudgement(ctx.sql, full);
+    await ctx.emitter.emit({
+      type: "judgement.requested",
+      agentRunId,
+      journeyStep: primaryStep,
+      payload: { summary: `Judgement: ${jr.question}`, judgementId, agentKey: key, detail: { ...full } },
+    });
+    await ctx.emitter.emit({
+      type: "judgement.defaulted",
+      agentRunId,
+      journeyStep: primaryStep,
+      payload: {
+        summary: `Applied provisional default: ${jr.provisionalDefault}`,
+        judgementId,
+        detail: { judgementId, answer: jr.provisionalDefault },
+      },
+    });
+  }
+
+  // Specialist escalation is recorded but auto-declined (scope-guard cut #2).
+  if (result.specialistRequest) {
+    await ctx.emitter.emit({
+      type: "specialist.requested",
+      agentRunId,
+      payload: { summary: `Requested specialist: ${result.specialistRequest.specialist}`, agentKey: key },
+    });
+    await ctx.emitter.emit({
+      type: "specialist.rejected",
+      agentRunId,
+      payload: {
+        summary: "Escalation beyond the two selected specialists is out of scope for this build",
+        agentKey: key,
+      },
+    });
+  }
+
+  if (result.conflict) {
+    await ctx.emitter.emit({
+      type: "evidence.conflicted",
+      agentRunId,
+      payload: { summary: result.conflict.description, agentKey: key, claimIds: result.conflict.claimIds },
+    });
+  }
+
+  // Build full proposals (assign id/agentRunId/status), resolve evidence refs.
+  const pending: PendingProposal[] = [];
+  for (const draft of result.proposals) {
+    const proposal: ChangeProposal = {
+      ...draft,
+      id: randomUUID(),
+      agentRunId,
+      status: "submitted",
+    };
+    const resolved = store.resolveEvidenceRefs(proposal, assignedClaimIds);
+    await ctx.emitter.emit({
+      type: "proposal.submitted",
+      agentRunId,
+      journeyStep: primaryStep,
+      payload: { summary: resolved.summary || `${def.shortName} proposal`, proposalId: resolved.id, agentKey: key },
+    });
+    pending.push({ proposal: resolved, agentKey: key });
+  }
+
+  // Invisible QA (w3): deterministic checks always; Haiku pass in live only.
+  // Flags are surfaced to the reviewer (never as agent events).
+  let qaFlags: string[] = [];
+  try {
+    qaFlags = await ctx.runQA(
+      { result, def, campaignId: state.campaignId, agentRunId, batchId: ctx.batchId },
+      deps,
+    );
+  } catch {
+    qaFlags = [];
+  }
+  for (const pp of pending) pp.qaFlags = qaFlags;
+
+  await store.setAgentRunStatus(ctx.sql, agentRunId, result.status, {
+    workSummary: result.workSummary,
+    confidence: result.confidence,
+  });
+  await ctx.emitter.emit({
+    type: result.status === "complete" ? "agent.completed" : result.status === "partial" ? "agent.partial" : "agent.failed",
+    agentRunId,
+    journeyStep: primaryStep,
+    payload: {
+      summary: result.workSummary || `${def.displayName} ${result.status}`,
+      agentKey: key,
+      agentDisplayName: def.displayName,
+    },
+  });
+
+  return pending;
+}
+
+// ---- Specialist selection (deterministic scheduler, not an agent) -----------
+
+const SPECIALIST_HINTS: Array<[RegExp, SpecialistKey]> = [
+  [/council|cabinet|councillor|local authority|mayor|combined authority/i, "local_government"],
+  [/\bmp\b|parliament|minister|\bbill\b|commons|constituency/i, "parliamentary"],
+  [/nhs|regulator|ofsted|ofcom|agency|quango|transport for/i, "public_body"],
+  [/planning|application|development|consultation|local plan/i, "planning"],
+  [/media|news|resident|community|campaign group/i, "local_media"],
+  [/precedent|similar|opposition|objection|comparable/i, "precedent_opposition"],
+];
+
+function selectSpecialists(problem: string, place: string): SpecialistKey[] {
+  const text = `${problem} ${place}`;
+  const picked: SpecialistKey[] = [];
+  for (const [re, key] of SPECIALIST_HINTS) {
+    if (re.test(text) && !picked.includes(key)) picked.push(key);
+    if (picked.length === 2) break;
+  }
+  while (picked.length < 2) {
+    const fallback: SpecialistKey[] = ["local_government", "local_media"];
+    const next = fallback.find((k) => !picked.includes(k));
+    if (!next) break;
+    picked.push(next);
+  }
+  return picked.slice(0, 2);
+}
+
+// ---- Nodes ------------------------------------------------------------------
+
+export function researchDirectorNode() {
+  return async (state: GraphStateType, config?: RunnableConfig): Promise<Patch> => {
+    const ctx = contextFrom(config);
+    const halt = await guard(ctx, state, ["problem"], true);
+    if (halt) return halt;
+    const proposals = await runAgent(ctx, state, "research_director");
+
+    const specialists = selectSpecialists(state.problem, state.place);
+    for (const key of specialists) {
+      const def = agentDef(key);
+      await ctx.emitter.emit({
+        type: "specialist.approved",
+        payload: { summary: `Selected specialist: ${def.displayName}`, agentKey: key, detail: { useWhen: (def as { useWhen?: string }).useWhen } },
+      });
+    }
+    // Append (nodes run serially; reviewers clear). Proposals accumulate until
+    // the next reviewer pass consumes them.
+    return { pendingProposals: [...state.pendingProposals, ...proposals], selectedSpecialists: specialists };
+  };
+}
+
+export function specialistsClusterNode() {
+  return async (state: GraphStateType, config?: RunnableConfig): Promise<Patch> => {
+    const ctx = contextFrom(config);
+    const halt = await guard(ctx, state, ["evidence"], true);
+    if (halt) return halt;
+    const keys = state.selectedSpecialists;
+    for (const key of keys) {
+      await ctx.emitter.emit({
+        type: "specialist.spawned",
+        payload: { summary: `${agentDef(key).displayName} spawned`, agentKey: key },
+      });
+    }
+    // 2 selected specialists in parallel (real concurrent model calls, gated).
+    const results = await Promise.all(keys.map((k) => runAgent(ctx, state, k)));
+    return { pendingProposals: [...state.pendingProposals, ...results.flat()] };
+  };
+}
+
+// A node that runs a fixed set of agent keys in parallel and captures proposals.
+export function agentClusterNode(keys: AgentKey[], sections: string[]) {
+  return async (state: GraphStateType, config?: RunnableConfig): Promise<Patch> => {
+    const ctx = contextFrom(config);
+    const halt = await guard(ctx, state, sections, true);
+    if (halt) return halt;
+    const results = await Promise.all(keys.map((k) => runAgent(ctx, state, k)));
+    return { pendingProposals: [...state.pendingProposals, ...results.flat()] };
+  };
+}
+
+// ---- Reviewer node ----------------------------------------------------------
+
+export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
+  return async (state: GraphStateType, config?: RunnableConfig): Promise<Patch> => {
+    const ctx = contextFrom(config);
+    if (state.halted) return { pendingProposals: [] };
+    if (await cancelled(ctx, state.campaignId)) {
+      return { halted: true, haltReason: "run cancelled", pendingProposals: [] };
+    }
+    const pending = state.pendingProposals;
+    if (pending.length === 0) return { pendingProposals: [] };
+
+    const reviewerAgentRunId = state.reviewerAgentRunId;
+    const reviewerDef = agentDef("synthesis_reviewer");
+    const deps: ExecutorDeps = {
+      emit: ctx.emitter.forAgent({ agentRunId: reviewerAgentRunId, journeyStep: journeySteps[0] }),
+      gate: ctx.gate,
+      sql: ctx.sql,
+      recordUsage: ctx.recordUsage,
+      agentDef: reviewerDef,
+      modelMode: ctx.modelMode,
+      signal: ctx.signal,
+      apiKey: ctx.apiKey,
+      now: () => new Date(),
+    };
+
+    await ctx.emitter.emit({
+      type: "work.update",
+      agentRunId: reviewerAgentRunId,
+      journeyStep: journeySteps[0],
+      payload: { summary: `Reviewing ${pass} proposals`, verb: "reviewing", agentKey: "synthesis_reviewer" },
+    });
+
+    // Base state (before applying) — also the source of prior Step Reports.
+    let currentState: CampaignState = await store.getAcceptedState(ctx.sql, state.campaignId);
+    const priorStepReports: Array<{ step: number; report: string }> = [];
+    for (const [key, sec] of Object.entries(currentState.sections)) {
+      if (sec?.stepReport) priorStepReports.push({ step: journeyStepByKey(key as JourneyStepKey).step, report: sec.stepReport });
+    }
+    const qaFlagsByProposalId: Record<string, string[]> = {};
+    for (const pp of pending) {
+      if (pp.qaFlags && pp.qaFlags.length) qaFlagsByProposalId[pp.proposal.id] = pp.qaFlags;
+    }
+
+    const outcome = await ctx.review(
+      {
+        campaignId: state.campaignId,
+        batchId: ctx.batchId,
+        reviewerAgentRunId,
+        pass,
+        journeySteps,
+        proposals: pending.map((p) => p.proposal),
+        priorStepReports,
+        qaFlagsByProposalId,
+      },
+      deps,
+    );
+    const reviewById = new Map(outcome.reviews.map((r) => [r.proposalId, r]));
+
+    // Apply accepted proposals sequentially against the live state version, in
+    // INPUT order (director's evidence set_section before specialists' merges).
+    let version = currentState.version;
+    const acceptedSteps: string[] = [];
+    let needsStrategyRevision = false;
+
+    // Counts for the Step Build Receipt (W4 nice-to-have).
+    const agentCount = (await store.listAgentRuns(ctx.sql, state.campaignId)).length;
+    const sourceCount = (await store.getSources(ctx.sql, state.campaignId)).length;
+
+    for (const pp of pending) {
+      const proposal = pp.proposal;
+      const r = reviewById.get(proposal.id) ?? {
+        proposalId: proposal.id,
+        decision: "return" as const,
+        rationale: "reviewer omitted a decision",
+        stepReport: undefined,
+      };
+
+      if (r.decision === "reject") {
+        await ctx.emitter.emit({
+          type: "proposal.rejected",
+          agentRunId: proposal.agentRunId,
+          payload: { summary: r.rationale || "Proposal rejected", proposalId: proposal.id, agentKey: pp.agentKey },
+        });
+        continue;
+      }
+      if (r.decision === "return") {
+        await ctx.emitter.emit({
+          type: "proposal.returned",
+          agentRunId: proposal.agentRunId,
+          payload: { summary: r.rationale || "Returned for one revision", proposalId: proposal.id, agentKey: pp.agentKey },
+        });
+        if (pass === "strategy" && state.strategyRevisions < 1) needsStrategyRevision = true;
+        continue;
+      }
+
+      // accept → rebase to current version (sequential applies within a cluster)
+      const rebased: ChangeProposal = { ...proposal, baseStateVersion: version };
+      const { state: nextState, errors } = store.applyProposal(currentState, rebased);
+      if (errors.length > 0) {
+        await ctx.emitter.emit({
+          type: "proposal.rejected",
+          agentRunId: proposal.agentRunId,
+          payload: { summary: `Reducer rejected: ${errors[0]}`, proposalId: proposal.id, agentKey: pp.agentKey },
+        });
+        await ctx.emitter.emit({
+          type: "gap.terminal",
+          agentRunId: proposal.agentRunId,
+          payload: { summary: gapText(pp.agentKey, "invalid proposal content"), agentKey: pp.agentKey },
+        });
+        continue;
+      }
+
+      // Stamp Step Reports onto touched sections (deterministic; ADR 0008).
+      if (r.stepReport) stampStepReport(nextState, rebased.ops, r.stepReport);
+
+      version = nextState.version;
+      currentState = nextState;
+      await store.saveStateVersion(ctx.sql, {
+        campaignId: state.campaignId,
+        version,
+        state: nextState,
+        createdByAgentRunId: proposal.agentRunId,
+        proposalId: proposal.id,
+      });
+      await store.setRunStateVersion(ctx.sql, state.campaignId, version);
+
+      await ctx.emitter.emit({
+        type: "proposal.accepted",
+        agentRunId: proposal.agentRunId,
+        payload: { summary: r.rationale || "Accepted", proposalId: proposal.id, agentKey: pp.agentKey },
+      });
+      await ctx.emitter.emit({
+        type: "proposal.applied",
+        agentRunId: proposal.agentRunId,
+        stateVersion: version,
+        payload: { summary: `Applied to campaign state v${version}`, proposalId: proposal.id, agentKey: pp.agentKey },
+      });
+
+      // Emit the FULL accepted content per op (events are the transport).
+      for (const op of rebased.ops) {
+        if (op.op === "set_section" || op.op === "merge_section") {
+          const step = op.step as JourneyStepKey;
+          const sectionState = nextState.sections[step];
+          acceptedSteps.push(step);
+          await ctx.emitter.emit({
+            type: "section.status",
+            agentRunId: proposal.agentRunId,
+            journeyStep: journeyStepByKey(step).step,
+            stateVersion: version,
+            payload: {
+              summary: `Section accepted: ${journeyStepByKey(step).title}`,
+              sectionStep: journeyStepByKey(step).step,
+              sectionStatus: "accepted",
+              detail: {
+                content: sectionState?.content,
+                stepReport: sectionState?.stepReport ?? r.stepReport,
+                evidenceClaimIds: sectionState?.evidenceClaimIds ?? [],
+                nextChecks: nextState.nextChecks,
+                agentCount,
+                sourceCount,
+              },
+            },
+          });
+        } else if (op.op === "set_pack") {
+          const doc = nextState.documents.find((d) => d.key === op.document);
+          const resources = doc?.resources ?? op.resources;
+          const inline = JSON.stringify(resources).length <= MAX_INLINE_DOC_BYTES;
+          await ctx.emitter.emit({
+            type: "document.status",
+            agentRunId: proposal.agentRunId,
+            stateVersion: version,
+            payload: {
+              summary: `Document ready: ${op.document}`,
+              documentKey: op.document,
+              documentStatus: "ready",
+              detail: {
+                documentKey: op.document,
+                documentStatus: "ready",
+                version,
+                ...(inline ? { resources } : {}),
+              },
+            },
+          });
+        }
+      }
+    }
+
+    if (outcome.passStepReport) {
+      await ctx.emitter.emit({
+        type: "work.update",
+        agentRunId: reviewerAgentRunId,
+        journeyStep: journeySteps[0],
+        payload: { summary: outcome.passStepReport, agentKey: "synthesis_reviewer" },
+      });
+    }
+
+    const patch: Patch = { pendingProposals: [], stateVersion: version, acceptedSteps };
+    if (needsStrategyRevision) {
+      patch.needsStrategyRevision = true;
+      patch.strategyRevisions = state.strategyRevisions + 1;
+    } else {
+      patch.needsStrategyRevision = false;
+    }
+    return patch;
+  };
+}
+
+function stampStepReport(state: CampaignState, ops: ProposalOp[], stepReport: string): void {
+  for (const op of ops) {
+    if (op.op === "set_section" || op.op === "merge_section") {
+      const s = state.sections[op.step as JourneyStepKey];
+      if (s) s.stepReport = stepReport;
+    }
+  }
+}
+
+// Re-export the state root so build.ts imports one place.
+export { GraphState };
