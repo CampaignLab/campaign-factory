@@ -334,11 +334,24 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
       // the last assistant turn is plain text — so it is not needed either.
       const msg2 = await runCall(
         (signal) =>
-          call(client, { ...baseParams, messages, tools: undefined } as Parameters<typeof call>[1], {
-            onUsage,
-            onProgress,
-            signal,
-          }),
+          call(
+            client,
+            {
+              ...baseParams,
+              messages,
+              tools: undefined,
+              // A truncated first attempt would truncate again at the same
+              // budget — give the correction room to finish the object.
+              max_tokens: truncated
+                ? Math.min(spec.maxOutputTokens * 2, 16000)
+                : baseParams.max_tokens,
+            } as Parameters<typeof call>[1],
+            {
+              onUsage,
+              onProgress,
+              signal,
+            },
+          ),
         Math.max(1, remaining()),
         deps.signal,
       );

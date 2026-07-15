@@ -351,8 +351,12 @@ export function agentDef(key: AgentKey): AgentDef {
 const EXPRESS_MAX_OUTPUT_TOKENS = 8000;
 
 const EXPRESS_OVERRIDES: Partial<Record<AgentKey, Partial<Omit<AgentDef, "key" | "kind">>>> = {
-  research_director: { searchBudget: 1 },
-  evidence_adjudicator: { searchBudget: 1 },
+  // Director/adjudicator carry the two largest output contracts: at high
+  // effort inside the 8k cap, thinking starved the JSON and both truncated to
+  // effectively-empty in every live express run (15 Jul). Medium effort +
+  // 12k gives the object room; search depth is unchanged.
+  research_director: { searchBudget: 1, effort: "medium", maxOutputTokens: 12000 },
+  evidence_adjudicator: { searchBudget: 1, effort: "medium", maxOutputTokens: 12000 },
   objective_strategist: { effort: "medium" },
   decision_route: { effort: "medium", searchBudget: 0, timeoutMs: 240000 },
   power_stakeholder: { effort: "medium" },
