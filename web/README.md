@@ -98,6 +98,98 @@ vercel deploy --prod                # build + deploy to production
 
 ---
 
+## Multi-agent factory (this branch)
+
+> Everything above describes **Current Production** (the routed `after()` pipeline), which is
+> **unchanged**. This section covers the `factory/multi-agent-build` rewrite (PR #10): a
+> fifteen-agent LangGraph graph running on a separate always-on **worker**, surfaced through the
+> Next.js app. The worker itself is documented in [`../worker/README.md`](../worker/README.md);
+> the whole-repo overview is in [`../README.md`](../README.md).
+
+**Surfaces (routes in this app)**
+
+- `/factory` — public single-campaign **Campaign Assembly View**.
+- `/factory/present` — presenter **code-gated** batch intake → **Factory Gallery** at `/factory/gallery/[batchId]`.
+- `/factory/admin/costs` — internal cost + latency ledger (gated by `CF_ADMIN_KEY`).
+- `/factory/replay/conference` — pinned immutable replay.
+
+### Local run
+
+The web app and the worker are two processes against the same Postgres:
+
+```bash
+# 1. Worker (from the repo root)
+cd worker
+cp .env.example .env          # then set FACTORY_SIGNING_SECRET and FACTORY_MODEL_MODE
+npm install
+npm run start                 # :8787 — applies factory migrations on boot, then serves
+
+# 2. Web — the usual `npm run dev` on :3000, with the FACTORY_* vars in web/.env.local
+```
+
+The worker **auto-migrates on boot** (`FACTORY_AUTO_MIGRATE=1`), so there is no separate factory
+migration step in dev. `web/.env.local` must carry the factory variables listed below (names only —
+no values are committed to this repo). `FACTORY_SIGNING_SECRET`, `FACTORY_ENV_ID`, and
+`FACTORY_MODEL_MODE` **must agree** across web and worker, or runs fail closed.
+
+### Mock vs live
+
+`FACTORY_MODEL_MODE=mock` runs the **full graph — events, SSE, recovery, and replay — with
+deterministic fixtures and zero model calls**, so the entire system is exercisable without an API
+key. Mock runs finalise as an honest `partial` (fixture claims are never labelled "Verified", so
+documents legitimately need verification). `FACTORY_MODEL_MODE=live` calls the real Anthropic API
+and additionally requires `ANTHROPIC_API_KEY` (usually inherited from `web/.env.local`).
+
+### Factory environment variables
+
+Shared web ↔ worker contract (names only, no values):
+
+| Variable | Read by | Purpose |
+|---|---|---|
+| `FACTORY_SIGNING_SECRET` | web + worker | Shared HMAC secret for signed start/status/cancel/judgement requests. **Must match.** |
+| `FACTORY_WORKER_URL` | web (server) | Worker base URL as seen from the web server. |
+| `NEXT_PUBLIC_FACTORY_WORKER_URL` | web (browser) | Worker base URL as seen from the browser for the SSE stream; often the same as above. |
+| `FACTORY_ENV_ID` | web + worker | Declared environment identity (ADR 0014). Must match the worker **and** the DB marker row, else runs fail closed. |
+| `FACTORY_DATABASE_URL` | web + worker | Postgres URL for the factory schema (direct/unpooled). Falls back to `DATABASE_URL_UNPOOLED` then `DATABASE_URL`. |
+| `FACTORY_MODEL_MODE` | worker | `mock` (zero model calls) or `live`. Owned by the worker; the web app defers to it. |
+| `CF_PRESENTER_CODE` | web + worker | Code that gates `/factory/present`. Fail-closed (503) if unset on a public deploy. |
+| `CF_ADMIN_KEY` | web | Secret for the admin surfaces, including the factory cost ledger at `/factory/admin/costs`. |
+| `FACTORY_DIAG` / `FACTORY_DIAG_STREAM` | worker | Diagnostics: raw provider exceptions / message-level wire dumps from the model layer. No-ops when unset; safe in prod. |
+
+The worker's own knobs (`PORT`, `FACTORY_AUTO_MIGRATE`, `FACTORY_DB_POOL_MAX`,
+`CF_PRESENTER_SPEND_CEILING_USD`) are documented in [`../worker/README.md`](../worker/README.md)
+and [`../worker/.env.example`](../worker/.env.example).
+
+### Tests
+
+- **Playwright end-to-end** (drives the real UI + worker + SSE/polling + read model): from `web/`,
+  `npm run test:factory`. It **does not** start the servers — the dev server (`:3000`) and worker
+  (`:8787`) must already be running. A full mock batch is ≈ 3 min. Per-suite assertions, env vars,
+  and the JSON summary format are in [`tests/factory/README.md`](tests/factory/README.md).
+- **Worker executable checks** (mock coverage of every agent, gateway SSRF guards, label coercion;
+  zero model calls): from `worker/`,
+  `FACTORY_MOCK_FAST=1 npx tsx src/agents/__checks__/gateway-and-labels.ts`. See
+  [`../worker/README.md`](../worker/README.md).
+- **Typecheck:** `npx tsc --noEmit` in both `web/` and `worker/`.
+
+### Preview / Railway deployment (brief)
+
+- The worker deploys to **Railway** from the **`Dockerfile` at the repo root** — it builds from the
+  root because the worker imports runtime-neutral modules from `web/src` via tsconfig paths. Service
+  name `worker`; config in [`../railway.toml`](../railway.toml) (`/health` health check). Full notes:
+  [`../worker/README.md`](../worker/README.md).
+- The Vercel **preview** for this branch needs the `FACTORY_*` and `CF_PRESENTER_CODE` vars set as
+  **branch-scoped** preview env vars — including `NEXT_PUBLIC_FACTORY_WORKER_URL` pointing at the
+  deployed Railway worker. The Playwright batch spec has passed against the preview + Railway worker;
+  measured results and open items are in
+  [`../docs/product/factory-verification-results.md`](../docs/product/factory-verification-results.md).
+
+Latency tuning (first finding / first accepted section) is still ongoing; measured cost/latency and
+honest defects are recorded in
+[`../docs/product/factory-verification-results.md`](../docs/product/factory-verification-results.md).
+
+---
+
 ## ⚠️ Technical requirements before going live
 
 The current deploy is on the **Hobby** plan and is **not yet publicly usable**. Address
@@ -110,10 +202,14 @@ these before the conference (the Vercel account will be switched later):
    - **Upgrade the plan** (Pro allows up to ~800s ≈ 13 min via Fluid Compute — raise
      `maxDuration` accordingly). Note the plan stage alone has hit ~10 min, so 800s is
      tight for the tail.
-   - The accepted factory rewrite replaces `after()` execution with an isolated,
+   - The factory rewrite replaces `after()` execution with an isolated,
      always-on Railway worker using open-source LangGraph JS, Postgres checkpoints, and a
      durable Postgres queue. It deliberately does not stack Vercel Workflow around
      LangGraph. See `../docs/product/factory-implementation-parameters.md` and ADRs 0015–0016.
+     **This is now implemented on this branch — the factory rewrite addresses this blocker; see
+     the [Multi-agent factory](#multi-agent-factory-this-branch) section above and
+     `../docs/product/factory-verification-results.md`.** (Current Production still runs the
+     `after()` pipeline and is unchanged.)
 
 2. **Deployment Protection is ON.** Every request redirects to Vercel SSO, so the app
    isn't public. Disable it at **Project → Settings → Deployment Protection**
