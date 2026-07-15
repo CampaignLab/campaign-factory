@@ -174,8 +174,9 @@ const MOCK_RAW: Record<AgentKey, () => Record<string, unknown>> = {
     power: {
       stakeholders: [
         {
+          name: "Cabinet lead for transport",
           org: "Leicester City Council",
-          role: "Cabinet lead for transport",
+          role: "Cabinet member",
           tier: "decides",
           power: "High",
           position: "Unknown — likely supportive of active travel [Supported inference]",
@@ -188,6 +189,7 @@ const MOCK_RAW: Record<AgentKey, () => Record<string, unknown>> = {
           confidence: "Medium",
         },
         {
+          name: "Headteacher",
           org: "St John the Baptist CofE Primary School",
           role: "Headteacher / governing body",
           tier: "influences",

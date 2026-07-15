@@ -9,6 +9,7 @@ import { deterministicQA } from "../qa.js";
 import type { EmitFragment, ExecutorDeps } from "../deps.js";
 import { coerceLabel } from "@web/lib/pipeline/labels.js";
 import { coerceClaims } from "@web/lib/factory/agents/shared.js";
+import { validateSectionContent } from "@web/lib/factory/state/sections.js";
 import type {
   AgentDef,
   AgentResult,
@@ -142,6 +143,19 @@ async function main() {
     const workUpdates = events.filter((e) => e.type === "work.update").length;
     ok(`${def.key}: complete + allow-listed ops + honest labels`, result.status === "complete" && opsOk && labelsOk, `status=${result.status} opsOk=${opsOk} labelsOk=${labelsOk}`);
     ok(`${def.key}: emitted work updates`, workUpdates >= 1, `workUpdates=${workUpdates}`);
+    // Every full set_section must satisfy w1's real reducer schema — this is the
+    // exact validation w2's applyProposal runs, so mock content that would be
+    // rejected in a live graph is caught here (e.g. a stakeholder missing name).
+    const sectionErrors: string[] = [];
+    for (const p of result.proposals) {
+      for (const o of p.ops as Array<{ op: string; step?: unknown; content?: unknown }>) {
+        if (o.op === "set_section") {
+          const v = validateSectionContent(o.step as never, o.content);
+          if (!v.ok) sectionErrors.push(`${String(o.step)}: ${v.errors.slice(0, 3).join("; ")}`);
+        }
+      }
+    }
+    ok(`${def.key}: set_section content valid vs w1 schema`, sectionErrors.length === 0, sectionErrors.join(" | "));
   }
 
   // research director selects a specialist pair via handoffs.
