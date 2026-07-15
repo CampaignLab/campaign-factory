@@ -54,8 +54,11 @@ export async function POST(req: Request) {
     return { problem: it.problem.trim(), place: it.place.trim() };
   });
 
+  // Presenter demo batches run EXPRESS by default (user decision, 15 Jul):
+  // spectacle with completing briefs. Send profile:"full" explicitly for the
+  // long-form graph.
   const profileRaw = (b as { profile?: unknown }).profile;
-  const profile = profileRaw === "express" ? "express" : "full";
+  const profile = profileRaw === "full" ? "full" : "express";
 
   const forwarded = await forwardSigned("POST", "/batches", {
     intakes: cleaned,

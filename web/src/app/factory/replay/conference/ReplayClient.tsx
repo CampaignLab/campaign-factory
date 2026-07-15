@@ -112,6 +112,14 @@ export function ReplayClient({
     onBufferReset,
   });
 
+  // Spectacle default (user decision, 15 Jul): the session opens at 4x.
+  const speedSeeded = useRef(false);
+  useEffect(() => {
+    if (speedSeeded.current) return;
+    speedSeeded.current = true;
+    setSpeed(4);
+  }, [setSpeed]);
+
   // Permanent, honest tab title.
   useEffect(() => {
     const prev = document.title;
