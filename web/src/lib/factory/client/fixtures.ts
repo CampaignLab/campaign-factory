@@ -184,6 +184,7 @@ export const FIXTURE_EVENTS: FactoryEvent[] = [
         content: {
           statement:
             "Secure a permanent, enforced school street outside St John the Baptist CofE Primary before the experimental order lapses.",
+          campaignName: "Safe Street for St John's",
           interpretation:
             "Read as a highways decision owned by Leicester City Council: make an experimental traffic order permanent, with enforcement attached.",
           context: {
