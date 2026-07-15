@@ -22,6 +22,7 @@ import type { AgentDef } from "@web/lib/factory/contracts/index.js";
 import type { AgentTurnFn, ExecutorDeps } from "./deps.js";
 import { buildTools } from "./gateway.js";
 import {
+  diag,
   runModelTurn,
   TurnAbortedError,
   TurnTimeoutError,
@@ -92,6 +93,7 @@ async function runWithOperationalRetry(
   try {
     return await runModelTurn(spec, deps);
   } catch (e) {
+    diag(`${spec.def.key} attempt 1 failed`, e);
     if (e instanceof TurnAbortedError) throw e;
     void deps.emit({
       type: "agent.retry",
@@ -106,6 +108,7 @@ async function runWithOperationalRetry(
     try {
       return await runModelTurn(spec, deps);
     } catch (e2) {
+      diag(`${spec.def.key} attempt 2 failed`, e2);
       if (e2 instanceof TurnAbortedError) throw e2;
       return null;
     }
