@@ -106,14 +106,14 @@ vercel deploy --prod                # build + deploy to production
 > Next.js app. The worker itself is documented in [`../worker/README.md`](../worker/README.md);
 > the whole-repo overview is in [`../README.md`](../README.md).
 
-**Surfaces (routes in this app)** — the four screens (see the root README for the product framing):
+**Surfaces (routes in this app)** — the four screens; the full URL map is in the root [`../README.md`](../README.md):
 
-1. `/` — **Campaign Builder**: the single-agent legacy demo (gated by `CF_ACCESS_CODE`).
-2. `/factory` — **Factory, single campaign**: public multi-agent audience path (express profile, 15-min cap) → **Campaign Assembly View** at `/factory/c/[campaignId]`.
-3. `/presenter` → `/factory/present` — **Presenter desk**: fire a 1–5 campaign batch on stage (no access code; sessions auto-issue) → **Factory Gallery** at `/factory/gallery/[batchId]`.
-4. `/live` → `/factory/replay/conference` — **Replay**: the pre-loaded 15-minute conference session (condensed playback of a pinned real recording). True real-time spectator mirror: `/factory/live`.
+1. `/` → `/factory` — **Factory, single campaign** is the front door (conference decision, 15 Jul 2026): the public multi-agent audience path (express profile, 15-min cap) → **Campaign Assembly View** at `/factory/c/[campaignId]`.
+2. `/presenter` → `/factory/present` — **Presenter desk**: fire a 1–5 campaign batch on stage (no access code; sessions auto-issue) → **Factory Gallery** at `/factory/gallery/[batchId]` (presenter cookie required).
+3. `/live` → `/factory/replay/conference` — **Replay**: the pre-loaded 15-minute conference session (condensed playback of a pinned real recording). True real-time spectator mirror of the latest presenter batch: `/factory/live`.
+4. `/legacy` — **Campaign Builder**: the single-agent legacy demo (the routed pipeline that is production on `main`), moved off the homepage and unlinked from the nav; starting a run stays gated by `CF_ACCESS_CODE`.
 
-Supporting routes: `/factory/admin/costs` — internal cost + latency ledger (gated by `CF_ADMIN_KEY`).
+Supporting routes: `/how` (public explainer) · `/factory/admin/costs` (internal cost + latency ledger, gated by `CF_ADMIN_KEY`) · `/wall`, `/c/[id]`, `/admin` (legacy wall surfaces).
 
 ### Local run
 
@@ -154,7 +154,7 @@ Shared web ↔ worker contract (names only, no values):
 | `FACTORY_ENV_ID` | web + worker | Declared environment identity (ADR 0014). Must match the worker **and** the DB marker row, else runs fail closed. |
 | `FACTORY_DATABASE_URL` | web + worker | Postgres URL for the factory schema (direct/unpooled). Falls back to `DATABASE_URL_UNPOOLED` then `DATABASE_URL`. |
 | `FACTORY_MODEL_MODE` | worker | `mock` (zero model calls) or `live`. Owned by the worker; the web app defers to it. |
-| `CF_PRESENTER_CODE` | web + worker | Code that gates `/factory/present`. Fail-closed (503) if unset on a public deploy. |
+| `CF_PRESENTER_CODE` | web + worker | Optional since 15 Jul 2026 — presenter sessions auto-issue without a code. If set, a supplied wrong code is still rejected (the old coded flow keeps working). |
 | `CF_ADMIN_KEY` | web | Secret for the admin surfaces, including the factory cost ledger at `/factory/admin/costs`. |
 | `FACTORY_DIAG` / `FACTORY_DIAG_STREAM` | worker | Diagnostics: raw provider exceptions / message-level wire dumps from the model layer. No-ops when unset; safe in prod. |
 
