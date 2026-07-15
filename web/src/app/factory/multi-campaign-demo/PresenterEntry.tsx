@@ -80,13 +80,13 @@ function AutoSession({ onAuthed }: { onAuthed: () => void }) {
 
   return (
     <div className="mx-auto max-w-md px-6 py-16">
-      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Presenter</p>
+      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Multi-campaign demo</p>
       <h1 className="mt-2 text-3xl font-medium tracking-tight">
-        {error ? "Open the presenter desk" : "Opening the presenter desk…"}
+        {error ? "Open the multi-campaign demo" : "Opening the multi-campaign demo…"}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        The presenter route runs batches of up to five campaigns. The public site runs one campaign
-        at a time.
+        The multi-campaign demo runs batches of up to five campaigns at once. The public site runs
+        one campaign at a time.
       </p>
       {error ? (
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3">

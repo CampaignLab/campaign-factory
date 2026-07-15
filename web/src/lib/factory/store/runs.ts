@@ -173,6 +173,23 @@ export async function listRunsByBatch(sql: Db, batchId: BatchId): Promise<RunRec
   return rows.map(mapRun);
 }
 
+// Finished presenter-batch campaigns for this environment, newest first —
+// surfaces the on-stage demo runs as individual cards in the public /gallery.
+// Presenter runs only: public self-serve runs stay private by default.
+export async function listFinishedPresenterRuns(
+  sql: Db,
+  environmentId: string,
+  limit = 60,
+): Promise<RunRecord[]> {
+  const rows = await sql<Row[]>`
+    select * from factory.factory_runs
+     where mode = 'presenter' and environment_id = ${environmentId}
+       and status in ('completed', 'partial')
+     order by completed_at desc nulls last
+     limit ${limit}`;
+  return rows.map(mapRun);
+}
+
 export interface SetRunStatusOpts {
   error?: string;
   markStarted?: boolean;

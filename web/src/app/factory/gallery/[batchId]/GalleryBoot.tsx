@@ -80,7 +80,7 @@ function BatchRecovery({ batchId, presenter }: { batchId: string; presenter: boo
           the factory again.
         </p>
         <a
-          href="/factory/present"
+          href="/factory/multi-campaign-demo"
           className="mt-6 inline-block rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background"
         >
           Start a new batch

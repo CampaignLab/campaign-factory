@@ -50,7 +50,7 @@ there is no separate migration step.
 ### Handy scripts
 
 - `node scripts/seed-fixture.mjs` — insert a real campaign fixture as a completed run,
-  so you can exercise the UI (`/c/<id>`, `/wall`) without a live run. Needs `DATABASE_URL`.
+  so you can exercise the UI (`/c/<id>`, `/gallery`) without a live run. Needs `DATABASE_URL`.
 - `/dev/preview` — dev-only route that renders the journey from a bundled fixture (no DB, no run).
 - `node scripts/check-neon.mjs` — verify connectivity + schema against the `DATABASE_URL` in `.env.local`.
 
@@ -109,11 +109,11 @@ vercel deploy --prod                # build + deploy to production
 **Surfaces (routes in this app)** — the four screens; the full URL map is in the root [`../README.md`](../README.md):
 
 1. `/` → `/factory` — **Factory, single campaign** is the front door (conference decision, 15 Jul 2026): the public multi-agent audience path (express profile, 15-min cap) → **Campaign Assembly View** at `/factory/c/[campaignId]`.
-2. `/presenter` → `/factory/present` — **Presenter desk**: fire a 1–5 campaign batch on stage (no access code; sessions auto-issue) → **Factory Gallery** at `/factory/gallery/[batchId]` (presenter cookie required).
+2. `/presenter` → `/factory/multi-campaign-demo` — **Multi-campaign demo** (presenter desk): fire a 1–5 campaign batch on stage (no access code; sessions auto-issue) → **Factory Gallery** at `/factory/gallery/[batchId]` (presenter cookie required). `/factory/present` redirects here.
 3. `/live` → `/factory/replay/conference` — **Replay**: the pre-loaded 15-minute conference session (condensed playback of a pinned real recording). True real-time spectator mirror of the latest presenter batch: `/factory/live`.
 4. `/legacy` — **Campaign Builder**: the single-agent legacy demo (the routed pipeline that is production on `main`), moved off the homepage and unlinked from the nav; starting a run stays gated by `CF_ACCESS_CODE`.
 
-Supporting routes: `/how` (public explainer) · `/factory/admin/costs` (internal cost + latency ledger, gated by `CF_ADMIN_KEY`) · `/wall`, `/c/[id]`, `/admin` (legacy wall surfaces).
+Supporting routes: `/gallery` (finished on-stage batch campaigns + legacy shared ones with a legacy pill; `/wall` redirects here) · `/how` (public explainer) · `/factory/admin/costs` (internal cost + latency ledger, gated by `CF_ADMIN_KEY`) · `/c/[id]`, `/admin` (legacy surfaces).
 
 ### Local run
 

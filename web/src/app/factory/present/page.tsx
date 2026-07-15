@@ -1,19 +1,8 @@
-// Presenter route. If a valid presenter session cookie is already present we
-// skip straight to batch intake; otherwise the code gate shows first. The cookie
-// is HttpOnly and verified server-side (ADR 0013).
+// Old presenter-desk path, kept so existing links and QR codes survive the
+// rename to /factory/multi-campaign-demo (15 Jul 2026).
 
-import { cookies } from "next/headers";
-import { PRESENTER_COOKIE, verifyPresenterToken } from "@/app/api/factory/present/session";
-import { PresenterEntry } from "./PresenterEntry";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic"; // reads the request cookie
-
-export default async function PresentPage() {
-  const store = await cookies();
-  const authed = verifyPresenterToken(store.get(PRESENTER_COOKIE)?.value);
-  return (
-    <main className="min-h-dvh">
-      <PresenterEntry initiallyAuthed={authed} />
-    </main>
-  );
+export default function PresentAlias() {
+  redirect("/factory/multi-campaign-demo");
 }

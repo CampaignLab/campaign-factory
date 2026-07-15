@@ -69,6 +69,7 @@ Key points (full detail in [`web/README.md`](web/README.md) and [`worker/README.
 | `/` | Redirects to `/factory` — the factory is the front door (conference decision, 15 Jul 2026). |
 | [`/factory`](web/src/app/factory/page.tsx) | Public intake: problem + named place. Starts an express-profile run and redirects to the assembly view. |
 | [`/factory/c/[campaignId]`](web/src/app/factory/c/%5BcampaignId%5D/page.tsx) | The **Campaign Assembly View** — the live per-campaign page. The brief opens immediately; the client attaches the SSE/polling event stream. |
+| [`/gallery`](web/src/app/gallery/page.tsx) | The **Campaign Gallery**: finished on-stage batch campaigns as individual cards, alongside shared campaigns from the legacy builder (marked with a legacy pill). `/wall` redirects here. |
 | [`/how`](web/src/app/how/page.tsx) | Standalone "how it works" explainer, linked from the footer. |
 
 ### Conference / session surfaces
@@ -78,9 +79,9 @@ Key points (full detail in [`web/README.md`](web/README.md) and [`worker/README.
 | [`/live`](web/src/app/live/page.tsx) | **Audience link for the session** — redirects to `/factory/replay/conference`. |
 | [`/factory/replay/conference`](web/src/app/factory/replay/conference/page.tsx) | The pinned, immutable **recorded run**, condensed to exactly 15:00 (honestly labelled, real-time toggle). Rendered entirely from stored Factory Events through the same renderer as a live run — zero model calls, zero writes. The route never changes; promotion is a back-office CLI step (`scripts/promote-replay.mjs`). Shows an honest empty state if nothing is pinned. |
 | [`/factory/live`](web/src/app/factory/live/page.tsx) | The **true real-time spectator view**: read-only mirror of the most recent presenter batch's gallery (polling, no tokens). Falls back to the recorded replay when no batch has run. |
-| [`/presenter`](web/src/app/presenter/page.tsx) | Alias — redirects to `/factory/present`. |
-| [`/factory/present`](web/src/app/factory/present/page.tsx) | The **presenter desk**: fire a batch of 1–5 campaigns on stage (full or express profile). Code gate first; a valid HttpOnly presenter cookie (verified server-side, ADR 0013) skips straight to batch intake. |
-| [`/factory/gallery/[batchId]`](web/src/app/factory/gallery/%5BbatchId%5D/page.tsx) | The presenter's live **Factory Gallery** for a batch — every agent workspace open at once over the assembling brief, plus a Batch Receipt. Requires the presenter cookie; otherwise redirects to `/factory/present`. |
+| [`/presenter`](web/src/app/presenter/page.tsx) | Alias — redirects to `/factory/multi-campaign-demo`. |
+| [`/factory/multi-campaign-demo`](web/src/app/factory/multi-campaign-demo/page.tsx) | The **multi-campaign demo** (presenter desk): fire a batch of 1–5 campaigns on stage (full or express profile). A presenter session auto-issues as an HttpOnly cookie (verified server-side, ADR 0013); a valid one skips straight to batch intake. `/factory/present` redirects here. |
+| [`/factory/gallery/[batchId]`](web/src/app/factory/gallery/%5BbatchId%5D/page.tsx) | The presenter's live **Factory Gallery** for a batch — every agent workspace open at once over the assembling brief, plus a Batch Receipt. Requires the presenter cookie; otherwise redirects to `/factory/multi-campaign-demo`. |
 
 ### Legacy (single-agent builder)
 
@@ -88,7 +89,7 @@ Key points (full detail in [`web/README.md`](web/README.md) and [`worker/README.
 |---|---|
 | [`/legacy`](web/src/app/legacy/page.tsx) | The original single-agent Campaign Builder (the routed pipeline that is production on `main`), moved off the homepage and unlinked from the nav. Kept as the tested fallback and comparison point. |
 | [`/c/[id]`](web/src/app/c/%5Bid%5D/page.tsx) | Shareable, read-only campaign page from the legacy builder (private-by-default URL, durable Postgres read). |
-| [`/wall`](web/src/app/wall/page.tsx) | The legacy campaign gallery — campaigns people made and chose to share. |
+| `/wall` | Old gallery path — redirects to `/gallery`. |
 
 ### Admin & dev
 

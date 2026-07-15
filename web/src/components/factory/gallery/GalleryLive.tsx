@@ -162,7 +162,7 @@ function PresenterControls({ batchId }: { batchId: string }) {
         Use recorded run
       </a>
       <span style={{ opacity: 0.3 }}>·</span>
-      <a href="/factory/present" style={{ color: "rgba(242,243,245,0.7)", textDecoration: "none" }}>
+      <a href="/factory/multi-campaign-demo" style={{ color: "rgba(242,243,245,0.7)", textDecoration: "none" }}>
         New batch
       </a>
     </div>

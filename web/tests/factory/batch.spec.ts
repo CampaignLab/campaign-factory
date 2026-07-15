@@ -33,7 +33,7 @@ interface CampaignTiming {
 test("presenter batch: five campaigns from intake to receipts", async ({ page, context }) => {
   // -- a. Code gate → cookie-gated intake ------------------------------------
   await test.step("presenter code gate reveals the cookie-gated intake", async () => {
-    await page.goto("/factory/present");
+    await page.goto("/factory/multi-campaign-demo");
     await page.getByLabel("Presenter code").fill(PRESENTER_CODE);
     await page.getByRole("button", { name: /Continue|Checking/ }).click();
 

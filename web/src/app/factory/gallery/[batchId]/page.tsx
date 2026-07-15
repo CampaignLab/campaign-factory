@@ -13,7 +13,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ batchI
   const { batchId } = await params;
   const store = await cookies();
   if (!verifyPresenterToken(store.get(PRESENTER_COOKIE)?.value)) {
-    redirect("/factory/present");
+    redirect("/factory/multi-campaign-demo");
   }
   return (
     <main className="min-h-dvh">
