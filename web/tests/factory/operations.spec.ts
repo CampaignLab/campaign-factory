@@ -1753,6 +1753,69 @@ test("operations workbench: malformed source evidence entries do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: rejects inconsistent evidence totals before hydration", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 11, lastSequence: 101, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Inconsistent evidence totals should not hydrate Ormskirk</p>",
+            plainText: "Inconsistent evidence totals should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: [],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [
+            {
+              label: "Verification incomplete",
+              count: 2,
+              claims: [
+                {
+                  id: "claim-1",
+                  text: "Evidence count mismatch should not hydrate Ormskirk",
+                  type: "other",
+                  label: "Verification incomplete",
+                  loadBearing: true,
+                  confidence: "high",
+                  sourceCount: 0,
+                  affectedOutputs: [],
+                },
+              ],
+            },
+          ],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Inconsistent evidence totals regression", reason: "Contract validation", affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 2, loadBearing: 2, verifiedLoadBearing: 2, unresolvedLoadBearing: 1 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Inconsistent evidence totals should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Evidence count mismatch should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: rejects fractional source counters before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

@@ -164,12 +164,12 @@ function isOperationsEvidenceClaimView(value: unknown) {
 }
 
 function isOperationsSourceLedgerGroup(value: unknown) {
+  if (!isRecord(value) || !Array.isArray(value.claims)) return false;
   return (
-    isRecord(value) &&
     typeof value.label === "string" &&
     OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
     isNonNegativeInteger(value.count) &&
-    Array.isArray(value.claims) &&
+    value.count === value.claims.length &&
     value.claims.every(isOperationsEvidenceClaimView)
   );
 }
@@ -211,6 +211,10 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
   ) {
     return false;
   }
+  if (totals.verifiedLoadBearing + totals.unresolvedLoadBearing !== totals.loadBearing || totals.loadBearing > totals.claims) {
+    return false;
+  }
+
   return (
     Array.isArray(value.groups) &&
     value.groups.every(isOperationsSourceLedgerGroup) &&
