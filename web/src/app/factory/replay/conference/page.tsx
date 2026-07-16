@@ -19,7 +19,7 @@ import { ReplayClient } from "./ReplayClient";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Recorded run · Campaign Factory",
+  title: "Previous Run · Campaign Factory",
 };
 
 export default async function ConferenceReplayPage() {
@@ -43,7 +43,10 @@ export default async function ConferenceReplayPage() {
 
   const store = await cookies();
   const presenter = verifyPresenterToken(store.get(PRESENTER_COOKIE)?.value);
-  const label = record.label || body.label;
+  // User-facing name is "Previous Run" (16 Jul); stored manifests keep their
+  // original "Recorded real run · <date>" label, so rewrite the prefix here.
+  const storedLabel = record.label || body.label;
+  const label = storedLabel.replace(/^Recorded real run/i, "Previous Run");
 
   return (
     <main className="min-h-dvh">
