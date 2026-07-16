@@ -77,7 +77,7 @@ export const config = {
   modelMode,
   // Presenter secrets (owned by w5's presenter auth; documented here per api.ts).
   presenterCode: str("CF_PRESENTER_CODE"),
-  presenterSpendCeilingUSD: num("CF_PRESENTER_SPEND_CEILING_USD", 35),
+  presenterSpendCeilingUSD: num("CF_PRESENTER_SPEND_CEILING_USD", 80),
   // Live-mode model key. Presence is checked by /ready without spending tokens.
   anthropicApiKey: str("ANTHROPIC_API_KEY"),
   // Apply w1-db's db/factory/migrations on boot (dev convenience). In a managed

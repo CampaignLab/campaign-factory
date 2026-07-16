@@ -31,11 +31,12 @@ function deadlineIso(ms: number): string {
 
 // ---- Halt guard: cancellation + hard time limit + cost hard stop ------------
 
-// Hard execution limit (parameters §5): crossing hardCampaignLimitMs (profile-
-// dependent: full 25 min, express 15 min) stops STARTING new model nodes;
-// deterministic finalisation still runs and the remaining work is recorded as
-// Terminal Gaps — same semantics as the cost hard stop. Returns the halt
-// reason, or null while within the limit.
+// Hard execution limit (parameters §5): crossing hardCampaignLimitMs (25 min,
+// both profiles — the "publish everything" point) stops STARTING new model
+// nodes; deterministic finalisation still runs and the remaining work is
+// recorded as Terminal Gaps — same semantics as the cost hard stop. The
+// separate absoluteWallClockMs (30 min) bounds the post-cap review exception
+// in reviewGate. Returns the halt reason, or null while within the limit.
 function hardTimeLimit(startedAt: string | undefined, limits: RuntimeLimits): string | null {
   if (!startedAt) return null;
   const elapsedMs = Date.now() - new Date(startedAt).getTime();
@@ -559,6 +560,16 @@ export function reviewerNode(pass: ReviewPass, journeySteps: number[]) {
       return { halted: true, haltReason: "run cancelled", ...dropPending("run cancelled") };
     }
     const limits = runtimeLimitsFor(ctx.profile);
+    // Absolute wall clock (user, 16 Jul): the review exception below must not
+    // stretch a run past 30 minutes — beyond it, pending work drops to gaps
+    // and the run closes with what is already published.
+    const absoluteUp =
+      run?.startedAt != null &&
+      Date.now() - new Date(run.startedAt).getTime() >= limits.absoluteWallClockMs;
+    if (absoluteUp) {
+      const reason = `Absolute wall clock reached (${limits.absoluteWallClockMs / 60000} min)`;
+      return { halted: true, haltReason: reason, ...dropPending(reason) };
+    }
     const timeUp = hardTimeLimit(run?.startedAt, limits) ?? (haltedByTime ? state.haltReason ?? null : null);
     if (timeUp) {
       if (pending.length === 0) {

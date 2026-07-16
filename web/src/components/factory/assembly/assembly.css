@@ -106,10 +106,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Obvious "come back later" alert (user, 16 Jul). Amber notice box; the whole
+   build bar (hint included) only renders while the run is live, so it
+   disappears on its own once the campaign is built. */
 .fa-buildbar__hint {
-  font-size: 0.85rem;
-  color: var(--muted-foreground);
-  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b4e00;
+  background: var(--tint-yellow, #fdf3d7);
+  border: 1px solid rgba(178, 134, 12, 0.45);
+  border-left: 4px solid #d9a514;
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  margin: 0.75rem 0 0;
 }
 
 /* ---- graded receipt (graft 4: a slim header line, never a card wall) ---- */

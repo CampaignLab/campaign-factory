@@ -17,8 +17,13 @@ export const RUNTIME_LIMITS = {
   strategyReviewerTimeoutMs: 360000,
   softCampaignTargetMs: 12 * 60000,
   // 25 min (was 20): the recording batch must complete briefs — slightly late
-  // beats truncated (user-approved, 15 Jul 2026).
+  // beats truncated (user-approved, 15 Jul 2026). Crossing this is the
+  // "publish everything" point: no new model nodes, finished work reviewed,
+  // deterministic finalisation runs.
   hardCampaignLimitMs: 25 * 60000,
+  // Absolute wall clock (user, 16 Jul 2026): nothing — including the post-cap
+  // review exception — may stretch a run past this.
+  absoluteWallClockMs: 30 * 60000,
 } as const;
 
 // Express profile (audience path): typical completion ≤ 12 min, hard 23 min.
@@ -30,7 +35,9 @@ export const RUNTIME_LIMITS = {
 export const EXPRESS_RUNTIME_LIMITS = {
   ...RUNTIME_LIMITS,
   softCampaignTargetMs: 12 * 60000,
-  hardCampaignLimitMs: 23 * 60000,
+  // 23→25 (user, 16 Jul 2026, conference day): warning + publish-everything at
+  // 25, absolute wall clock 30 (inherited above).
+  hardCampaignLimitMs: 25 * 60000,
 } as const;
 
 export type RuntimeLimits = typeof RUNTIME_LIMITS | typeof EXPRESS_RUNTIME_LIMITS;
@@ -48,11 +55,13 @@ export const RESEARCH_LIMITS = {
   pdfExtractionChars: 60000,
 } as const;
 
+// Raised for conference day (user, 16 Jul 2026): hard stops are rare-event
+// backstops, not routine ceilings — campaign $8→$20, batch $35→$80.
 export const COST_GUARDS = {
-  perCampaignWarningUSD: 4,
-  perCampaignHardStopUSD: 8, // stops new model nodes; deterministic finalisation runs
-  presenterBatchWarningUSD: 20,
-  presenterBatchHardStopUSD: 35,
+  perCampaignWarningUSD: 10,
+  perCampaignHardStopUSD: 20, // stops new model nodes; deterministic finalisation runs
+  presenterBatchWarningUSD: 40,
+  presenterBatchHardStopUSD: 80, // the ceiling
   dailyProjectKillSwitchGBP: 150, // existing global switch, unchanged
 } as const;
 
