@@ -2,6 +2,7 @@ import type { RunReadModel } from "@/lib/factory/contracts/api";
 import { FACTORY_EVENT_TYPES, type FactoryEvent } from "@/lib/factory/contracts/core";
 import { CANONICAL_DOCUMENTS, DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
+import { UNRESOLVED_LABELS } from "@/lib/factory/documents/render";
 import { VERIFICATION_LABELS } from "@/lib/pipeline/labels";
 
 export const OPERATIONS_DEFAULT_SOURCE_ORIGIN = "https://campaign-factory.vercel.app";
@@ -170,7 +171,34 @@ function isOperationsSourceLedgerGroup(value: unknown) {
     OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
     isNonNegativeInteger(value.count) &&
     value.count === value.claims.length &&
-    value.claims.every(isOperationsEvidenceClaimView)
+    value.claims.every((claim) => isOperationsEvidenceClaimView(claim) && claim.label === value.label)
+  );
+}
+
+function hasConsistentOperationsEvidenceTotals(value: EvidenceAndNextChecks) {
+  const seenClaimIds = new Set<string>();
+  let groupedClaims = 0;
+  let groupedLoadBearing = 0;
+  let groupedUnresolvedLoadBearing = 0;
+
+  for (const group of value.groups) {
+    groupedClaims += group.count;
+    for (const claim of group.claims) {
+      if (seenClaimIds.has(claim.id)) return false;
+      seenClaimIds.add(claim.id);
+      if (!claim.loadBearing) continue;
+      groupedLoadBearing += 1;
+      if (UNRESOLVED_LABELS.has(claim.label)) groupedUnresolvedLoadBearing += 1;
+    }
+  }
+
+  if (groupedClaims === 0) return true;
+
+  return (
+    groupedClaims === value.totals.claims &&
+    groupedLoadBearing === value.totals.loadBearing &&
+    groupedUnresolvedLoadBearing === value.totals.unresolvedLoadBearing &&
+    groupedLoadBearing - groupedUnresolvedLoadBearing === value.totals.verifiedLoadBearing
   );
 }
 
@@ -225,7 +253,8 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
     Array.isArray(value.terminalGaps) &&
     value.terminalGaps.every(isOperationsTerminalGap) &&
     Array.isArray(value.draftNotes) &&
-    value.draftNotes.every(isOperationsDraftNote)
+    value.draftNotes.every(isOperationsDraftNote) &&
+    hasConsistentOperationsEvidenceTotals(value as unknown as EvidenceAndNextChecks)
   );
 }
 
