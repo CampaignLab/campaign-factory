@@ -474,6 +474,105 @@ test("operations portfolio: source labels carry through workspace switching with
   await expect(page.getByRole("link", { name: "Portfolio" })).toHaveAttribute("href", "/operations");
 });
 
+test("operations workbench: campaign switching isolates local actions and source working copies", async ({ page }) => {
+  const campaigns = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
+      title: "Keep KFC Out of Ormskirk",
+      place: "Ormskirk, Lancashire",
+      status: "partial",
+      check: "Check Ormskirk appeal status before public escalation",
+      packTitle: "Ormskirk supporter email",
+      subject: "Ormskirk KFC source update",
+      body: "Dear supporter,\n\nCheck the official appeal status before any local outreach is considered.",
+    },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": {
+      title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+      place: "Tower Hamlets, London",
+      status: "partial",
+      check: "Check Tower Hamlets affordable housing target papers",
+      packTitle: "Tower Hamlets supporter email",
+      subject: "Tower Hamlets homes source update",
+      body: "Dear supporter,\n\nCheck council housing targets before any local outreach is considered.",
+    },
+    "6b54225d-afa3-41d1-b053-89741094f153": {
+      title: "Stop the leisure park redevelopment in Barnet",
+      place: "Barnet, London",
+      status: "completed",
+      check: "Check Barnet leisure park decision report before local escalation",
+      packTitle: "Barnet supporter email",
+      subject: "Barnet leisure park source update",
+      body: "Dear supporter,\n\nCheck the decision report before any local outreach is considered.",
+    },
+  } as const;
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] as keyof typeof campaigns;
+    const campaign = campaigns[id];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: campaign.status, stateVersion: 12, lastSequence: 3, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 2, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.check}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          {
+            key: "digital_pack",
+            num: 3,
+            name: "Digital Campaign Pack",
+            status: "ready",
+            html: "",
+            plainText: [`DIGITAL CAMPAIGN PACK`, "", campaign.packTitle, "", `Subject: ${campaign.subject}`, "", campaign.body, "", "Before you send this, check", "", "- Keep the public source boundary attached."].join("\n"),
+            isPack: true,
+            sectionKeys: [],
+            resourceCount: 1,
+            flags: [],
+          },
+          { key: "media_pack", num: 4, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "campaign-check", description: campaign.check, reason: "Campaign-local action isolation", claimIds: ["C1"], affectedSections: ["strategy"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 12, loadBearing: 8, verifiedLoadBearing: 4, unresolvedLoadBearing: 4 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95&view=evidence");
+  await page.getByLabel("Source next checks ledger").getByRole("button", { name: "Create action" }).first().click();
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Check Ormskirk appeal status before public escalation", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("link", { name: /Stop the leisure park redevelopment in Barnet/ }).click();
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("Check Ormskirk appeal status before public escalation", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Check Barnet leisure park decision report before local escalation", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("link", { name: /KFC Out of Ormskirk/ }).click();
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByText("Check Ormskirk appeal status before public escalation", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
+  await page.getByLabel("Source pack resources").getByRole("button", { name: "Use in editable draft" }).first().click();
+  await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toBeVisible();
+  await expect(page.getByLabel("Subject")).toHaveValue("Ormskirk KFC source update");
+
+  await page.getByRole("link", { name: /Stop the leisure park redevelopment in Barnet/ }).click();
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByLabel("Local working draft library")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toHaveCount(0);
+
+  await page.getByRole("link", { name: /KFC Out of Ormskirk/ }).click();
+  await expect(page.getByLabel("Local working draft library")).toContainText("Ormskirk supporter email");
+  await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toBeVisible();
+});
+
 test("operations workbench: failed or not-yet-usable real source loads do not fall back to the fixture", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {

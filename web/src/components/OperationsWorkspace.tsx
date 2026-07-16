@@ -1734,6 +1734,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
 
   useEffect(() => {
     if (!hydrated) return;
+    const expectedWorkspaceKey = campaignId ?? "fixture";
+    if (state.workspaceKey !== expectedWorkspaceKey) return;
     if (campaignId && !hasStoredLocalState && sourceState.status !== "ready") return;
     if (campaignId && source && !hasStoredLocalState && state.activity[0]?.id !== `source-${source.campaignId}`) return;
     localStorage.setItem(storageKey, JSON.stringify(state));
