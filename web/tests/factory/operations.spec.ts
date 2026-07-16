@@ -321,6 +321,79 @@ test("operations portfolio: three curated public campaigns load independently", 
   await expect(page.getByRole("link", { name: "Open workspace" }).first()).toHaveAttribute("href", "/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
 });
 
+test("operations portfolio: source labels carry through workspace switching without shared fixture contacts", async ({ page }) => {
+  const campaigns = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
+      title: "Keep KFC Out of Ormskirk",
+      place: "Ormskirk, Lancashire",
+      status: "partial",
+      next: "Retrieve the official West Lancashire Borough Council planning application record",
+      organising: "ORGANISING PLAN\n\nResidents, ward councillors, local businesses and planning-watch volunteers need different asks.",
+    },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": {
+      title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+      place: "Tower Hamlets, London",
+      status: "partial",
+      next: "Retrieve and verify the exact affordable housing percentage targets from Council papers",
+      organising: "ORGANISING PLAN\n\nHousing campaigners, tenants, councillors and planning committee observers need separate routes.",
+    },
+    "6b54225d-afa3-41d1-b053-89741094f153": {
+      title: "Stop the leisure park redevelopment in Barnet",
+      place: "Barnet, London",
+      status: "completed",
+      next: "Attempt direct retrieval of the GLA decision report and Barnet Council committee minutes",
+      organising: "ORGANISING PLAN\n\nLeisure users, local residents and planning decision watchers are audience clues, not imported contacts.",
+    },
+  } as const;
+
+  await page.route(/\/api\/factory\/runs\/([^/]+)\/documents$/, async (route) => {
+    const id = route.request().url().match(/runs\/([^/]+)\/documents$/)?.[1] as keyof typeof campaigns;
+    const campaign = campaigns[id];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "power_stakeholder_map", num: 2, name: "Power and Stakeholder Map", status: "ready", html: "", plainText: `POWER MAP\n\n${campaign.title} stakeholder clues.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "organising_plan", num: 3, name: "Organising Plan", status: "ready", html: "", plainText: campaign.organising, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "digital_pack", num: 4, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
+          { key: "media_pack", num: 5, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: campaign.next, reason: "Switcher route next gate", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 10, loadBearing: 8, verifiedLoadBearing: 5, unresolvedLoadBearing: 3 },
+        },
+      }),
+    });
+  });
+  await page.route(/\/api\/factory\/runs\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/runs\/([^/]+)$/)?.[1] as keyof typeof campaigns;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ campaignId: id, status: campaigns[id].status, stateVersion: 1, lastSequence: 1, events: [] }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95&view=contacts");
+
+  await expect(page.getByRole("heading", { name: "Contact import boundary for this campaign" })).toBeVisible();
+  await expect(page.getByText("No imported contacts for Keep KFC Out of Ormskirk")).toBeVisible();
+  await expect(page.getByLabel("Campaign switcher")).toContainText("Current: KFC Out of Ormskirk");
+  await expect(page.getByLabel("Campaign switcher")).toContainText("Stop the leisure park redevelopment in Barnet");
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.getByRole("link", { name: /Stop the leisure park redevelopment in Barnet/ }).click();
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Contact import boundary for this campaign" })).toBeVisible();
+  await expect(page.getByText("No imported contacts for Stop the leisure park redevelopment in Barnet")).toBeVisible();
+  await expect(page.getByLabel("Campaign switcher")).toContainText("Current: Stop the leisure park redevelopment in Barnet");
+  await expect(page.getByRole("link", { name: "Portfolio" })).toHaveAttribute("href", "/operations");
+});
+
 test("operations workbench: campaignId route loads a read-only public campaign source", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documents = [

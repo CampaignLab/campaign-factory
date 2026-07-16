@@ -182,6 +182,11 @@ type PortfolioItem =
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource; local: PortfolioLocalCounts }
   | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; local: PortfolioLocalCounts };
 
+type CampaignSwitcherItem =
+  | { campaign: PortfolioCampaign; status: "loading" }
+  | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource }
+  | { campaign: PortfolioCampaign; status: "error"; message: string };
+
 type ContactFixture = {
   id: string;
   name: string;
@@ -680,6 +685,10 @@ function portfolioLocalCounts(campaignId: string): PortfolioLocalCounts {
   };
 }
 
+function initialCampaignSwitcherItems(): CampaignSwitcherItem[] {
+  return PORTFOLIO_CAMPAIGNS.map((campaign) => ({ campaign, status: "loading" }));
+}
+
 function localStorageKeyFor(campaignId?: string) {
   return campaignId ? `${STORAGE_KEY}:${campaignId}` : STORAGE_KEY;
 }
@@ -701,6 +710,15 @@ function documentExcerpt(doc: CompiledDocument | undefined, max = 260) {
     .join(" ");
   if (!text) return "This source document is present, but no readable excerpt was exposed by the typed document route.";
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+function compactCampaignLabel(value: string) {
+  return value
+    .replace(/^Keep\s+/i, "")
+    .replace(/^Build\s+/i, "Build ")
+    .replace(/^Stop\s+/i, "Stop ")
+    .replace(/\s+in\s+the\s+next\s+3\s+years/i, "")
+    .trim();
 }
 
 const SOURCE_RESOURCE_DEFS = [
@@ -1172,6 +1190,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const [sourceState, setSourceState] = useState<SourceState>(() =>
     campaignId ? { status: UUID_RE.test(campaignId) ? "loading" : "invalid", campaignId } : { status: "fixture" },
   );
+  const [switcherItems, setSwitcherItems] = useState<CampaignSwitcherItem[]>(initialCampaignSwitcherItems);
   const storageKey = useMemo(() => localStorageKeyFor(campaignId), [campaignId]);
 
   useEffect(() => {
@@ -1214,10 +1233,42 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     if (!campaignId) LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   }, [campaignId, hydrated, state, storageKey]);
 
+  useEffect(() => {
+    if (!campaignId || !UUID_RE.test(campaignId)) return;
+    queueMicrotask(() => setSwitcherItems(initialCampaignSwitcherItems()));
+    const controllers = PORTFOLIO_CAMPAIGNS.map((campaign) => {
+      const controller = new AbortController();
+      fetchCampaignSource(campaign.id, controller.signal)
+        .then((source) => {
+          setSwitcherItems((current) =>
+            current.map((item) => (item.campaign.id === campaign.id ? { campaign, status: "ready", source } : item)),
+          );
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          const message = error instanceof Error ? error.message : "Campaign source could not be loaded.";
+          setSwitcherItems((current) =>
+            current.map((item) => (item.campaign.id === campaign.id ? { campaign, status: "error", message } : item)),
+          );
+        });
+      return controller;
+    });
+    return () => controllers.forEach((controller) => controller.abort());
+  }, [campaignId]);
+
   const source = sourceState.status === "ready" ? sourceState.source : null;
   const sourceLoaded = Boolean(source);
   const sourceContext = useMemo(() => (source ? buildSourceContext(source) : campaignContext), [source]);
   const sourceResources = useMemo(() => (source ? extractSourceResources(source) : []), [source]);
+  const sourceAudienceSignals = useMemo(() => {
+    if (!source) return [];
+    const docs = source.documents.filter((doc) => ["organising_plan", "digital_pack", "power_stakeholder_map"].includes(doc.key));
+    return docs.map((doc) => ({
+      label: doc.name,
+      detail: documentExcerpt(doc, 180),
+      status: doc.status === "ready" ? "Ready source" : `${doc.status} source`,
+    }));
+  }, [source]);
 
   const selected = useMemo(
     () => segments.find((segment) => segment.id === state.selectedSegment) ?? segments[0],
@@ -1710,13 +1761,28 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     <div className="grid gap-5 lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)]">
       <Panel>
         <SmallLabel>Audiences</SmallLabel>
-        <h2 className="mt-2 text-3xl font-medium tracking-tight">Choose the contact set</h2>
+        <h2 className="mt-2 text-3xl font-medium tracking-tight">{source ? "Plan audiences from this campaign source" : "Choose the contact set"}</h2>
         <p className="mt-3 text-muted-foreground">
-          The selected segment follows the draft, review, and queue views. Counts are fixture contacts for this browser demo.
+          {source
+            ? "Source documents can inform local audience planning, but no contact list, consent register, or live segment import is connected for this campaign."
+            : "The selected segment follows the draft, review, and queue views. Counts are fixture contacts for this browser demo."}
         </p>
         <p className="mt-4 rounded-[var(--r-xl)] bg-tint-yellow px-4 py-3 text-sm">
-          Real import and consent matching are <span className="font-semibold">Coming soon</span>; this view does not contact people.
+          {source ? "Campaign-specific planning is read-only source plus browser-local selections; real import and consent matching are " : "Real import and consent matching are "}<span className="font-semibold">Coming soon</span>; this view does not contact people.
         </p>
+        {sourceAudienceSignals.length ? (
+          <div className="mt-5 space-y-3" aria-label="Source audience signals">
+            {sourceAudienceSignals.map((signal) => (
+              <div key={signal.label} className="rounded-[var(--r-xl)] border border-ops-line bg-background p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">{signal.label}</p>
+                  <span className="rounded-full bg-ops-blue px-2.5 py-1 text-xs text-ops-ink">{signal.status}</span>
+                </div>
+                <p className="mt-2 text-muted-foreground">{signal.detail}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Panel>
       <div className="space-y-3" role="list" aria-label="Audience segments">
         {segments.map((segment) => {
@@ -1737,10 +1803,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                   <span className="block text-sm text-muted-foreground">{segment.role}</span>
                 </span>
                 <span className="rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                  {segment.contacts} fixture contacts
+                  {source ? "Local planning only" : `${segment.contacts} fixture contacts`}
                 </span>
               </span>
-              <span className="mt-3 block text-sm text-muted-foreground">{segment.readiness}</span>
+              <span className="mt-3 block text-sm text-muted-foreground">{source ? "No imported contacts are counted for this real campaign; this local selection only carries audience intent into Drafts and Reviews." : segment.readiness}</span>
               <span className="mt-2 block text-sm">{segment.ask}</span>
             </button>
           );
@@ -2429,15 +2495,25 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <Panel>
         <SmallLabel>Contacts</SmallLabel>
-        <h2 className="mt-2 text-3xl font-medium tracking-tight">Fixture-backed contact readiness</h2>
+        <h2 className="mt-2 text-3xl font-medium tracking-tight">{source ? "Contact import boundary for this campaign" : "Fixture-backed contact readiness"}</h2>
         <p className="mt-3 max-w-3xl text-muted-foreground">
-          This work area helps a campaigner see which local fixture contacts are usable for the demo draft, which need a check, and which are blocked until real import exists.
+          {source
+            ? "This real campaign workspace does not invent a contact list. It keeps source audience clues visible and leaves real import, consent reconciliation, and provider sync disconnected."
+            : "This work area helps a campaigner see which local fixture contacts are usable for the demo draft, which need a check, and which are blocked until real import exists."}
         </p>
+        {source ? (
+          <div className="mt-5 rounded-[var(--r-2xl)] border border-dashed border-[var(--ring)] bg-ops-yellow/45 p-4 text-sm">
+            <p className="font-medium">No imported contacts for {source.title}</p>
+            <p className="mt-2 text-muted-foreground">
+              Source documents may name audiences or stakeholders, but Operations has not connected a CRM, consent database, deduplication pass, or provider list. Local drafts can carry audience intent without claiming reachable people.
+            </p>
+          </div>
+        ) : null}
         <div className="mt-5 grid gap-3 md:grid-cols-3" aria-label="Contact readiness summary">
           {[
-            { label: "Ready fixtures", count: readyContactCount, detail: "Can be used in reviewed local demo copy" },
-            { label: "Review first", count: reviewContactCount, detail: "Needs a human consent or claim check" },
-            { label: "Blocked", count: blockedContactCount, detail: "Requires real import before use" },
+            source ? { label: "Imported contacts", count: 0, detail: "No campaign contact list connected" } : { label: "Ready fixtures", count: readyContactCount, detail: "Can be used in reviewed local demo copy" },
+            source ? { label: "Source audience clues", count: sourceAudienceSignals.length, detail: "Read-only documents inform planning" } : { label: "Review first", count: reviewContactCount, detail: "Needs a human consent or claim check" },
+            source ? { label: "Provider lists", count: 0, detail: "Provider sync remains disconnected" } : { label: "Blocked", count: blockedContactCount, detail: "Requires real import before use" },
           ].map((item) => (
             <div key={item.label} className="rounded-[var(--r-xl)] border border-border bg-secondary/55 p-4">
               <p className="text-2xl font-medium">{item.count}</p>
@@ -2447,74 +2523,97 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           ))}
         </div>
 
-        <div className="mt-6 grid gap-3 rounded-[var(--r-2xl)] border border-border bg-secondary/45 p-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="operations-contact-segment">Segment filter</Label>
-            <select
-              id="operations-contact-segment"
-              value={state.contactFilter}
-              onChange={(event) => setState((current) => ({ ...current, contactFilter: event.target.value as DemoState["contactFilter"] }))}
-              className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="all">All fixture contacts</option>
-              {segments.map((segment) => (
-                <option key={segment.id} value={segment.id}>{segment.name}</option>
-              ))}
-            </select>
+        {source ? (
+          <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border bg-background">
+            <div className="hidden grid-cols-[0.8fr_minmax(0,1.2fr)_0.9fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground md:grid">
+              <span>Source clue</span><span>Planning use</span><span>Boundary</span>
+            </div>
+            {sourceAudienceSignals.length ? sourceAudienceSignals.map((signal) => (
+              <div key={signal.label} className="grid gap-2 border-b border-border px-4 py-4 text-sm last:border-0 md:grid-cols-[0.8fr_minmax(0,1.2fr)_0.9fr]">
+                <div><span className="font-medium md:hidden">Source clue: </span><span className="font-medium">{signal.label}</span><p className="text-xs text-muted-foreground">{signal.status}</p></div>
+                <div className="text-muted-foreground"><span className="font-medium text-foreground md:hidden">Planning use: </span>{signal.detail}</div>
+                <div className="text-muted-foreground"><span className="font-medium text-foreground md:hidden">Boundary: </span>No imported contacts or consent records are created from this document.</div>
+              </div>
+            )) : (
+              <div className="px-4 py-6 text-sm text-muted-foreground">
+                No source audience clues were exposed by the typed documents. Keep contacts disconnected rather than substituting fixture people.
+              </div>
+            )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="operations-contact-readiness">Readiness filter</Label>
-            <select
-              id="operations-contact-readiness"
-              value={state.contactReadinessFilter}
-              onChange={(event) => setState((current) => ({ ...current, contactReadinessFilter: event.target.value as DemoState["contactReadinessFilter"] }))}
-              className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="all">All readiness states</option>
-              <option value="ready">Ready fixtures</option>
-              <option value="review">Review first</option>
-              <option value="blocked">Blocked until import</option>
-            </select>
-          </div>
-          <p className="text-sm text-muted-foreground md:col-span-2">
-            Real contact import, deduplication, consent reconciliation, and provider sync are <span className="font-medium text-foreground">Coming soon</span>; these rows are local fixture records only.
-          </p>
-        </div>
+        ) : (
+          <>
+            <div className="mt-6 grid gap-3 rounded-[var(--r-2xl)] border border-border bg-secondary/45 p-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="operations-contact-segment">Segment filter</Label>
+                <select
+                  id="operations-contact-segment"
+                  value={state.contactFilter}
+                  onChange={(event) => setState((current) => ({ ...current, contactFilter: event.target.value as DemoState["contactFilter"] }))}
+                  className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="all">All fixture contacts</option>
+                  {segments.map((segment) => (
+                    <option key={segment.id} value={segment.id}>{segment.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="operations-contact-readiness">Readiness filter</Label>
+                <select
+                  id="operations-contact-readiness"
+                  value={state.contactReadinessFilter}
+                  onChange={(event) => setState((current) => ({ ...current, contactReadinessFilter: event.target.value as DemoState["contactReadinessFilter"] }))}
+                  className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="all">All readiness states</option>
+                  <option value="ready">Ready fixtures</option>
+                  <option value="review">Review first</option>
+                  <option value="blocked">Blocked until import</option>
+                </select>
+              </div>
+              <p className="text-sm text-muted-foreground md:col-span-2">
+                Real contact import, deduplication, consent reconciliation, and provider sync are <span className="font-medium text-foreground">Coming soon</span>; these rows are local fixture records only.
+              </p>
+            </div>
 
-        <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border">
-          <div className="hidden grid-cols-[0.8fr_0.8fr_0.75fr_1fr_1fr_0.65fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground lg:grid">
-            <span>Name</span><span>Segment</span><span>Readiness</span><span>Consent boundary</span><span>Next check</span><span>Owner</span>
-          </div>
-          {filteredContacts.length ? filteredContacts.map((contact) => (
-            <div key={contact.id} className="grid gap-2 border-b border-border px-4 py-4 text-sm last:border-0 lg:grid-cols-[0.8fr_0.8fr_0.75fr_1fr_1fr_0.65fr]">
-              <div><span className="font-medium lg:hidden">Name: </span><span className="font-medium">{contact.name}</span><p className="text-xs text-muted-foreground">{contact.role}</p></div>
-              <div><span className="font-medium lg:hidden">Segment: </span>{contact.segment}</div>
-              <div><span className="font-medium lg:hidden">Readiness: </span>{contact.readiness}</div>
-              <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Consent boundary: </span>{contact.consent}</div>
-              <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Next check: </span>{contact.check}</div>
-              <div><span className="font-medium lg:hidden">Owner: </span>{contact.owner}</div>
+            <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border">
+              <div className="hidden grid-cols-[0.8fr_0.8fr_0.75fr_1fr_1fr_0.65fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground lg:grid">
+                <span>Name</span><span>Segment</span><span>Readiness</span><span>Consent boundary</span><span>Next check</span><span>Owner</span>
+              </div>
+              {filteredContacts.length ? filteredContacts.map((contact) => (
+                <div key={contact.id} className="grid gap-2 border-b border-border px-4 py-4 text-sm last:border-0 lg:grid-cols-[0.8fr_0.8fr_0.75fr_1fr_1fr_0.65fr]">
+                  <div><span className="font-medium lg:hidden">Name: </span><span className="font-medium">{contact.name}</span><p className="text-xs text-muted-foreground">{contact.role}</p></div>
+                  <div><span className="font-medium lg:hidden">Segment: </span>{contact.segment}</div>
+                  <div><span className="font-medium lg:hidden">Readiness: </span>{contact.readiness}</div>
+                  <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Consent boundary: </span>{contact.consent}</div>
+                  <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Next check: </span>{contact.check}</div>
+                  <div><span className="font-medium lg:hidden">Owner: </span>{contact.owner}</div>
+                </div>
+              )) : (
+                <div className="px-4 py-6 text-sm text-muted-foreground">
+                  No fixture contacts match those filters. Clear a filter or use this as a reminder that real import is not connected.
+                </div>
+              )}
             </div>
-          )) : (
-            <div className="px-4 py-6 text-sm text-muted-foreground">
-              No fixture contacts match those filters. Clear a filter or use this as a reminder that real import is not connected.
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </Panel>
       <Panel>
         <SmallLabel>Selected audience check</SmallLabel>
         <h3 className="mt-2 text-2xl font-medium">{selected.name}</h3>
         <p className="mt-3 text-sm text-muted-foreground">
-          {selectedSegmentContacts.filter((contact) => contact.readiness === "Ready fixture").length}/{selectedSegmentContacts.length} fixture contacts in this segment are ready enough for the local supporter email after review.
+          {source
+            ? "This is a browser-local audience intent only. It helps label local drafts and reviews without claiming imported contacts for the real campaign."
+            : `${selectedSegmentContacts.filter((contact) => contact.readiness === "Ready fixture").length}/${selectedSegmentContacts.length} fixture contacts in this segment are ready enough for the local supporter email after review.`}
         </p>
-        <div className="mt-5 space-y-3 text-sm">
+        {!source ? <div className="mt-5 space-y-3 text-sm">
           {selectedSegmentContacts.map((contact) => (
             <div key={contact.id} className="rounded-[var(--r-xl)] border border-border p-3">
               <p className="font-medium">{contact.name} · {contact.readiness}</p>
               <p className="mt-1 text-muted-foreground">{contact.nextAction}</p>
             </div>
           ))}
-        </div>
+        </div> : null}
         <div className="mt-5 flex flex-col gap-3">
           {goButton("audiences", "Change selected audience")}
           {goButton("drafts", "Use in supporter draft")}
@@ -2620,16 +2719,25 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             </Link>
             {source ? (
               <div className="flex flex-wrap items-center gap-1" aria-label="Campaign switcher">
-                {PORTFOLIO_CAMPAIGNS.map((campaign, index) => {
-                  const active = campaign.id === source.campaignId;
+                {switcherItems.map((item) => {
+                  const active = item.campaign.id === source.campaignId;
+                  const label = active
+                    ? `Current: ${compactCampaignLabel(source.title)}`
+                    : item.status === "ready"
+                      ? compactCampaignLabel(item.source.title)
+                      : item.status === "loading"
+                        ? "Loading campaign"
+                        : "Source issue";
+                  const title = item.status === "ready" ? `${item.source.title}${item.source.place ? ` · ${item.source.place}` : ""}` : item.status === "error" ? item.message : "Loading public campaign name";
                   return (
                     <Link
-                      key={campaign.id}
-                      href={`/operations?campaignId=${campaign.id}&view=${state.activeView}`}
+                      key={item.campaign.id}
+                      href={`/operations?campaignId=${item.campaign.id}&view=${state.activeView}`}
                       className={`rounded-full px-2.5 py-1 text-xs focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${active ? "bg-ops-ink text-white" : "border border-ops-line bg-background/70 text-muted-foreground hover:bg-secondary"}`}
                       aria-current={active ? "page" : undefined}
+                      title={title}
                     >
-                      {active ? "Current" : `Campaign ${index + 1}`}
+                      {label}
                     </Link>
                   );
                 })}
