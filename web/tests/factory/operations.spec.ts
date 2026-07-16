@@ -540,6 +540,28 @@ test("operations workbench: invalid or non-curated campaign IDs are blocked with
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations source adapter: rejects arbitrary proxy reads and non-GET writes", async ({ request }) => {
+  const invalid = await request.get("/api/operations/sources/not-a-campaign-id?url=https://example.com/anything");
+  expect(invalid.status()).toBe(404);
+  expect(invalid.headers()["content-type"]).toContain("application/json");
+  expect(await invalid.json()).toMatchObject({
+    error: "Operations source not found",
+    detail: "This read-only preview source path only exposes the curated public operations campaigns.",
+  });
+
+  const nonCurated = await request.get("/api/operations/sources/00000000-0000-4000-8000-000000000000?url=https://example.com/anything");
+  expect(nonCurated.status()).toBe(404);
+  expect(await nonCurated.json()).toMatchObject({
+    error: "Operations source not found",
+    detail: "This read-only preview source path only exposes the curated public operations campaigns.",
+  });
+
+  const postAttempt = await request.post("/api/operations/sources/69f257b6-9913-4395-94f7-5c25b4b5fe95", {
+    data: { url: "https://example.com/anything" },
+  });
+  expect(postAttempt.status()).toBe(405);
+});
+
 test("operations workbench: source updates preserve browser-local work and require acknowledgement", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   let sourceVersion = 44;
