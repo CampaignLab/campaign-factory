@@ -183,3 +183,12 @@ The workbench demonstrates bounded autonomy and explicit side-effect control. Pi
 ### Next Recommended Step
 
 Review the Vercel preview and draft PR #12 for demo narrative and visual preference; keep provider/import/response controls disabled, and disable or reduce Pip's heartbeat after the conference window.
+
+## 16 Jul 2026 ~12:25 BST — cap usage reset (conference day)
+
+Organizer decision: zeroed all per-session and per-IP run-cap usage counters
+(12 sessions, 9 IPs) ahead of the afternoon session, so morning testing does
+not consume the audience's allowance on the venue's shared egress IP. The
+caps themselves are unchanged (session and per-IP defaults both 200 for the
+event). One-off `update ... set run_count = 0` against the production
+sessions/ip_usage tables; no schema change.
