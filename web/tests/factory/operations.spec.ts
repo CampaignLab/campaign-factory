@@ -454,6 +454,8 @@ test("operations portfolio: source labels carry through workspace switching with
 
   await expect(page.getByRole("heading", { name: "Contact import boundary for this campaign" })).toBeVisible();
   await expect(page.getByText("No imported contacts for Keep KFC Out of Ormskirk")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset local workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset demo state" })).toHaveCount(0);
   await expect(page.getByLabel("Campaign switcher")).toContainText("Current: KFC Out of Ormskirk");
   await expect(page.getByLabel("Campaign switcher")).toContainText("Stop the leisure park redevelopment in Barnet");
   await expect(page.getByText("A. Patel")).toHaveCount(0);
@@ -470,6 +472,8 @@ test("operations portfolio: source labels carry through workspace switching with
   await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contact import boundary for this campaign" })).toBeVisible();
   await expect(page.getByText("No imported contacts for Stop the leisure park redevelopment in Barnet")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset local workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset demo state" })).toHaveCount(0);
   await expect(page.getByLabel("Campaign switcher")).toContainText("Current: Stop the leisure park redevelopment in Barnet");
   await expect(page.getByRole("link", { name: "Portfolio" })).toHaveAttribute("href", "/operations");
 });

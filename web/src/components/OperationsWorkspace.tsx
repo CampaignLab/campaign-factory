@@ -2192,6 +2192,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     });
   };
 
+  const resetLabel = source ? "Reset local workspace" : "Reset demo state";
+
   const buildOperationsPack = () => {
     const queuedDrafts = [
       ...(state.status === "queued"
@@ -2979,7 +2981,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           </div>
         </div>
         <Button type="button" variant="ghost" className="mt-5" onClick={reset}>
-          Reset demo state
+          {resetLabel}
         </Button>
       </Panel>
     </div>
@@ -3661,7 +3663,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             <Link href="/how" className="hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full">How it works</Link>
             <Link href="/" className="hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full">New campaign</Link>
             <button type="button" onClick={reset} className="rounded-full border border-border px-3 py-1.5 hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-              Reset demo state
+              {resetLabel}
             </button>
           </div>
         </div>
