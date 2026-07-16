@@ -1843,6 +1843,59 @@ test("operations workbench: malformed source evidence entries do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: duplicate source evidence references do not hydrate a real workspace", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Duplicate evidence references should still be held back</p>",
+            plainText: "Duplicate evidence references should still be held back",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [
+            { id: "duplicate-next", description: "Duplicate next check reference", reason: "Contract validation", claimIds: ["C1", "C1"], affectedSections: ["strategy"] },
+            { id: "duplicate-next", description: "Duplicate next check shadow", reason: "Contract validation", claimIds: ["C2"], affectedSections: ["strategy", "strategy"] },
+          ],
+          terminalGaps: [
+            { id: "duplicate-gap", description: "Duplicate terminal gap reference", at: "2026-07-16T20:30:00Z" },
+            { id: "duplicate-gap", description: "Duplicate terminal gap shadow", at: "2026-07-16T20:31:00Z" },
+          ],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Duplicate evidence references should still be held back")).toHaveCount(0);
+  await expect(page.getByText("Duplicate next check reference")).toHaveCount(0);
+  await expect(page.getByText("Duplicate terminal gap reference")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source timestamps do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

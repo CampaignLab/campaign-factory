@@ -44,6 +44,11 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function isUniqueStringArray(value: unknown): value is string[] {
+  if (!isStringArray(value)) return false;
+  return new Set(value).size === value.length;
+}
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -95,6 +100,10 @@ function isIsoDateTimeString(value: unknown): value is string {
 
 function isOptionalStringArray(value: unknown): value is string[] | undefined {
   return value === undefined || isStringArray(value);
+}
+
+function isOptionalUniqueStringArray(value: unknown): value is string[] | undefined {
+  return value === undefined || isUniqueStringArray(value);
 }
 
 function isJourneySectionKeyArray(value: unknown): value is string[] {
@@ -266,8 +275,8 @@ function isOperationsNextCheck(value: unknown) {
     typeof value.id === "string" &&
     typeof value.description === "string" &&
     typeof value.reason === "string" &&
-    isOptionalStringArray(value.claimIds) &&
-    isStringArray(value.affectedSections)
+    isOptionalUniqueStringArray(value.claimIds) &&
+    isUniqueStringArray(value.affectedSections)
   );
 }
 
@@ -284,6 +293,36 @@ function isOperationsTerminalGap(value: unknown) {
 
 function isOperationsDraftNote(value: unknown) {
   return isRecord(value) && typeof value.text === "string" && typeof value.section === "string";
+}
+
+function hasConsistentOperationsEvidenceReferences(value: EvidenceAndNextChecks) {
+  const seenClaimIds = new Set<string>();
+  for (const group of value.groups) {
+    for (const claim of group.claims) {
+      if (seenClaimIds.has(claim.id)) return false;
+      seenClaimIds.add(claim.id);
+    }
+  }
+
+  const seenConflictIds = new Set<string>();
+  for (const conflict of value.conflicts) {
+    if (seenConflictIds.has(conflict.id)) return false;
+    seenConflictIds.add(conflict.id);
+  }
+
+  const seenNextCheckIds = new Set<string>();
+  for (const check of value.nextChecks) {
+    if (seenNextCheckIds.has(check.id)) return false;
+    seenNextCheckIds.add(check.id);
+  }
+
+  const seenTerminalGapIds = new Set<string>();
+  for (const gap of value.terminalGaps) {
+    if (seenTerminalGapIds.has(gap.id)) return false;
+    seenTerminalGapIds.add(gap.id);
+  }
+
+  return true;
 }
 
 export function isOperationsEvidenceAndNextChecks(value: unknown): value is EvidenceAndNextChecks {
@@ -312,7 +351,8 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
     value.terminalGaps.every(isOperationsTerminalGap) &&
     Array.isArray(value.draftNotes) &&
     value.draftNotes.every(isOperationsDraftNote) &&
-    hasConsistentOperationsEvidenceTotals(value as unknown as EvidenceAndNextChecks)
+    hasConsistentOperationsEvidenceTotals(value as unknown as EvidenceAndNextChecks) &&
+    hasConsistentOperationsEvidenceReferences(value as unknown as EvidenceAndNextChecks)
   );
 }
 
