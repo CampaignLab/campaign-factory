@@ -972,6 +972,89 @@ test("operations portfolio ignores stale local state under the wrong campaign ke
   await expect(page.locator("main")).not.toContainText("Stale Ormskirk local action");
 });
 
+test("operations workbench ignores source actions whose provenance belongs to another campaign", async ({ page }) => {
+  const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    const isBarnet = id === barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nSource action provenance isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: isBarnet ? "Check Barnet decision records" : "Check Ormskirk appeal records", reason: "Source action provenance guard", claimIds: ["C1"], affectedSections: ["brief"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 8, loadBearing: 6, verifiedLoadBearing: 3, unresolvedLoadBearing: 3 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ ormskirkId, barnetId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${barnetId}`,
+        JSON.stringify({
+          workspaceKey: barnetId,
+          sourceStateVersion: 14,
+          sourceLastSequence: 25,
+          sourceDocumentSignature: "stale-source-action-signature",
+          selectedSegment: "school_gates",
+          subject: "Barnet shell state with stale Ormskirk action",
+          body: "The Barnet shell should survive, but the Ormskirk source action must be filtered out.",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "overview",
+          contactFilter: "all",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${ormskirkId}:primary-source-check`,
+              title: "Stale Ormskirk appeal action",
+              source: "Campaign source · Evidence & checks",
+              owner: "Reviewer",
+              timing: "Before phase change",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${ormskirkId}; stale source-action regression fixture.`,
+            },
+          ],
+          workingDrafts: [],
+          activeWorkingDraftId: null,
+          sourceWorkingCopy: null,
+          activity: [{ id: "stale-action", label: "Created local action: Stale Ormskirk appeal action." }],
+        }),
+      );
+    },
+    { ormskirkId, barnetId },
+  );
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const barnetRow = portfolio.locator("article", { hasText: "Stop the leisure park redevelopment" });
+  await expect(barnetRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(barnetRow).not.toContainText("Stale Ormskirk appeal action");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Stale Ormskirk appeal action");
+});
+
 test("operations workbench ignores source working drafts whose provenance belongs to another campaign", async ({ page }) => {
   const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";

@@ -634,6 +634,14 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
   };
 }
 
+function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: string) {
+  const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
+  if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
+  const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1];
+  if (provenanceCampaignId && provenanceCampaignId !== expectedWorkspaceKey) return false;
+  return true;
+}
+
 function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>): WorkingDraft[] {
   const drafts = Array.isArray(value) ? value : [];
   const normalised = drafts
@@ -724,14 +732,17 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
 
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
+  const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey));
   const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey);
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
   const sourceWorkingCopy = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey ? state.sourceWorkingCopy : null;
+  const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopy);
 
   if (
+    localActions.length === state.localActions.length &&
     workingDrafts.length === state.workingDrafts.length &&
     activeWorkingDraftId === state.activeWorkingDraftId &&
     sourceWorkingCopy === state.sourceWorkingCopy
@@ -748,9 +759,11 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     reviewerNote: removedMismatchedTopLevelSourceCopy ? "" : state.reviewerNote,
     status: removedMismatchedTopLevelSourceCopy ? "draft" : state.status,
     queuedAt: removedMismatchedTopLevelSourceCopy ? null : state.queuedAt,
+    localActions,
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
+    activity: removedMismatchedLocalWork || removedMismatchedTopLevelSourceCopy ? initialState.activity : state.activity,
   };
 }
 
