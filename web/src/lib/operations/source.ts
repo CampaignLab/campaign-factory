@@ -2,6 +2,7 @@ import type { RunReadModel } from "@/lib/factory/contracts/api";
 import { FACTORY_EVENT_TYPES, type FactoryEvent } from "@/lib/factory/contracts/core";
 import { CANONICAL_DOCUMENTS, DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
+import { VERIFICATION_LABELS } from "@/lib/pipeline/labels";
 
 export const OPERATIONS_DEFAULT_SOURCE_ORIGIN = "https://campaign-factory.vercel.app";
 
@@ -50,6 +51,8 @@ const OPERATIONS_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial", "completed", "failed", "cancelled"]);
 const OPERATIONS_EVENT_TYPES = new Set<string>(FACTORY_EVENT_TYPES);
 const OPERATIONS_EVENT_VISIBILITIES = new Set<string>(["public", "internal"]);
+const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
+const OPERATIONS_CLAIM_CONFIDENCES = new Set<string>(["high", "medium", "low"]);
 
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
@@ -138,6 +141,61 @@ export function isOperationsCompiledDocumentList(value: unknown): value is Compi
   return true;
 }
 
+function isOperationsEvidenceClaimView(value: unknown) {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.text === "string" &&
+    typeof value.type === "string" &&
+    typeof value.label === "string" &&
+    OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
+    typeof value.loadBearing === "boolean" &&
+    typeof value.confidence === "string" &&
+    OPERATIONS_CLAIM_CONFIDENCES.has(value.confidence) &&
+    isOptionalString(value.excerpt) &&
+    isFiniteNumber(value.sourceCount) &&
+    isStringArray(value.affectedOutputs) &&
+    isOptionalStringArray(value.contradictsClaimIds)
+  );
+}
+
+function isOperationsSourceLedgerGroup(value: unknown) {
+  return (
+    isRecord(value) &&
+    typeof value.label === "string" &&
+    OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
+    isFiniteNumber(value.count) &&
+    Array.isArray(value.claims) &&
+    value.claims.every(isOperationsEvidenceClaimView)
+  );
+}
+
+function isOperationsNextCheck(value: unknown) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.description === "string" &&
+    typeof value.reason === "string" &&
+    isOptionalStringArray(value.claimIds) &&
+    isStringArray(value.affectedSections)
+  );
+}
+
+function isOperationsTerminalGap(value: unknown) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.description === "string" &&
+    isOptionalString(value.agentRunId) &&
+    isOptionalFiniteNumber(value.step) &&
+    typeof value.at === "string"
+  );
+}
+
+function isOperationsDraftNote(value: unknown) {
+  return isRecord(value) && typeof value.text === "string" && typeof value.section === "string";
+}
+
 export function isOperationsEvidenceAndNextChecks(value: unknown): value is EvidenceAndNextChecks {
   if (!isRecord(value) || !isRecord(value.totals)) return false;
   const totals = value.totals;
@@ -149,17 +207,17 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
   ) {
     return false;
   }
-  if (!Array.isArray(value.groups) || !Array.isArray(value.conflicts) || !Array.isArray(value.nextChecks) || !Array.isArray(value.terminalGaps) || !Array.isArray(value.draftNotes)) {
-    return false;
-  }
-  return value.nextChecks.every(
-    (check) =>
-      isRecord(check) &&
-      typeof check.id === "string" &&
-      typeof check.description === "string" &&
-      typeof check.reason === "string" &&
-      isStringArray(check.claimIds) &&
-      isStringArray(check.affectedSections),
+  return (
+    Array.isArray(value.groups) &&
+    value.groups.every(isOperationsSourceLedgerGroup) &&
+    Array.isArray(value.conflicts) &&
+    value.conflicts.every(isOperationsEvidenceClaimView) &&
+    Array.isArray(value.nextChecks) &&
+    value.nextChecks.every(isOperationsNextCheck) &&
+    Array.isArray(value.terminalGaps) &&
+    value.terminalGaps.every(isOperationsTerminalGap) &&
+    Array.isArray(value.draftNotes) &&
+    value.draftNotes.every(isOperationsDraftNote)
   );
 }
 
