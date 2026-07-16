@@ -335,6 +335,69 @@ test("operations portfolio: three curated public campaigns load independently", 
   await expect(page.getByRole("link", { name: "Open workspace" }).first()).toHaveAttribute("href", "/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
 });
 
+test("operations portfolio: one failed source does not blank usable campaigns", async ({ page }) => {
+  const campaigns = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
+      title: "Keep KFC Out of Ormskirk",
+      place: "Ormskirk, Lancashire",
+      status: "partial",
+      next: "Retrieve the official West Lancashire Borough Council planning application record",
+      unresolved: 34,
+    },
+    "6b54225d-afa3-41d1-b053-89741094f153": {
+      title: "Stop the leisure park redevelopment in Barnet",
+      place: "Barnet, London",
+      status: "completed",
+      next: "Attempt direct retrieval of the GLA decision report and Barnet Council committee minutes",
+      unresolved: 17,
+    },
+  } as const;
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] as keyof typeof campaigns;
+    if (id === "57678ae0-29fd-4b4b-8a53-5c711cdb21cf") {
+      await route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Campaign source documents unavailable", detail: "Preview source returned HTTP 500." }),
+      });
+      return;
+    }
+    const campaign = campaigns[id];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 2, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio next gate", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 40, loadBearing: 30, verifiedLoadBearing: 30 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations");
+
+  await expect(page.getByRole("heading", { name: /Three real campaigns, one operations portfolio/i })).toBeVisible();
+  await expect(page.getByText("Keep KFC Out of Ormskirk", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet", { exact: true })).toBeVisible();
+  await expect(page.getByText("Campaign source unavailable", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Preview source returned HTTP 500/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open workspace" })).toHaveCount(3);
+  await expect(page.getByRole("link", { name: "Open workspace" }).nth(0)).toHaveAttribute("href", "/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+  await expect(page.getByRole("link", { name: "Open workspace" }).nth(2)).toHaveAttribute("href", "/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153");
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
 test("operations portfolio: source labels carry through workspace switching without shared fixture contacts", async ({ page }) => {
   const campaigns = {
     "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
