@@ -722,6 +722,30 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   };
 }
 
+function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
+  if (!UUID_RE.test(expectedWorkspaceKey)) return state;
+  const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey);
+  const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
+    ? state.activeWorkingDraftId
+    : workingDrafts[0]?.id ?? null;
+  const sourceWorkingCopy = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey ? state.sourceWorkingCopy : null;
+
+  if (
+    workingDrafts.length === state.workingDrafts.length &&
+    activeWorkingDraftId === state.activeWorkingDraftId &&
+    sourceWorkingCopy === state.sourceWorkingCopy
+  ) {
+    return state;
+  }
+
+  return {
+    ...state,
+    workingDrafts,
+    activeWorkingDraftId,
+    sourceWorkingCopy,
+  };
+}
+
 function loadState(storageKey = STORAGE_KEY): DemoState {
   if (typeof window === "undefined") return initialState;
   try {
@@ -742,8 +766,9 @@ function hasStoredState(storageKey = STORAGE_KEY) {
 
 function portfolioLocalCounts(campaignId: string): PortfolioLocalCounts {
   if (typeof window === "undefined") return { actions: 0, drafts: 0, reviews: 0, queued: 0 };
-  const state = loadState(localStorageKeyFor(campaignId));
-  if (state.workspaceKey !== campaignId) return { actions: 0, drafts: 0, reviews: 0, queued: 0 };
+  const loaded = loadState(localStorageKeyFor(campaignId));
+  if (loaded.workspaceKey !== campaignId) return { actions: 0, drafts: 0, reviews: 0, queued: 0 };
+  const state = sanitizeStateForWorkspace(loaded, campaignId);
   return {
     actions: state.localActions.length,
     drafts: state.workingDrafts.length,
@@ -1680,9 +1705,11 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     queueMicrotask(() => {
       const stored = hasStoredState(storageKey);
       const loaded = loadState(storageKey);
-      const storedMatchesWorkspace = campaignId ? loaded.workspaceKey === campaignId : loaded.workspaceKey === "fixture";
+      const expectedWorkspaceKey = campaignId ?? "fixture";
+      const storedMatchesWorkspace = loaded.workspaceKey === expectedWorkspaceKey;
+      const workspaceState = storedMatchesWorkspace ? sanitizeStateForWorkspace(loaded, expectedWorkspaceKey) : loaded;
       setHasStoredLocalState(stored && storedMatchesWorkspace);
-      setState(viewIds.includes(initialView as ViewId) ? { ...loaded, activeView: initialView as ViewId } : loaded);
+      setState(viewIds.includes(initialView as ViewId) ? { ...workspaceState, activeView: initialView as ViewId } : workspaceState);
       setHydrated(true);
     });
   }, [campaignId, initialView, storageKey]);

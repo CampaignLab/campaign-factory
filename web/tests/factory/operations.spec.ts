@@ -972,6 +972,108 @@ test("operations portfolio ignores stale local state under the wrong campaign ke
   await expect(page.locator("main")).not.toContainText("Stale Ormskirk local action");
 });
 
+test("operations workbench ignores source working drafts whose provenance belongs to another campaign", async ({ page }) => {
+  const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    const isBarnet = id === barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 12, lastSequence: 23, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nWorking draft provenance isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: isBarnet ? "Check Barnet decision records" : "Check Ormskirk appeal records", reason: "Working draft provenance guard", claimIds: ["C1"], affectedSections: ["brief"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 8, loadBearing: 6, verifiedLoadBearing: 3, unresolvedLoadBearing: 3 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ ormskirkId, barnetId }) => {
+      const staleCopy = {
+        id: "ormskirk-stale-source-copy",
+        campaignId: ormskirkId,
+        title: "Ormskirk source copy must not appear in Barnet",
+        channel: "Email",
+        sourceDocument: "Digital Campaign Pack",
+        sourceDocumentKey: "digital_pack",
+        createdAt: "2026-07-16T17:31:00.000Z",
+        warnings: ["Ormskirk-only source warning"],
+        provenance: `Copied from Digital Campaign Pack in campaign ${ormskirkId}; stale mixed-state regression fixture.`,
+      };
+      localStorage.setItem(
+        `cf_operations_demo_v3:${barnetId}`,
+        JSON.stringify({
+          workspaceKey: barnetId,
+          sourceStateVersion: 12,
+          sourceLastSequence: 23,
+          sourceDocumentSignature: "stale-mixed-signature",
+          selectedSegment: "school_gates",
+          subject: "Barnet shell state with stale Ormskirk draft",
+          body: "The top-level Barnet shell should survive, but the Ormskirk source working draft must be filtered out.",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "outbox",
+          contactFilter: "all",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [],
+          workingDrafts: [
+            {
+              id: staleCopy.id,
+              title: staleCopy.title,
+              channel: "Email",
+              subject: "Stale Ormskirk source update",
+              body: "This queued source draft belongs to Ormskirk and must never hydrate inside Barnet.",
+              reviewerNote: "Stale Ormskirk reviewer note",
+              status: "queued",
+              queuedAt: "2026-07-16T17:31:30.000Z",
+              createdAt: staleCopy.createdAt,
+              updatedAt: staleCopy.createdAt,
+              sourceWorkingCopy: staleCopy,
+            },
+          ],
+          activeWorkingDraftId: staleCopy.id,
+          sourceWorkingCopy: staleCopy,
+          activity: [{ id: "mixed", label: "Mixed-campaign stale working draft seeded." }],
+        }),
+      );
+    },
+    { ormskirkId, barnetId },
+  );
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const barnetRow = portfolio.locator("article", { hasText: "Stop the leisure park redevelopment" });
+  await expect(barnetRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(barnetRow).not.toContainText("Stale Ormskirk source update");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Ormskirk source copy must not appear in Barnet");
+  await expect(page.locator("main")).not.toContainText("Stale Ormskirk source update");
+
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
+  await expect(page.getByLabel("Local working draft library")).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText("Stale Ormskirk reviewer note");
+});
+
 test("operations workbench: failed or not-yet-usable real source loads do not fall back to the fixture", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
