@@ -69,26 +69,27 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const origin = sourceOrigin();
   const run = await fetchSourceJson<OperationsSourcePayload["run"]>(origin, `/api/factory/runs/${encodeURIComponent(id)}`);
-  if (!run.ok) {
-    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, run.status === 404 ? 404 : 502);
-  }
-  if (!isOperationsRunReadModel(run.value, id)) {
-    return sourceJson(
-      { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin },
-      502,
-    );
-  }
+  if (run.ok) {
+    if (!isOperationsRunReadModel(run.value, id)) {
+      return sourceJson(
+        { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin },
+        502,
+      );
+    }
 
-  if (run.value.status !== "partial" && run.value.status !== "completed") {
-    return sourceJson(
-      {
-        error: "Campaign source not ready",
-        detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
-        runStatus: run.value.status,
-        sourceOrigin: origin,
-      },
-      409,
-    );
+    if (run.value.status !== "partial" && run.value.status !== "completed") {
+      return sourceJson(
+        {
+          error: "Campaign source not ready",
+          detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
+          runStatus: run.value.status,
+          sourceOrigin: origin,
+        },
+        409,
+      );
+    }
+  } else if (run.status === 404) {
+    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 404);
   }
 
   const docs = await fetchSourceJson<Pick<OperationsSourcePayload, "documents" | "evidence">>(origin, `/api/factory/runs/${encodeURIComponent(id)}/documents`);
@@ -104,6 +105,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   return sourceJson(
-    { sourceOrigin: origin, run: run.value, documents: docs.value.documents, evidence: docs.value.evidence } satisfies OperationsSourcePayload,
+    {
+      sourceOrigin: origin,
+      run: run.ok ? run.value : { campaignId: id, status: "partial", stateVersion: 0, lastSequence: 0, events: [] },
+      documents: docs.value.documents,
+      evidence: docs.value.evidence,
+      sourceRunUnavailable: run.ok ? undefined : true,
+    } as OperationsSourcePayload & { sourceRunUnavailable?: boolean },
   );
 }

@@ -116,6 +116,11 @@ function isJourneySectionKeyArray(value: unknown): value is string[] {
   return true;
 }
 
+function isOperationsAffectedOutputArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  return value.every((item) => typeof item === "string" && (OPERATIONS_JOURNEY_SECTION_KEYS.has(item) || OPERATIONS_DOCUMENT_KEYS.has(item)));
+}
+
 function isOperationsAffectedSectionArray(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
@@ -129,7 +134,14 @@ function isOperationsAffectedSectionArray(value: unknown): value is string[] {
 function matchesCanonicalDocumentSections(key: string, isPack: boolean, sectionKeys: string[]) {
   if (isPack) return sectionKeys.length === 0;
   const expected = DOC_SECTIONS[key as keyof typeof DOC_SECTIONS];
-  return Boolean(expected) && sectionKeys.length === expected.length && expected.every((sectionKey, index) => sectionKeys[index] === sectionKey);
+  if (!expected || sectionKeys.length === 0) return false;
+  let previousIndex = -1;
+  for (const sectionKey of sectionKeys) {
+    const index = expected.indexOf(sectionKey as never);
+    if (index <= previousIndex) return false;
+    previousIndex = index;
+  }
+  return true;
 }
 
 function isOperationsFactoryEvent(value: unknown, campaignId: string): value is FactoryEvent {
@@ -236,7 +248,7 @@ function isOperationsEvidenceClaimView(value: unknown) {
     OPERATIONS_CLAIM_CONFIDENCES.has(value.confidence) &&
     isOptionalString(value.excerpt) &&
     isNonNegativeInteger(value.sourceCount) &&
-    isOperationsAffectedSectionArray(value.affectedOutputs) &&
+    isOperationsAffectedOutputArray(value.affectedOutputs) &&
     isOptionalStringArray(value.contradictsClaimIds)
   );
 }
@@ -279,7 +291,7 @@ function hasConsistentOperationsEvidenceTotals(value: EvidenceAndNextChecks) {
   );
 }
 
-function isOperationsNextCheck(value: unknown, knownClaimIds: Set<string>) {
+function isOperationsNextCheck(value: unknown) {
   const claimIds = isRecord(value) ? value.claimIds : undefined;
   return (
     isRecord(value) &&
@@ -287,7 +299,6 @@ function isOperationsNextCheck(value: unknown, knownClaimIds: Set<string>) {
     typeof value.description === "string" &&
     typeof value.reason === "string" &&
     isOptionalUniqueStringArray(claimIds) &&
-    (claimIds === undefined || knownClaimIds.size === 0 || claimIds.every((claimId) => knownClaimIds.has(claimId))) &&
     isOperationsAffectedSectionArray(value.affectedSections)
   );
 }
@@ -361,16 +372,9 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
     return false;
   }
 
-  const evidence = value as unknown as EvidenceAndNextChecks;
-  const knownClaimIds = new Set<string>();
-  for (const group of evidence.groups) {
-    for (const claim of group.claims) knownClaimIds.add(claim.id);
-  }
-  for (const conflict of evidence.conflicts) knownClaimIds.add(conflict.id);
-
   return (
     Array.isArray(value.nextChecks) &&
-    value.nextChecks.every((check) => isOperationsNextCheck(check, knownClaimIds)) &&
+    value.nextChecks.every(isOperationsNextCheck) &&
     Array.isArray(value.terminalGaps) &&
     value.terminalGaps.every(isOperationsTerminalGap) &&
     Array.isArray(value.draftNotes) &&

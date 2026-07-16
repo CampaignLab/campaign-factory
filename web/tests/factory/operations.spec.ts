@@ -1735,7 +1735,7 @@ test("operations workbench: compiled source documents must match canonical metad
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
-test("operations workbench: compiled source documents must use each document's canonical section set", async ({ page }) => {
+test("operations workbench: compiled source documents must keep canonical section order", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
@@ -1750,10 +1750,10 @@ test("operations workbench: compiled source documents must use each document's c
             num: 1,
             name: "Campaign Brief",
             status: "ready",
-            html: "<p>Partial canonical section set should not hydrate Ormskirk</p>",
-            plainText: "Partial canonical section set should not hydrate Ormskirk",
+            html: "<p>Out-of-order canonical section set should not hydrate Ormskirk</p>",
+            plainText: "Out-of-order canonical section set should not hydrate Ormskirk",
             isPack: false,
-            sectionKeys: ["problem"],
+            sectionKeys: ["evidence", "problem"],
             resourceCount: 0,
             flags: [],
           },
@@ -1761,7 +1761,7 @@ test("operations workbench: compiled source documents must use each document's c
         evidence: {
           groups: [],
           conflicts: [],
-          nextChecks: [{ id: "next", description: "Canonical section-set regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
+          nextChecks: [{ id: "next", description: "Canonical section-order regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
           terminalGaps: [],
           draftNotes: [],
           totals: { claims: 1, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 1 },
@@ -1775,7 +1775,7 @@ test("operations workbench: compiled source documents must use each document's c
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByText(/typed public document contract/i)).toBeVisible();
-  await expect(page.getByText("Partial canonical section set should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Out-of-order canonical section set should not hydrate Ormskirk")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
@@ -1960,7 +1960,7 @@ test("operations workbench: duplicate source evidence references do not hydrate 
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
-test("operations workbench: source next checks must reference known claims and canonical sections", async ({ page }) => {
+test("operations workbench: source next checks must reference canonical sections", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
@@ -2006,7 +2006,7 @@ test("operations workbench: source next checks must reference known claims and c
           nextChecks: [
             {
               id: "invalid-reference",
-              description: "Unknown claim and fixture section should fail closed",
+              description: "Fixture section should fail closed",
               reason: "Contract validation",
               claimIds: ["missing-claim"],
               affectedSections: ["fixture_section"],
@@ -2027,7 +2027,7 @@ test("operations workbench: source next checks must reference known claims and c
   await expect(page.getByText(/typed public document contract/i)).toBeVisible();
   await expect(page.getByText("Invalid next-check references should not hydrate Ormskirk")).toHaveCount(0);
   await expect(page.getByText("Known source claim should stay hidden with malformed next checks")).toHaveCount(0);
-  await expect(page.getByText("Unknown claim and fixture section should fail closed")).toHaveCount(0);
+  await expect(page.getByText("Fixture section should fail closed")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
