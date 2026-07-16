@@ -1446,10 +1446,11 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     const errorBody = (await sourceRes.json().catch(() => null)) as { error?: string; detail?: string } | null;
     throw new Error(errorBody?.detail || errorBody?.error || `The public campaign source could not be loaded (HTTP ${sourceRes.status}).`);
   }
-  const sourceBody = (await sourceRes.json()) as OperationsSourcePayload;
+  const sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload>;
   const sourceOrigin = normaliseOperationsSourceOrigin(sourceBody.sourceOrigin);
   const run = sourceBody.run;
-  if (!sourceOrigin || run.campaignId !== campaignId || !Array.isArray(run.events)) {
+  const supportedStatuses: RunReadModel["status"][] = ["queued", "running", "partial", "completed", "failed", "cancelled"];
+  if (!sourceOrigin || !run || run.campaignId !== campaignId || !supportedStatuses.includes(run.status) || !Array.isArray(run.events)) {
     throw new Error("The public campaign source did not match the requested campaign.");
   }
   const folded = foldEvents(campaignId, run.events);
