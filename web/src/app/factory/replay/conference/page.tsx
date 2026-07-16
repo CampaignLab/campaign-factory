@@ -44,9 +44,18 @@ export default async function ConferenceReplayPage() {
   const store = await cookies();
   const presenter = verifyPresenterToken(store.get(PRESENTER_COOKIE)?.value);
   // User-facing name is "Previous Run" (16 Jul); stored manifests keep their
-  // original "Recorded real run · <date>" label, so rewrite the prefix here.
-  const storedLabel = record.label || body.label;
-  const label = storedLabel.replace(/^Recorded real run/i, "Previous Run");
+  // original "Recorded real run · <date>" label. Show the recording's full
+  // date AND time at the top (user request, 16 Jul) — sourced from the
+  // manifest's creation instant, London time.
+  const recordedAt = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  }).format(new Date(record.createdAt));
+  const label = `Previous Run · ${recordedAt}`;
 
   return (
     <main className="min-h-dvh">
