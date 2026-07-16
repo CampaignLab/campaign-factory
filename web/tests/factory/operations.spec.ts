@@ -698,7 +698,7 @@ test("operations workspace: failed direct source load keeps canonical source bri
     await route.fulfill({
       status: 502,
       contentType: "application/json",
-      body: JSON.stringify({ error: "Campaign source documents unavailable", detail: "Preview source returned HTTP 500." }),
+      body: JSON.stringify({ error: "Campaign source documents unavailable", detail: "Preview source returned HTTP 500.", sourceOrigin: "https://campaign-factory.vercel.app" }),
     });
   });
 
@@ -706,6 +706,8 @@ test("operations workspace: failed direct source load keeps canonical source bri
 
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText(/Preview source returned HTTP 500/)).toBeVisible();
+  await expect(page.getByText("Checked read-only source:")).toBeVisible();
+  await expect(page.getByText("https://campaign-factory.vercel.app", { exact: true })).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "View source brief" })).toHaveAttribute(

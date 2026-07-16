@@ -198,8 +198,8 @@ type SourceState =
   | { status: "fixture" }
   | { status: "invalid"; campaignId: string }
   | { status: "loading"; campaignId: string }
-  | { status: "error"; campaignId: string; title: string; message: string }
-  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"] }
+  | { status: "error"; campaignId: string; title: string; message: string; sourceOrigin?: string }
+  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string }
   | { status: "ready"; source: CampaignSource };
 
 type PortfolioCampaign = {
@@ -1450,9 +1450,11 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   });
   if (sourceRes.status === 404) throw new Error("No curated public campaign source was found for that campaign ID.");
   if (!sourceRes.ok) {
-    const errorBody = (await sourceRes.json().catch(() => null)) as { error?: string; detail?: string; runStatus?: RunReadModel["status"] } | null;
+    const errorBody = (await sourceRes.json().catch(() => null)) as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } | null;
     const err = new Error(errorBody?.detail || errorBody?.error || `The public campaign source could not be loaded (HTTP ${sourceRes.status}).`);
     if (errorBody?.runStatus) (err as Error & { runStatus?: RunReadModel["status"] }).runStatus = errorBody.runStatus;
+    const sourceOrigin = normaliseOperationsSourceOrigin(errorBody?.sourceOrigin);
+    if (sourceOrigin) (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
   const sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload>;
@@ -1684,6 +1686,7 @@ function SourceStateShell({ state }: { state: Exclude<SourceState, { status: "fi
       : state.status === "invalid"
         ? "Operations accepts a Campaign Factory UUID in the campaignId query parameter. No fixture campaign has been substituted."
         : state.message;
+  const sourceOrigin = "sourceOrigin" in state ? state.sourceOrigin : undefined;
 
   return (
     <div className="min-h-screen bg-ops-paper text-foreground">
@@ -1707,6 +1710,11 @@ function SourceStateShell({ state }: { state: Exclude<SourceState, { status: "fi
           <SmallLabel>{state.status === "loading" ? "Campaign source" : "Cannot open operations"}</SmallLabel>
           <h1 className="mt-2 max-w-3xl text-4xl font-medium tracking-tight">{title}</h1>
           <p className="mt-4 max-w-3xl text-muted-foreground">{detail}</p>
+          {sourceOrigin ? (
+            <p className="mt-3 max-w-3xl rounded-[var(--r-xl)] border border-ops-line bg-background/80 px-3 py-2 text-sm text-muted-foreground">
+              Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>
+            </p>
+          ) : null}
           {state.status === "loading" ? (
             <div className="mt-6 rounded-[var(--r-2xl)] border border-ops-line bg-ops-blue/60 p-4 text-sm text-ops-ink" role="status">
               Loading public campaign data…
@@ -1786,11 +1794,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         if (controller.signal.aborted) return;
         const message = error instanceof Error ? error.message : "The public campaign source could not be loaded.";
         const runStatus = (error as { runStatus?: RunReadModel["status"] } | null)?.runStatus;
+        const sourceOrigin = (error as { sourceOrigin?: string } | null)?.sourceOrigin;
         if (runStatus && runStatus !== "completed" && runStatus !== "partial") {
-          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus });
+          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus, sourceOrigin });
           return;
         }
-        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message });
+        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, sourceOrigin });
       });
     return () => controller.abort();
   }, [campaignId]);

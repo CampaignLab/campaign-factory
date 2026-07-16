@@ -39,23 +39,28 @@ function sourceOrigin() {
   return normaliseOperationsSourceOrigin(process.env.OPERATIONS_SOURCE_ORIGIN) ?? OPERATIONS_DEFAULT_SOURCE_ORIGIN;
 }
 
-async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string }> {
+async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string }> {
   try {
     const response = await fetch(`${origin}${path}`, {
       headers: { accept: "application/json" },
       cache: "no-store",
     });
     if (!response.ok) {
-      return { ok: false, status: response.status, message: `Read-only source returned HTTP ${response.status}.` };
+      return { ok: false, status: response.status, path, message: `Read-only source ${path} returned HTTP ${response.status}.` };
     }
     return { ok: true, value: (await response.json()) as T };
   } catch (error) {
     return {
       ok: false,
       status: 502,
+      path,
       message: error instanceof Error ? error.message : "The read-only source could not be reached.",
     };
   }
+}
+
+function upstreamFailureDetail(primary: { message: string }, secondary?: { status: number; path: string }) {
+  return secondary ? `${primary.message} The run header also failed at ${secondary.path} with HTTP ${secondary.status}.` : primary.message;
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -94,7 +99,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const docs = await fetchSourceJson<Pick<OperationsSourcePayload, "documents" | "evidence">>(origin, `/api/factory/runs/${encodeURIComponent(id)}/documents`);
   if (!docs.ok) {
-    return sourceJson({ error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin }, docs.status === 404 ? 404 : 502);
+    return sourceJson(
+      { error: "Campaign source documents unavailable", detail: upstreamFailureDetail(docs, run.ok ? undefined : run), sourceOrigin: origin },
+      docs.status === 404 ? 404 : 502,
+    );
   }
 
   if (!isOperationsCompiledDocumentList(docs.value.documents) || !isOperationsEvidenceAndNextChecks(docs.value.evidence)) {
