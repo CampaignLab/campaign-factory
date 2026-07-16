@@ -52,6 +52,7 @@ function isNonNegativeInteger(value: unknown): value is number {
 }
 
 const OPERATIONS_DOCUMENT_KEYS = new Set<string>(CANONICAL_DOCUMENTS.map((doc) => doc.key));
+const OPERATIONS_DOCUMENT_BY_KEY = new Map<string, (typeof CANONICAL_DOCUMENTS)[number]>(CANONICAL_DOCUMENTS.map((doc) => [doc.key, doc]));
 const OPERATIONS_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial", "completed", "failed", "cancelled"]);
 const OPERATIONS_EVENT_TYPES = new Set<string>(FACTORY_EVENT_TYPES);
@@ -156,17 +157,18 @@ export function isOperationsRunReadModel(value: unknown, campaignId: string): va
 }
 
 export function isOperationsCompiledDocument(value: unknown): value is CompiledDocument {
-  if (!isRecord(value)) return false;
+  if (!isRecord(value) || typeof value.key !== "string") return false;
+  const canonicalDocument = OPERATIONS_DOCUMENT_BY_KEY.get(value.key);
+  if (!canonicalDocument) return false;
+  const shouldBePack = "ownerAgentKey" in canonicalDocument;
   return (
-    typeof value.key === "string" &&
-    OPERATIONS_DOCUMENT_KEYS.has(value.key) &&
-    isNonNegativeInteger(value.num) &&
-    typeof value.name === "string" &&
+    value.num === canonicalDocument.num &&
+    value.name === canonicalDocument.name &&
     typeof value.status === "string" &&
     OPERATIONS_DOCUMENT_STATUSES.has(value.status) &&
     typeof value.html === "string" &&
     typeof value.plainText === "string" &&
-    typeof value.isPack === "boolean" &&
+    value.isPack === shouldBePack &&
     isStringArray(value.sectionKeys) &&
     isNonNegativeInteger(value.resourceCount) &&
     isStringArray(value.flags)

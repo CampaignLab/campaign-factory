@@ -349,7 +349,7 @@ test("operations portfolio: three curated public campaigns load independently", 
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "media_pack", num: 2, name: "Media Pack", status: campaign.mediaStatus, html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: campaign.mediaStatus, html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -406,7 +406,7 @@ test("operations portfolio: manual refresh ignores stale source responses", asyn
     run: { campaignId: id, status: campaign.status, stateVersion: sequence, lastSequence: sequence, events: [] },
     documents: [
       { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nPortfolio refresh race fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "media_pack", num: 2, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+      { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
     ],
     evidence: {
       groups: [],
@@ -512,8 +512,8 @@ test("operations portfolio: local signals reflect only genuine campaign-local wo
         run: { campaignId: id, status: campaign.status, stateVersion: 3, lastSequence: 11, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 2, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "media_pack", num: 3, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -583,8 +583,8 @@ test("operations workbench: resetting one real campaign leaves other campaign-lo
         run: { campaignId: id, status: campaign.status, stateVersion: 5, lastSequence: 15, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 2, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "media_pack", num: 3, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -662,7 +662,7 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "media_pack", num: 2, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -753,10 +753,10 @@ test("operations portfolio: source labels carry through workspace switching with
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "power_stakeholder_map", num: 2, name: "Power and Stakeholder Map", status: "ready", html: "", plainText: `POWER MAP\n\n${campaign.title} stakeholder clues.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "organising_plan", num: 3, name: "Organising Plan", status: "ready", html: "", plainText: campaign.organising, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "digital_pack", num: 4, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
-          { key: "media_pack", num: 5, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "power_stakeholder_map", num: 3, name: "Power and Stakeholder Map", status: "ready", html: "", plainText: `POWER MAP\n\n${campaign.title} stakeholder clues.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: campaign.organising, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "digital_pack", num: 9, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -839,10 +839,10 @@ test("operations workbench: campaign switching isolates local actions and source
         run: { campaignId: id, status: campaign.status, stateVersion: 12, lastSequence: 3, events: [] },
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 2, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.check}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.check}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
-            num: 3,
+            num: 9,
             name: "Digital Campaign Pack",
             status: "ready",
             html: "",
@@ -852,7 +852,7 @@ test("operations workbench: campaign switching isolates local actions and source
             resourceCount: 1,
             flags: [],
           },
-          { key: "media_pack", num: 4, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -940,7 +940,7 @@ test("operations workbench: real source working copies move through local review
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
-            num: 2,
+            num: 9,
             name: "Digital Campaign Pack",
             status: "ready",
             html: "",
@@ -950,7 +950,7 @@ test("operations workbench: real source working copies move through local review
             resourceCount: 1,
             flags: [],
           },
-          { key: "media_pack", num: 3, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1037,7 +1037,7 @@ test("operations workbench: editing a queued source working copy clears local qu
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${sourceTitle}\n\nPlace: ${sourcePlace}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
-            num: 2,
+            num: 9,
             name: "Digital Campaign Pack",
             status: "ready",
             html: "",
@@ -1690,6 +1690,51 @@ test("operations workbench: malformed source document entries do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: compiled source documents must match canonical metadata", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 9, lastSequence: 99, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 7,
+            name: "Fixture Brief",
+            status: "ready",
+            html: "<p>Canonical metadata mismatch should not hydrate Ormskirk</p>",
+            plainText: "Canonical metadata mismatch should not hydrate Ormskirk",
+            isPack: true,
+            sectionKeys: [],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Canonical document metadata regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 1, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 1 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Canonical metadata mismatch should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source evidence entries do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
@@ -2150,9 +2195,9 @@ test("operations workbench: source updates preserve browser-local work and requi
     run: { campaignId, status: "partial", stateVersion: sourceVersion, lastSequence, events: [] },
     documents: [
       { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nPublic source changed safely.", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "campaign_strategy", num: 2, name: "Campaign Strategy", status: "ready", html: "", plainText: "CAMPAIGN STRATEGY\n\nPriority audiences\n\n- Residents directly affected by amenity", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "tactics_timeline", num: 3, name: "Tactics and Timeline", status: "ready", html: "", plainText: "TACTICS AND TIMELINE\n\nP0 Official status verification\n\nType: research\n\nTarget: Planning Inspectorate", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "media_pack", num: 4, name: "Media Pack", status: sourceVersion === 44 ? "assembling" : "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: sourceVersion === 44 ? 0 : 1, flags: [] },
+      { key: "campaign_strategy", num: 4, name: "Campaign Strategy", status: "ready", html: "", plainText: "CAMPAIGN STRATEGY\n\nPriority audiences\n\n- Residents directly affected by amenity", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+      { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: "TACTICS AND TIMELINE\n\nP0 Official status verification\n\nType: research\n\nTarget: Planning Inspectorate", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+      { key: "media_pack", num: 8, name: "Media Pack", status: sourceVersion === 44 ? "assembling" : "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: sourceVersion === 44 ? 0 : 1, flags: [] },
     ],
     evidence: {
       groups: [],
@@ -2247,8 +2292,8 @@ test("operations workbench: all real campaign routes export source-specific loca
         documents: [
           { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-specific export fixture for ${campaign.title}.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
           { key: "objective_theory_of_change", num: 2, name: "Objective and Theory of Change", status: "ready", html: "", plainText: `OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Local decision route for ${campaign.title}\n\nMinimum viable win: Verified public evidence boundary before any local operations work is approved.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "organising_plan", num: 3, name: "Organising Plan", status: "ready", html: "", plainText: `ORGANISING PLAN\n\nResidents and campaign supporters for ${campaign.place} are source audience clues only.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "digital_pack", num: 4, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL CAMPAIGN PACK\n\nSupporter email — ${campaign.title}\n\nSubject: Source update for ${campaign.place}\n\nUse verified source boundaries before outreach.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
+          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: `ORGANISING PLAN\n\nResidents and campaign supporters for ${campaign.place} are source audience clues only.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "digital_pack", num: 9, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL CAMPAIGN PACK\n\nSupporter email — ${campaign.title}\n\nSubject: Source update for ${campaign.place}\n\nUse verified source boundaries before outreach.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
         ],
         evidence: {
           groups: [],
