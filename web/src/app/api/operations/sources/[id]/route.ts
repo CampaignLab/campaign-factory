@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { OPERATIONS_DEFAULT_SOURCE_ORIGIN, isOperationsPublicCampaignId, normaliseOperationsSourceOrigin, type OperationsSourcePayload } from "@/lib/operations/source";
+import {
+  OPERATIONS_DEFAULT_SOURCE_ORIGIN,
+  isOperationsCompiledDocumentList,
+  isOperationsEvidenceAndNextChecks,
+  isOperationsPublicCampaignId,
+  normaliseOperationsSourceOrigin,
+  type OperationsSourcePayload,
+} from "@/lib/operations/source";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,7 +99,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return sourceJson({ error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin }, docs.status === 404 ? 404 : 502);
   }
 
-  if (!Array.isArray(docs.value.documents) || !docs.value.evidence?.totals || !Array.isArray(docs.value.evidence.nextChecks)) {
+  if (!isOperationsCompiledDocumentList(docs.value.documents) || !isOperationsEvidenceAndNextChecks(docs.value.evidence)) {
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", sourceOrigin: origin },
       502,

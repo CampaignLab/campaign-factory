@@ -31,6 +31,63 @@ export type OperationsSourcePayload = {
   evidence: EvidenceAndNextChecks;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+export function isOperationsCompiledDocument(value: unknown): value is CompiledDocument {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.key === "string" &&
+    isFiniteNumber(value.num) &&
+    typeof value.name === "string" &&
+    typeof value.status === "string" &&
+    typeof value.html === "string" &&
+    typeof value.plainText === "string" &&
+    typeof value.isPack === "boolean" &&
+    isStringArray(value.sectionKeys) &&
+    isFiniteNumber(value.resourceCount) &&
+    isStringArray(value.flags)
+  );
+}
+
+export function isOperationsCompiledDocumentList(value: unknown): value is CompiledDocument[] {
+  return Array.isArray(value) && value.every(isOperationsCompiledDocument);
+}
+
+export function isOperationsEvidenceAndNextChecks(value: unknown): value is EvidenceAndNextChecks {
+  if (!isRecord(value) || !isRecord(value.totals)) return false;
+  const totals = value.totals;
+  if (
+    !isFiniteNumber(totals.claims) ||
+    !isFiniteNumber(totals.loadBearing) ||
+    !isFiniteNumber(totals.verifiedLoadBearing) ||
+    !isFiniteNumber(totals.unresolvedLoadBearing)
+  ) {
+    return false;
+  }
+  if (!Array.isArray(value.groups) || !Array.isArray(value.conflicts) || !Array.isArray(value.nextChecks) || !Array.isArray(value.terminalGaps) || !Array.isArray(value.draftNotes)) {
+    return false;
+  }
+  return value.nextChecks.every(
+    (check) =>
+      isRecord(check) &&
+      typeof check.id === "string" &&
+      typeof check.description === "string" &&
+      typeof check.reason === "string" &&
+      isStringArray(check.claimIds) &&
+      isStringArray(check.affectedSections),
+  );
+}
+
 export function isOperationsPublicCampaignId(id: string) {
   return OPERATIONS_PUBLIC_CAMPAIGN_IDS.has(id);
 }

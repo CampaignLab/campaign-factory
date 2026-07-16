@@ -9,7 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { foldEvents } from "@/lib/factory/client/fold";
 import type { RunReadModel } from "@/lib/factory/contracts/api";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
-import { OPERATIONS_PUBLIC_CAMPAIGNS, normaliseOperationsSourceOrigin, type OperationsSourcePayload } from "@/lib/operations/source";
+import {
+  OPERATIONS_PUBLIC_CAMPAIGNS,
+  isOperationsCompiledDocumentList,
+  isOperationsEvidenceAndNextChecks,
+  normaliseOperationsSourceOrigin,
+  type OperationsSourcePayload,
+} from "@/lib/operations/source";
 
 const STORAGE_KEY = "cf_operations_demo_v3";
 const LEGACY_STORAGE_KEYS = ["cf_operations_demo_v2", "cf_operations_demo_v1"];
@@ -1463,7 +1469,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   }
 
   const body = { documents: sourceBody.documents, evidence: sourceBody.evidence };
-  if (!Array.isArray(body.documents) || !body.evidence?.totals || !Array.isArray(body.evidence.nextChecks)) {
+  if (!isOperationsCompiledDocumentList(body.documents) || !isOperationsEvidenceAndNextChecks(body.evidence)) {
     throw new Error("The compiled campaign response did not match the typed public document contract.");
   }
   const brief = body.documents.find((doc) => doc.key === "campaign_brief");
