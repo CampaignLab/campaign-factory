@@ -4,6 +4,7 @@ import {
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsPublicCampaignId,
+  isOperationsRunReadModel,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -71,11 +72,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!run.ok) {
     return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, run.status === 404 ? 404 : 502);
   }
-  if (
-    run.value.campaignId !== id ||
-    !["queued", "running", "partial", "completed", "failed", "cancelled"].includes(run.value.status) ||
-    !Array.isArray(run.value.events)
-  ) {
+  if (!isOperationsRunReadModel(run.value, id)) {
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin },
       502,

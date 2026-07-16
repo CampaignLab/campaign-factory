@@ -1,4 +1,5 @@
 import type { RunReadModel } from "@/lib/factory/contracts/api";
+import { FACTORY_EVENT_TYPES, type FactoryEvent } from "@/lib/factory/contracts/core";
 import { CANONICAL_DOCUMENTS, DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
 
@@ -46,6 +47,68 @@ function isFiniteNumber(value: unknown): value is number {
 
 const OPERATIONS_DOCUMENT_KEYS = new Set<string>(CANONICAL_DOCUMENTS.map((doc) => doc.key));
 const OPERATIONS_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
+const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial", "completed", "failed", "cancelled"]);
+const OPERATIONS_EVENT_TYPES = new Set<string>(FACTORY_EVENT_TYPES);
+const OPERATIONS_EVENT_VISIBILITIES = new Set<string>(["public", "internal"]);
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalFiniteNumber(value: unknown): value is number | undefined {
+  return value === undefined || isFiniteNumber(value);
+}
+
+function isOptionalStringArray(value: unknown): value is string[] | undefined {
+  return value === undefined || isStringArray(value);
+}
+
+function isOperationsFactoryEvent(value: unknown, campaignId: string): value is FactoryEvent {
+  if (!isRecord(value) || !isRecord(value.payload)) return false;
+  const payload = value.payload;
+  return (
+    typeof value.eventId === "string" &&
+    isFiniteNumber(value.sequence) &&
+    value.campaignId === campaignId &&
+    isOptionalString(value.batchId) &&
+    isOptionalString(value.agentRunId) &&
+    isOptionalString(value.parentAgentRunId) &&
+    isOptionalFiniteNumber(value.journeyStep) &&
+    typeof value.type === "string" &&
+    OPERATIONS_EVENT_TYPES.has(value.type) &&
+    typeof value.at === "string" &&
+    isOptionalFiniteNumber(value.stateVersion) &&
+    typeof value.visibility === "string" &&
+    OPERATIONS_EVENT_VISIBILITIES.has(value.visibility) &&
+    typeof payload.summary === "string" &&
+    isOptionalString(payload.verb) &&
+    isOptionalString(payload.agentKey) &&
+    isOptionalString(payload.agentDisplayName) &&
+    isOptionalStringArray(payload.sourceIds) &&
+    isOptionalStringArray(payload.claimIds) &&
+    isOptionalString(payload.proposalId) &&
+    isOptionalString(payload.judgementId) &&
+    isOptionalString(payload.handoffToAgentRunId) &&
+    isOptionalFiniteNumber(payload.sectionStep) &&
+    isOptionalString(payload.sectionStatus) &&
+    isOptionalString(payload.documentKey) &&
+    isOptionalString(payload.documentStatus) &&
+    (payload.detail === undefined || isRecord(payload.detail))
+  );
+}
+
+export function isOperationsRunReadModel(value: unknown, campaignId: string): value is RunReadModel {
+  if (!isRecord(value) || value.campaignId !== campaignId) return false;
+  return (
+    isOptionalString(value.batchId) &&
+    typeof value.status === "string" &&
+    OPERATIONS_RUN_STATUSES.has(value.status) &&
+    isFiniteNumber(value.stateVersion) &&
+    isFiniteNumber(value.lastSequence) &&
+    Array.isArray(value.events) &&
+    value.events.every((event) => isOperationsFactoryEvent(event, campaignId))
+  );
+}
 
 export function isOperationsCompiledDocument(value: unknown): value is CompiledDocument {
   if (!isRecord(value)) return false;

@@ -13,6 +13,7 @@ import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
+  isOperationsRunReadModel,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -1457,8 +1458,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   const sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload>;
   const sourceOrigin = normaliseOperationsSourceOrigin(sourceBody.sourceOrigin);
   const run = sourceBody.run;
-  const supportedStatuses: RunReadModel["status"][] = ["queued", "running", "partial", "completed", "failed", "cancelled"];
-  if (!sourceOrigin || !run || run.campaignId !== campaignId || !supportedStatuses.includes(run.status) || !Array.isArray(run.events)) {
+  if (!sourceOrigin || !isOperationsRunReadModel(run, campaignId)) {
     throw new Error("The public campaign source did not match the requested campaign.");
   }
   const folded = foldEvents(campaignId, run.events);
