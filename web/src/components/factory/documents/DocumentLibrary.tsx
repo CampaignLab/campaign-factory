@@ -1,25 +1,20 @@
 "use client";
 
-// The nine-document library (ADR 0007). Renders the canonical nine-document
-// grid with pills in the campaignGrade vocabulary (language.ts documentPill):
-// "Complete" (green) for ready, "Nearly complete" (amber) for needs
-// verification or flagged, and contentless documents DIMMED with no pill.
-// Each document opens into a view with Copy, view HTML, and a Word .doc
-// download (the original design's separate-download affordance). Export is
-// DISABLED until the relevant reviewer pass completes:
-//  - "ready"              → export enabled;
-//  - "needs verification" → export enabled only after explicit confirmation;
-//  - "assembling"/"under review" → export disabled.
-// The document's "worth checking" flags render as a Fact checks block at the
-// END of the document (14 Jul 2026 redesign) — calm, no red.
+// The nine-document library (ADR 0007), restored to the legacy "Campaign
+// materials" presentation (Journey stage 11). Every BUILT document is a legacy
+// .doccard: "Document N of M" eyebrow, title, its graded status pill (honesty
+// label stays), a ~150-char preview of the body, and two actions — "⧉ Copy"
+// (full plain text to the clipboard) and "↓ Word" (the existing Word-.doc
+// export util). Contentless documents keep the user-approved pastel
+// "Coming soon" cards, untouched.
 //
-// Resource fragments render INSIDE their pack's view (the compiler folds them
-// into the pack html), never as separate documents. This is presentational —
-// the compiled documents come from W6's pure compileDocuments(state, claims).
+// The FULL document bodies scroll by inside their owning production steps
+// (AssemblyView/BriefSection) as legacy draftblocks — this grid is the library
+// index only. Presentational: the compiled documents come from W6's pure
+// compileDocuments(state, claims).
 
-import { useState } from "react";
 import type { CompiledDocument } from "@/lib/factory/documents";
-import { FACT_CHECKS_TITLE, documentPill, isExportable, plainDocStatus, plainFlag } from "@/lib/factory/documents";
+import { documentPill } from "@/lib/factory/documents";
 import type { DocumentStatus } from "@/lib/factory/contracts";
 import { downloadDocHtml, copyText } from "./wordExport";
 import "./documents.css";
@@ -53,9 +48,7 @@ export function DocumentLibrary({
    *  provides it (e.g. the brief's step-10 aside) — the ready count stays. */
   showHeading?: boolean;
 }) {
-  const [openKey, setOpenKey] = useState<string | null>(null);
   const readyCount = documents.filter((d) => d.status === "ready").length;
-  const open = documents.find((d) => d.key === openKey) || null;
   // deterministic tint per contentless doc (rotates across only the soon cards)
   const soonTint = new Map<string, string>();
   documents
@@ -74,10 +67,10 @@ export function DocumentLibrary({
 
       <div className="docgrid" style={{ marginTop: "0.75rem" }}>
         {documents.map((d) => {
-          const dim = documentPill(d.status, d.flags.length > 0) == null;
+          const built = documentPill(d.status, d.flags.length > 0) != null;
           // Contentless documents are non-clickable "Coming soon" pastel cards
-          // (never a dead-end empty view).
-          if (dim) {
+          // (never a dead-end empty view) — preserved exactly.
+          if (!built) {
             return (
               <div key={d.key} className={`doccard fa-doccard fa-doccard--soon ${soonTint.get(d.key) ?? ""}`}>
                 <span className="d-n">
@@ -91,121 +84,29 @@ export function DocumentLibrary({
               </div>
             );
           }
+          // Built documents: the legacy doccard — preview + Copy + Word, with the
+          // graded status pill kept as the honesty label.
           return (
-            <button
-              key={d.key}
-              type="button"
-              className={`doccard fa-doccard${openKey === d.key ? " fa-doccard--open" : ""}`}
-              onClick={() => setOpenKey(openKey === d.key ? null : d.key)}
-              aria-expanded={openKey === d.key}
-            >
+            <div key={d.key} className="doccard">
               <span className="d-n">
                 Document {d.num} of {documents.length}
                 {d.isPack ? " · pack" : ""}
               </span>
               <h3>{d.name}</h3>
-              <div className="d-prev">
-                <Pill status={d.status} flagged={d.flags.length > 0} />
-                {d.isPack && d.resourceCount ? (
-                  <span className="fa-mono" style={{ marginLeft: ".5rem" }}>
-                    {d.resourceCount} resource{d.resourceCount === 1 ? "" : "s"}
-                  </span>
-                ) : null}
+              <Pill status={d.status} flagged={d.flags.length > 0} />
+              <div className="d-prev">{d.plainText.slice(0, 150)}…</div>
+              <div className="dd-actions">
+                <button type="button" className="toolbtn" onClick={() => copyText(d.plainText)}>
+                  ⧉ Copy
+                </button>
+                <button type="button" className="toolbtn" onClick={() => downloadDocHtml(d.name, d.html)}>
+                  ↓ Word
+                </button>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
-
-      {open ? <DocumentView doc={open} onClose={() => setOpenKey(null)} /> : null}
     </div>
-  );
-}
-
-function DocumentView({ doc, onClose }: { doc: CompiledDocument; onClose: () => void }) {
-  const [confirmed, setConfirmed] = useState(false);
-  const exportable = isExportable(doc.status);
-  const needsConfirm = doc.status === "needs verification";
-  const canExport = doc.status === "ready" || (needsConfirm && confirmed);
-
-  return (
-    <section className="fa-docview" aria-label={`${doc.name} document`}>
-      <div className="fa-docview__bar">
-        <div>
-          <span className="d-n">
-            Document {doc.num}
-            {doc.isPack ? " · pack" : ""}
-          </span>
-          <h3>{doc.name}</h3>
-        </div>
-        <div className="fa-docview__meta">
-          <Pill status={doc.status} flagged={doc.flags.length > 0} />
-          <button type="button" className="toolbtn" onClick={onClose}>
-            ✕ Close
-          </button>
-        </div>
-      </div>
-
-      {!exportable ? (
-        <p className="fa-doc-note">
-          You can copy or download this document once it&apos;s finished — right now it&apos;s{" "}
-          <b>{plainDocStatus(doc.status).toLowerCase()}</b>.
-        </p>
-      ) : null}
-
-      {needsConfirm ? (
-        <label className="fa-docview__confirm">
-          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />I
-          understand some things here still need checking, and I&apos;ll check them before using this.
-        </label>
-      ) : null}
-
-      <div className="dd-actions" style={{ margin: ".6rem 0 1rem" }}>
-        <button
-          type="button"
-          className="toolbtn"
-          disabled={!canExport}
-          onClick={() => copyText(doc.plainText)}
-          title={canExport ? "Copy plain text" : "Available once ready"}
-        >
-          ⧉ Copy text
-        </button>
-        <button
-          type="button"
-          className="toolbtn"
-          disabled={!canExport}
-          onClick={() => copyText(doc.html)}
-          title={canExport ? "Copy HTML" : "Available once ready"}
-        >
-          ⧉ Copy HTML
-        </button>
-        <button
-          type="button"
-          className="toolbtn"
-          disabled={!canExport}
-          onClick={() => downloadDocHtml(doc.name, doc.html)}
-          title={canExport ? "Download Word .doc" : "Available once ready"}
-        >
-          ↓ Word
-        </button>
-      </div>
-
-      <article className="rc fa-content fa-docview__body" dangerouslySetInnerHTML={{ __html: doc.html }} />
-
-      {/* Fact checks live at the END of every compiled document (graft 3). The
-          brief bakes its own into the compiled html; the per-document flags
-          render here in the same calm style. */}
-      {doc.flags.length ? (
-        <div className="fa-docview__facts">
-          <h4>{FACT_CHECKS_TITLE}</h4>
-          <p className="fa-evgroup__cap">Worth checking before you use this document</p>
-          <ul className="fa-factlist">
-            {doc.flags.map((f, i) => (
-              <li key={i}>{plainFlag(f)}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
   );
 }

@@ -284,6 +284,18 @@
   padding: 0.12rem 0.6rem;
 }
 
+/* ---- FEATURE B: full compiled material text inline (legacy draftblocks;
+        .draftblock / .db-head / .db-body / .draftgroup come from journey.css) ---- */
+.fa-materials {
+  margin-top: 0.5rem;
+}
+.fa-material-more > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--brand);
+  margin: 0.1rem 0 0.5rem;
+}
+
 /* ---- connection badge ---- */
 .fa-conn {
   display: inline-flex;

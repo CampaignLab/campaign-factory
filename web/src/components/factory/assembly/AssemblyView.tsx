@@ -31,7 +31,7 @@ import {
   type JudgementVM,
   type RunVM,
 } from "@/lib/factory/client";
-import { campaignGrade } from "@/lib/factory/documents";
+import { campaignGrade, documentPill, type CompiledDocument } from "@/lib/factory/documents";
 import { DocumentLibrary as CompiledDocumentLibrary } from "@/components/factory/documents/DocumentLibrary";
 import { YourJudgementCard } from "@/components/factory/judgement/YourJudgementCard";
 import { AgentBuildBar } from "./AgentBuildBar";
@@ -130,6 +130,25 @@ export function AssemblyView({
     }
     return { bySection, orphans };
   }, [run.judgements]);
+
+  // FEATURE B — full compiled material text scrolls by inside the owning
+  // production step. Each BUILT document (one with a status pill) is assigned to
+  // a single home rail step by the section it's built from: docs 2–6 sit under
+  // their one/two brief sections (sectionKeys[0]); the whole-brief document and
+  // the lobbying/media/digital packs (no single section) sit under the step-10
+  // "Campaign materials" rung, below the library grid. Contentless documents
+  // have no body, so they contribute nothing here.
+  const materialsByStep = useMemo(() => {
+    const map: Record<string, CompiledDocument[]> = {};
+    if (!compiled) return map;
+    for (const d of compiled.documents) {
+      if (documentPill(d.status, d.flags.length > 0) == null) continue; // built only
+      const home =
+        d.sectionKeys.length >= 1 && d.sectionKeys.length <= 2 ? d.sectionKeys[0] : "documents";
+      (map[home] ??= []).push(d);
+    }
+    return map;
+  }, [compiled]);
 
   // Name flip: generated campaign name (fold beats register — it's fresher on
   // a live stream), falling back to the user's problem text while none exists.
@@ -272,6 +291,7 @@ export function AssemblyView({
             onAnswer={onAnswer}
             canDecide={canDecide}
             footer={footer}
+            materials={materialsByStep[s.key]}
             active={active === s.key}
             revealed={revealed.has(s.key)}
             evidenceExtras={
