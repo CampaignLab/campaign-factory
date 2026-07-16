@@ -420,7 +420,24 @@ test("operations workbench: campaignId route loads a read-only public campaign s
     ["campaign_strategy", "Campaign Strategy", "ready", "CAMPAIGN STRATEGY\n\nRoute to influence\n\nPrivate/formal first: confirm appeal status before any public action and use official written-representation routes only if live.\n\nCoalition strategy\n\nAffected residents and Cllr Gareth Dowling remain the core coalition while school-community voices provide careful evidence.\n\nPriority audiences\n\n- Residents directly affected by amenity and noise\n\n- Parents linked to the school route"],
     ["tactics_timeline", "Tactics and Timeline", "ready", "TACTICS AND TIMELINE\n\nP0 Official status verification of appeal/decision\n\nType: research/administrative\n\nTarget: Planning Inspectorate appeals database\n\nP0 Private coordination with Cllr Gareth Dowling and planning officers"],
     ["organising_plan", "Organising Plan", "ready", "ORGANISING PLAN\n\nCoordinate residents without implying a connected CRM."],
-    ["lobbying_pack", "Lobbying Pack", "ready", "LOBBYING PACK\n\nMeeting request email and briefing drafts are available for later local working copies."],
+    [
+      "lobbying_pack",
+      "Lobbying Pack",
+      "ready",
+      [
+        "LOBBYING PACK",
+        "",
+        "Phone Script — Council Planning Team",
+        "",
+        "OPEN: Hello, I am checking the current public status of the Ormskirk KFC planning application before residents reuse stronger campaign claims.",
+        "",
+        "ASK: Could you point me to the official appeal record or confirm there is no live appeal listed?",
+        "",
+        "Before you send this, check",
+        "",
+        "- Do not imply a named officer has already confirmed the status.",
+      ].join("\n"),
+    ],
     ["media_pack", "Media Pack", "assembling", "MEDIA PACK\n\nNothing in this pack yet."],
     [
       "digital_pack",
@@ -526,6 +543,7 @@ test("operations workbench: campaignId route loads a read-only public campaign s
 
   await page.getByRole("button", { name: /Drafts/ }).first().click();
   await expect(page.getByLabel("Source pack resources")).toContainText("Supporter email — status update");
+  await expect(page.getByLabel("Source pack resources")).toContainText("Phone Script — Council Planning Team");
   await page.getByRole("button", { name: "Use in editable draft" }).first().click();
   await expect(page.getByRole("heading", { name: /Working copy: Supporter email — status update/i })).toBeVisible();
   await expect(page.getByText(/Copied from Digital Campaign Pack in campaign/)).toBeVisible();
@@ -539,6 +557,11 @@ test("operations workbench: campaignId route loads a read-only public campaign s
   await expect(page.getByLabel("Local working draft library")).toContainText("Social media post set");
   await page.getByLabel("Local working draft library").getByRole("button", { name: /Supporter email — status update/ }).click();
   await expect(page.getByLabel("Subject")).toHaveValue("Ormskirk KFC — what we know, what we don't");
+  await page.getByLabel("Source pack resources").getByRole("button", { name: "Use in editable draft" }).last().click();
+  await expect(page.getByRole("heading", { name: /Working copy: Phone Script — Council Planning Team/i })).toBeVisible();
+  await expect(page.getByLabel("Subject")).toHaveValue("Phone Script — Council Planning Team");
+  await expect(page.getByLabel("Message")).toHaveValue(/Could you point me to the official appeal record/);
+  await expect(page.getByText(/Do not imply a named officer has already confirmed the status/i)).toBeVisible();
 
   await page.getByRole("button", { name: /Campaign brief/ }).first().click();
   await expect(page.getByText("What the source says", { exact: true })).toBeVisible();

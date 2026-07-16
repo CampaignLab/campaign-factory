@@ -913,6 +913,12 @@ const SOURCE_RESOURCE_PATTERNS = [
   { pattern: /(landing page|campaign landing page)/i, channel: "Landing page", priority: 7 },
   { pattern: /(action page|take action page)/i, channel: "Action page", priority: 8 },
   { pattern: /social media (post set|posts)/i, channel: "Social posts", priority: 9 },
+  { pattern: /follow[- ]?up email/i, channel: "Follow-up email", priority: 10 },
+  { pattern: /phone script/i, channel: "Phone script", priority: 11 },
+  { pattern: /doorknock script/i, channel: "Doorstep script", priority: 12 },
+  { pattern: /questions to ask/i, channel: "Question bank", priority: 13 },
+  { pattern: /(confirmation message|sharing message|simple share message|short shareable message)/i, channel: "Share copy", priority: 14 },
+  { pattern: /graphic concept briefs/i, channel: "Creative brief", priority: 15 },
 ] as const;
 
 function matchSourceResourceHeading(line: string) {
@@ -2340,9 +2346,14 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         ) : null}
         {sourceResources.length ? (
           <div className="mt-6 border-t border-white/15 pt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">Real source resources</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">Real source resources</p>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">
+                {sourceResources.length} ready candidate{sourceResources.length === 1 ? "" : "s"}
+              </span>
+            </div>
             <div className="mt-3 space-y-3" aria-label="Source pack resources">
-              {sourceResources.slice(0, 5).map((resource) => (
+              {sourceResources.map((resource) => (
                 <div key={resource.id} className="rounded-[var(--r-xl)] border border-white/15 bg-white/[0.07] p-3 text-sm text-white">
                   <div className="flex items-start justify-between gap-3">
                     <div>
