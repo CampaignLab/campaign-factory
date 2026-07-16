@@ -143,7 +143,12 @@ export function makeRunner(agents: RuntimeAgents): RunFn {
         await store.setRunStatus(s, campaignId, "running", { markStarted: true });
         await emitter.emit({
           type: "run.started",
-          payload: { summary: `Run started: ${run.problem.slice(0, 80)}` },
+          payload: {
+            summary: `Run started: ${run.problem.slice(0, 80)}`,
+            // M4: shared-link/second-device viewers have no localStorage seed —
+            // the fold learns problem/place from this detail.
+            detail: { problem: run.problem, place: run.place },
+          },
         });
 
         const initial: Partial<GraphStateType> = {

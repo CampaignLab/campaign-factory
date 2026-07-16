@@ -30,3 +30,48 @@ export async function incrIpRun(ip: string): Promise<void> {
     on conflict (ip) do update set run_count = ip_usage.run_count + 1, updated_at = now()
   `;
 }
+
+// Atomic "increment-if-below-cap". A single statement claims a run slot: the
+// conditional ON CONFLICT ... WHERE means a parallel burst can't slip past a
+// read-then-increment gap. Returns true if a slot was claimed, false (empty
+// result — no row inserted or updated) if the cap is already reached.
+export async function claimRun(sid: string, cap: number): Promise<boolean> {
+  await migrate();
+  const rows = await sql`
+    insert into sessions (sid, run_count, updated_at) values (${sid}, 1, now())
+    on conflict (sid) do update set run_count = sessions.run_count + 1, updated_at = now()
+    where sessions.run_count < ${cap}
+    returning run_count
+  `;
+  return rows.length > 0;
+}
+
+// Give a claimed session slot back when a downstream step fails (floor at 0).
+export async function refundRun(sid: string): Promise<void> {
+  await migrate();
+  await sql`
+    update sessions set run_count = greatest(run_count - 1, 0), updated_at = now()
+    where sid = ${sid}
+  `;
+}
+
+// Per-IP atomic claim — same pattern as claimRun, harder backstop.
+export async function claimIpRun(ip: string, cap: number): Promise<boolean> {
+  await migrate();
+  const rows = await sql`
+    insert into ip_usage (ip, run_count, updated_at) values (${ip}, 1, now())
+    on conflict (ip) do update set run_count = ip_usage.run_count + 1, updated_at = now()
+    where ip_usage.run_count < ${cap}
+    returning run_count
+  `;
+  return rows.length > 0;
+}
+
+// Give a claimed IP slot back when a downstream step fails (floor at 0).
+export async function refundIpRun(ip: string): Promise<void> {
+  await migrate();
+  await sql`
+    update ip_usage set run_count = greatest(run_count - 1, 0), updated_at = now()
+    where ip = ${ip}
+  `;
+}

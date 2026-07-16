@@ -6,9 +6,9 @@
 import { NextResponse } from "next/server";
 import { config } from "@/lib/config";
 import { overBudget } from "@/lib/db/spend";
-import { runCount, incrRun, runCountByIp, incrIpRun } from "@/lib/db/sessions";
+import { claimRun, refundRun, claimIpRun, refundIpRun } from "@/lib/db/sessions";
 import { SID_COOKIE, parseSid, newSid, clientIp } from "@/lib/session";
-import { forwardSigned, factoryEnvId } from "../_lib/worker";
+import { forwardSigned, factoryEnvId, type ForwardResult } from "../_lib/worker";
 
 export const runtime = "nodejs";
 
@@ -57,40 +57,56 @@ export async function POST(req: Request) {
   }
 
   const ip = clientIp(req);
-  if (!isAdmin && (await runCountByIp(ip)) >= config.ipRunCap) {
-    return NextResponse.json(
-      { error: `This network has reached its run limit (${config.ipRunCap}).`, capReached: true },
-      { status: 429 },
-    );
-  }
-
   let sid = parseSid(req.headers.get("cookie"));
   const isNewSid = !sid;
   if (!sid) sid = newSid();
-  if (!isAdmin && (await runCount(sid)) >= config.runCap) {
-    return NextResponse.json(
-      { error: `You've reached the limit of ${config.runCap} runs for this session.`, capReached: true },
-      { status: 429 },
-    );
+
+  // Claim BOTH counters atomically BEFORE forwarding — a parallel burst must not
+  // slip past a check-then-act gap. Order: session then IP; if the IP claim loses
+  // its race after the session claim already succeeded, refund the session slot.
+  if (!isAdmin) {
+    if (!(await claimRun(sid, config.runCap))) {
+      return NextResponse.json(
+        { error: `You've reached the limit of ${config.runCap} runs for this session.`, capReached: true },
+        { status: 429 },
+      );
+    }
+    if (!(await claimIpRun(ip, config.ipRunCap))) {
+      await refundRun(sid);
+      return NextResponse.json(
+        { error: `This network has reached its run limit (${config.ipRunCap}).`, capReached: true },
+        { status: 429 },
+      );
+    }
   }
 
   // Sign + forward (environmentId + profile injected server-side — never
   // trusted from the client). Public solo runs use the cheaper express profile;
-  // presenter batches stay on "full" (worker default).
-  const forwarded = await forwardSigned("POST", "/runs", {
-    intake: { problem: problem.trim(), place: place.trim() },
-    mode: "public",
-    profile: "express",
-    environmentId: factoryEnvId(),
-  });
+  // presenter batches stay on "full" (worker default). If the run is NOT created
+  // (throw or non-2xx from the worker), refund both claimed slots.
+  let forwarded: ForwardResult;
+  try {
+    forwarded = await forwardSigned("POST", "/runs", {
+      intake: { problem: problem.trim(), place: place.trim() },
+      mode: "public",
+      profile: "express",
+      environmentId: factoryEnvId(),
+    });
+  } catch (err) {
+    if (!isAdmin) {
+      await refundRun(sid);
+      await refundIpRun(ip);
+    }
+    throw err;
+  }
   if (forwarded.status >= 400) {
+    if (!isAdmin) {
+      await refundRun(sid);
+      await refundIpRun(ip);
+    }
     return NextResponse.json(forwarded.body, { status: forwarded.status });
   }
 
-  if (!isAdmin) {
-    await incrRun(sid);
-    await incrIpRun(ip);
-  }
   const res = NextResponse.json(forwarded.body, { status: forwarded.status });
   if (isNewSid) {
     res.cookies.set(SID_COOKIE, sid, {
