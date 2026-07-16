@@ -96,20 +96,52 @@ export const executeAgentTurn: AgentTurnFn = async (envelope, deps) => {
   }
 };
 
-// One visible operational retry on timeout / provider failure. Cancellation
+// Operational retries on timeout / provider failure. Cancellation
 // (TurnAbortedError) and empty output (EmptyOutputError — model-call already
-// retried in-turn) are rethrown, never retried. Attempt 2's timeout is clipped
-// to the time left before the envelope deadline so a retry can never double a
-// long turn timeout (one flaky agent must not spend 14 minutes of a 20-minute
-// run); with under 30s left the retry is skipped entirely. Returns null after
-// a failed/skipped retry so the caller can emit a failed result rather than
-// crash the node.
+// retried in-turn) are rethrown, never retried. Three rungs (user, 16 Jul):
+// 1. OVERLOAD (429 rate_limit / 529 overloaded): up to two further attempts
+//    after a short jittered wait (5–15s, or the provider's retry-after when
+//    under 20s) — the 16 Jul Sonnet burst cleared within a minute, so a
+//    patient retry succeeds where an instant one just re-fails.
+// 2. Other failures keep the single instant retry. A timeout consumes the
+//    whole envelope window (raw headroom ~0), so it gets one fresh window
+//    capped at MAX_RETRY_TIMEOUT_MS; provider errors fail fast and keep their
+//    real headroom. Under 30s of headroom the retry is skipped.
+// 3. LAST RESORT, public/audience runs only (never presenter batches — stage
+//    tempo stays predictable): when every attempt failed on a provider error
+//    (not a timeout) and the agent runs on Sonnet, one final attempt runs on
+//    claude-opus-4-8 — the alternative is a terminal gap mid-session.
+// Returns null after failed/skipped retries so the caller emits a failed
+// result rather than crash the node.
 const MIN_RETRY_HEADROOM_MS = 30_000;
-// A timeout consumes the whole envelope window, so the raw headroom to the
-// envelope deadline is ~0 and the single operational retry would always be
-// skipped. For a timeout we grant one fresh, bounded retry window instead —
-// capped so a flaky agent still can't double a long turn timeout.
 const MAX_RETRY_TIMEOUT_MS = 120_000;
+const OVERLOAD_EXTRA_ATTEMPTS = 2;
+const OVERLOAD_MAX_WAIT_MS = 20_000;
+const FALLBACK_MODEL = "claude-opus-4-8";
+const MIN_FALLBACK_HEADROOM_MS = 45_000;
+
+function isOverloadError(e: unknown): boolean {
+  const err = e as { status?: unknown; error?: { type?: unknown } } | null;
+  const status = typeof err?.status === "number" ? err.status : undefined;
+  const type = err?.error && typeof err.error === "object" ? (err.error as { type?: unknown }).type : undefined;
+  return status === 429 || status === 529 || type === "rate_limit_error" || type === "overloaded_error";
+}
+
+function overloadWaitMs(e: unknown): number {
+  const headers = (e as { headers?: unknown })?.headers;
+  const raw =
+    headers && typeof (headers as { get?: unknown }).get === "function"
+      ? (headers as { get: (k: string) => string | null }).get("retry-after")
+      : headers && typeof headers === "object"
+        ? (headers as Record<string, string>)["retry-after"]
+        : undefined;
+  const retryAfterMs = raw ? Number(raw) * 1000 : NaN;
+  const jitteredMs = 5_000 + Math.random() * 10_000;
+  const wait = Number.isFinite(retryAfterMs) && retryAfterMs > 0 ? retryAfterMs : jitteredMs;
+  return Math.min(Math.max(wait, 1_000), OVERLOAD_MAX_WAIT_MS);
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function runWithOperationalRetry(
   spec: ModelTurnSpec,
@@ -117,45 +149,80 @@ async function runWithOperationalRetry(
   work: WorkEmitter,
   deadlineAt?: string,
 ): Promise<ModelTurnResult | null> {
-  try {
-    return await runModelTurn(spec, deps);
-  } catch (e) {
-    diag(`${spec.def.key} attempt 1 failed`, e);
-    if (e instanceof TurnAbortedError || e instanceof EmptyOutputError) throw e;
+  const headroomNow = () => {
     const nowMs = (deps.now?.() ?? new Date()).getTime();
     const deadlineMs = deadlineAt ? Date.parse(deadlineAt) : NaN;
-    const rawHeadroomMs = Number.isFinite(deadlineMs) ? deadlineMs - nowMs : spec.timeoutMs;
-    // A timeout leaves ~0 headroom to the envelope deadline; grant one fresh,
-    // bounded window so the single retry is reachable. Provider errors fail fast
-    // and keep their real headroom.
-    const headroomMs =
-      e instanceof TurnTimeoutError
-        ? Math.min(spec.timeoutMs, MAX_RETRY_TIMEOUT_MS)
-        : rawHeadroomMs;
-    if (headroomMs < MIN_RETRY_HEADROOM_MS) {
-      diag(`${spec.def.key} retry skipped`, new Error(`${headroomMs}ms left before envelope deadline`));
-      return null;
-    }
+    return Number.isFinite(deadlineMs) ? deadlineMs - nowMs : spec.timeoutMs;
+  };
+  const emitRetry = (summary: string) => {
     deps
       .emit({
         type: "agent.retry",
         journeyStep: spec.journeyStep,
-        payload: {
-          summary: `Retrying after ${e instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`,
-          verb: "retrying",
-          agentKey: spec.def.key,
-        },
+        payload: { summary, verb: "retrying", agentKey: spec.def.key },
       })
       .catch((err) => console.error(`[agents] ${spec.def.key}: agent.retry emit failed:`, err));
-    work.work("Retrying", "retrying");
+    work.work(summary, "retrying");
+  };
+
+  // Rung 1: attempt 1 plus patient overload re-attempts.
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 1 + OVERLOAD_EXTRA_ATTEMPTS; attempt++) {
     try {
-      return await runModelTurn({ ...spec, timeoutMs: Math.min(spec.timeoutMs, headroomMs) }, deps);
-    } catch (e2) {
-      diag(`${spec.def.key} attempt 2 failed`, e2);
-      if (e2 instanceof TurnAbortedError || e2 instanceof EmptyOutputError) throw e2;
-      return null;
+      const timeoutMs = attempt === 1 ? spec.timeoutMs : Math.min(spec.timeoutMs, Math.max(headroomNow(), MIN_RETRY_HEADROOM_MS));
+      return await runModelTurn(attempt === 1 ? spec : { ...spec, timeoutMs }, deps);
+    } catch (e) {
+      diag(`${spec.def.key} attempt ${attempt} failed`, e);
+      if (e instanceof TurnAbortedError || e instanceof EmptyOutputError) throw e;
+      lastError = e;
+      if (!isOverloadError(e) || attempt >= 1 + OVERLOAD_EXTRA_ATTEMPTS) break;
+      const waitMs = overloadWaitMs(e);
+      if (headroomNow() - waitMs < MIN_RETRY_HEADROOM_MS) break;
+      emitRetry(
+        `Model overloaded — waiting ${Math.round(waitMs / 1000)}s before retrying (attempt ${attempt + 1} of ${1 + OVERLOAD_EXTRA_ATTEMPTS})`,
+      );
+      await sleep(waitMs);
     }
   }
+
+  // Rung 2: the single generic retry — overload failures already spent their
+  // patient attempts above, so they skip straight to the last resort.
+  if (!isOverloadError(lastError)) {
+    const headroomMs =
+      lastError instanceof TurnTimeoutError ? Math.min(spec.timeoutMs, MAX_RETRY_TIMEOUT_MS) : headroomNow();
+    if (headroomMs >= MIN_RETRY_HEADROOM_MS) {
+      emitRetry(`Retrying after ${lastError instanceof TurnTimeoutError ? "a timeout" : "a provider error"}`);
+      try {
+        return await runModelTurn({ ...spec, timeoutMs: Math.min(spec.timeoutMs, headroomMs) }, deps);
+      } catch (e2) {
+        diag(`${spec.def.key} attempt 2 failed`, e2);
+        if (e2 instanceof TurnAbortedError || e2 instanceof EmptyOutputError) throw e2;
+        lastError = e2;
+      }
+    } else {
+      diag(`${spec.def.key} retry skipped`, new Error(`${headroomMs}ms left before envelope deadline`));
+    }
+  }
+
+  // Rung 3: cross-model last resort — public runs on Sonnet, provider errors
+  // only (an Opus attempt after a Sonnet timeout would be slower still).
+  const presenterBatch = Boolean(spec.batchId);
+  const fallbackTimeoutMs = Math.min(headroomNow(), spec.timeoutMs);
+  if (
+    !presenterBatch &&
+    spec.model.includes("sonnet") &&
+    !(lastError instanceof TurnTimeoutError) &&
+    fallbackTimeoutMs >= MIN_FALLBACK_HEADROOM_MS
+  ) {
+    emitRetry("Provider errors persist — final attempt on a backup model (Claude Opus)");
+    try {
+      return await runModelTurn({ ...spec, model: FALLBACK_MODEL, timeoutMs: fallbackTimeoutMs }, deps);
+    } catch (e3) {
+      diag(`${spec.def.key} ${FALLBACK_MODEL} fallback failed`, e3);
+      if (e3 instanceof TurnAbortedError || e3 instanceof EmptyOutputError) throw e3;
+    }
+  }
+  return null;
 }
 
 // Bounded context: problem + place, accepted (or in-review) sections with their
