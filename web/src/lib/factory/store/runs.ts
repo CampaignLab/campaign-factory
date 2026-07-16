@@ -195,6 +195,26 @@ export async function listFinishedPresenterRuns(
   return rows.map(mapRun);
 }
 
+// Finished public solo campaigns (the self-serve runs listFinishedPresenterRuns
+// excludes) for this environment, newest first — the audience-built cards on the
+// public /gallery. Same finished-grade + cost floor (cost_usd > 0.5 excludes
+// mock/test runs) and same record shape as the presenter listing; auto-shared,
+// no opt-in flag.
+export async function listFinishedPublicRuns(
+  sql: Db,
+  environmentId: string,
+  limit = 60,
+): Promise<RunRecord[]> {
+  const rows = await sql<Row[]>`
+    select * from factory.factory_runs
+     where mode = 'public' and environment_id = ${environmentId}
+       and status in ('completed', 'partial')
+       and cost_usd > 0.5
+     order by completed_at desc nulls last
+     limit ${limit}`;
+  return rows.map(mapRun);
+}
+
 // Accepted-section counts (plus the generated campaign name and the
 // objective's ask) for a set of finished campaigns, in ONE batched query.
 // Source: the latest accepted CampaignState per campaign
