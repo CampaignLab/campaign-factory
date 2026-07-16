@@ -18,6 +18,27 @@ test("operations source API: invalid and non-curated ids are allow-list misses w
   }
 });
 
+test("operations source API: write methods are blocked as read-only no-store responses", async ({ request }) => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  for (const makeRequest of [
+    () => request.post(`/api/operations/sources/${curatedId}`, { data: { campaignId: curatedId } }),
+    () => request.put(`/api/operations/sources/${curatedId}`, { data: { campaignId: curatedId } }),
+    () => request.patch(`/api/operations/sources/${curatedId}`, { data: { campaignId: curatedId } }),
+    () => request.delete(`/api/operations/sources/${curatedId}`),
+  ]) {
+    const response = await makeRequest();
+    expect(response.status()).toBe(405);
+    expect(response.headers()["cache-control"]).toBe("no-store");
+    expect(response.headers().allow).toBe("GET");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
+    expect(body.error).toBe("Operations source is read-only");
+    expect(body.detail).toContain("read-only GET behaviour only");
+    expect(body.sourceOrigin).toBeUndefined();
+  }
+});
+
 test("operations workbench: cross-view local review and demo queue flow", async ({ page }) => {
   await page.goto("/operations?demo=fixture");
 

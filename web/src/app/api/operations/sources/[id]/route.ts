@@ -6,10 +6,24 @@ export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+const READ_ONLY_ALLOW_HEADERS = { ...NO_STORE_HEADERS, Allow: "GET" };
 
-function sourceJson<T>(body: T, status = 200) {
-  return NextResponse.json(body, { status, headers: NO_STORE_HEADERS });
+function sourceJson<T>(body: T, status = 200, headers: Record<string, string> = NO_STORE_HEADERS) {
+  return NextResponse.json(body, { status, headers });
 }
+
+function sourceMethodNotAllowed() {
+  return sourceJson(
+    { error: "Operations source is read-only", detail: "This preview-safe source adapter exposes read-only GET behaviour only." },
+    405,
+    READ_ONLY_ALLOW_HEADERS,
+  );
+}
+
+export const POST = sourceMethodNotAllowed;
+export const PUT = sourceMethodNotAllowed;
+export const PATCH = sourceMethodNotAllowed;
+export const DELETE = sourceMethodNotAllowed;
 
 function sourceOrigin() {
   return normaliseOperationsSourceOrigin(process.env.OPERATIONS_SOURCE_ORIGIN) ?? OPERATIONS_DEFAULT_SOURCE_ORIGIN;
