@@ -40,10 +40,14 @@ export function DocumentLibrary({
   documents,
   title = "Campaign documents",
   intro,
+  showHeading = true,
 }: {
   documents: CompiledDocument[];
   title?: string;
   intro?: string;
+  /** Drop the "Campaign documents" heading when the surrounding surface already
+   *  provides it (e.g. the brief's step-10 aside) — the ready count stays. */
+  showHeading?: boolean;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const readyCount = documents.filter((d) => d.status === "ready").length;
@@ -52,7 +56,7 @@ export function DocumentLibrary({
   return (
     <div className="fa-doclib">
       <div className="fa-doclib__head">
-        <h3>{title}</h3>
+        {showHeading ? <h3>{title}</h3> : null}
         <span className="fa-doclib__count">
           <b>{readyCount}</b> of {documents.length} ready to use
         </span>

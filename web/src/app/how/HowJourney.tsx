@@ -392,9 +392,10 @@ export function HowJourney() {
           not completed&rdquo;.
         </p>
         <p className="callout warm" data-anim="2">
-          A stage that fails is shown as failed. A campaign that ran out of time is shown as partial. The
-          factory never fabricates completion — that rule is enforced in the machinery, not just promised in
-          the copy.
+          A run that stops early is shown as <b>Stopped early</b>, with everything it finished kept. A run that
+          runs out of time is graded on what it actually built — <b>Nearly complete</b>, or a plain count like{" "}
+          <b>6 of 9 sections built</b> — never rounded up to <b>Complete</b>. The factory never fabricates
+          completion — that rule is enforced in the machinery, not just promised in the copy.
         </p>
         <div data-anim="3">
           <h3>What it can&apos;t do</h3>
