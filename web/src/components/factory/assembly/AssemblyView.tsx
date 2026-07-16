@@ -257,6 +257,7 @@ export function AssemblyView({
               <CompiledDocumentLibrary
                 documents={compiled.documents}
                 intro="Built from your accepted campaign brief — copy or download each document once it's ready."
+                showHeading={false}
               />
             ) : (
               <DocumentLibrary documents={run.documents} />

@@ -318,6 +318,13 @@ function ProblemContent(c: Record<string, unknown>) {
 }
 
 // -- 2 evidence --
+// `decisionRouteSketch` and `specialistSelection` are the research director's
+// intermediate scoping artifacts: they duplicate the step-4 decision route and
+// are plumbing, not reader content. They are CONSUMED here (so the generic
+// Extras fallback never dumps them raw on the page) but deliberately NOT
+// rendered — they stay in state and the compiled documents. lane_<key> blocks
+// are consumed dynamically in the dispatcher and rendered compactly by
+// LaneFindings.
 const EVIDENCE_KEYS = [
   "summary",
   "researchQuestions",
@@ -327,6 +334,8 @@ const EVIDENCE_KEYS = [
   "opponents",
   "localMedia",
   "unresolved",
+  "decisionRouteSketch",
+  "specialistSelection",
 ] as const;
 
 /** The legacy framed card: faux browser-chrome dots, an "evidence · N sources ·
@@ -370,6 +379,66 @@ function KeyClaimsCard({ extras }: { extras: EvidenceExtras }) {
   );
 }
 
+interface LaneFindingsC {
+  summary?: string;
+  keyPoints?: string[];
+  candidateOrganisations?: string[];
+  disputedClaims?: string[];
+}
+
+/** Compact render of the specialists' merged lane blocks (`lane_<key>`): one
+ *  titled group per lane in the legacy two-column vocabulary — a short summary
+ *  and key-point bullets — with the longer extras (candidate organisations,
+ *  disputed claims) tucked into a collapsed <details>. This REPLACES the raw,
+ *  unstyled flat field dump the generic Extras fallback used to produce for
+ *  these dynamic keys; the full detail still lives in state and the compiled
+ *  documents. */
+function LaneFindings({ content }: { content: Record<string, unknown> }) {
+  const lanes = Object.keys(content)
+    .filter((k) => k.startsWith("lane_"))
+    .map((k) => {
+      const block = isPlainObject(content[k]) ? (content[k] as Record<string, unknown>) : {};
+      const f = (isPlainObject(block.findings) ? block.findings : {}) as LaneFindingsC;
+      return {
+        key: k,
+        summary: str(f.summary),
+        keyPoints: strs(f.keyPoints),
+        orgs: strs(f.candidateOrganisations),
+        disputed: strs(f.disputedClaims),
+      };
+    })
+    .filter((l) => l.summary || l.keyPoints?.length || l.orgs?.length || l.disputed?.length);
+  if (!lanes.length) return null;
+  return (
+    <div className="cols2">
+      {lanes.map((l) => (
+        <div key={l.key}>
+          <h3>{humanise(l.key)}</h3>
+          {l.summary ? <p>{l.summary}</p> : null}
+          <List items={l.keyPoints} />
+          {l.orgs?.length || l.disputed?.length ? (
+            <details className="lane-more">
+              <summary>More from this lane</summary>
+              {l.orgs?.length ? (
+                <>
+                  <h4>Candidate organisations</h4>
+                  <List items={l.orgs} />
+                </>
+              ) : null}
+              {l.disputed?.length ? (
+                <>
+                  <h4>Disputed claims</h4>
+                  <List items={l.disputed} />
+                </>
+              ) : null}
+            </details>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EvidenceContent(c: Record<string, unknown>, extras?: EvidenceExtras) {
   return (
     <>
@@ -387,6 +456,7 @@ function EvidenceContent(c: Record<string, unknown>, extras?: EvidenceExtras) {
         </div>
       </div>
       {extras ? <KeyClaimsCard extras={extras} /> : null}
+      <LaneFindings content={c} />
       <H3List title="Still unresolved" items={strs(c.unresolved)} />
     </>
   );
@@ -944,10 +1014,16 @@ export function SectionContent({
     const { ok } = validateSectionContent(stepKey, content);
     if (ok) {
       const { render, consumed } = BESPOKE[stepKey];
+      // The evidence step merges dynamic lane_<key> blocks; LaneFindings renders
+      // them compactly, so the generic Extras must not also dump them raw.
+      const consumedAll =
+        stepKey === "evidence"
+          ? [...consumed, ...Object.keys(content).filter((k) => k.startsWith("lane_"))]
+          : consumed;
       return (
         <div className="rc fa-content">
           {render(content, evidenceExtras)}
-          <Extras content={content} consumed={consumed} />
+          <Extras content={content} consumed={consumedAll} />
         </div>
       );
     }

@@ -129,6 +129,18 @@ export function ReplayClient({
     };
   }, [label]);
 
+  // On narrow phones (≤640px) the fixed top-right badge collides with the
+  // SiteNav pills; drop it to the bottom-right (above the playback controls)
+  // and shrink it there. Starts false so SSR/hydration match the desktop path.
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const update = () => setNarrow(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   const isPlaying = state.status === "playing";
   const isEnded = state.status === "ended";
   const isCondensed = state.mode === "condensed";
@@ -145,20 +157,21 @@ export function ReplayClient({
         aria-live="off"
         style={{
           position: "fixed",
-          top: 8,
-          right: 12,
+          top: narrow ? "auto" : 8,
+          bottom: narrow ? 64 : "auto",
+          right: narrow ? 10 : 12,
           zIndex: 50,
           display: "inline-flex",
           alignItems: "center",
-          gap: 8,
-          fontSize: 11,
+          gap: narrow ? 6 : 8,
+          fontSize: narrow ? 10 : 11,
           fontWeight: 600,
           letterSpacing: "0.02em",
           background: "rgba(22,24,27,0.94)",
           color: "#f2f3f5",
           border: "1px solid rgba(255,255,255,0.14)",
           borderRadius: 999,
-          padding: "5px 12px",
+          padding: narrow ? "4px 10px" : "5px 12px",
           pointerEvents: "none",
         }}
       >

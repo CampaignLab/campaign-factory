@@ -157,6 +157,22 @@
 .fa-content h4 { font-size: 0.95rem; margin: 1.1rem 0 0.4rem; font-weight: 600; }
 .fa-content > :first-child { margin-top: 0; }
 
+/* research-lane extras: a calm collapsed disclosure (candidate orgs / disputed
+   claims) so long lists never spill as a flat wall in the evidence step */
+.fa-content .lane-more { margin: 0.5rem 0 0.2rem; }
+.fa-content .lane-more > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+.fa-content .lane-more > summary:hover { color: var(--foreground); }
+.fa-content .lane-more[open] > summary { margin-bottom: 0.2rem; }
+.fa-content .lane-more h4:first-of-type { margin-top: 0.4rem; }
+
+/* long tokens in the Next steps claim rows wrap rather than overflow at 390px */
+.fa-factlist li,
+.fa-factlist__meta { overflow-wrap: anywhere; }
+
 /* ---- skeleton for not-yet-built sections ---- */
 .fa-skeleton { display: flex; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0 0.6rem; }
 .fa-skeleton span {
@@ -212,7 +228,17 @@
   color: var(--muted-foreground);
   white-space: nowrap;
 }
-.fa-src .src-meta { margin: 0.45rem 0 0.15rem; }
+/* long unbroken source URLs / titles must wrap, not force horizontal overflow
+   on narrow phones (390px) — the register is the widest content on the page */
+.fa-src .src-meta {
+  margin: 0.45rem 0 0.15rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.fa-src > summary b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
 /* ---- connection badge ---- */
 .fa-conn {
