@@ -650,7 +650,7 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
       await route.fulfill({
         status: 502,
         contentType: "application/json",
-        body: JSON.stringify({ error: "Campaign source documents unavailable", detail: "Preview source returned HTTP 500." }),
+        body: JSON.stringify({ error: "Campaign source documents unavailable", detail: "Preview source returned HTTP 500.", sourceOrigin: "https://campaign-factory.vercel.app" }),
       });
       return;
     }
@@ -683,6 +683,8 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
   await expect(page.getByText("Stop the leisure park redevelopment in Barnet", { exact: true })).toBeVisible();
   await expect(page.getByText("Campaign source unavailable", { exact: true })).toBeVisible();
   await expect(page.getByText(/Preview source returned HTTP 500/)).toBeVisible();
+  await expect(page.getByText("Checked read-only source:")).toBeVisible();
+  await expect(page.getByText("https://campaign-factory.vercel.app", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open workspace" })).toHaveCount(3);
   await expect(page.getByRole("link", { name: "Open workspace" }).nth(0)).toHaveAttribute("href", "/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
   await expect(page.getByRole("link", { name: "Open workspace" }).nth(2)).toHaveAttribute("href", "/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153");

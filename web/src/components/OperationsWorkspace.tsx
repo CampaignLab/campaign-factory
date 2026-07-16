@@ -218,7 +218,7 @@ type PortfolioLocalCounts = {
 type PortfolioItem =
   | { campaign: PortfolioCampaign; status: "loading"; local: PortfolioLocalCounts }
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource; local: PortfolioLocalCounts }
-  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; local: PortfolioLocalCounts };
+  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; sourceOrigin?: string; local: PortfolioLocalCounts };
 
 type CampaignSwitcherItem =
   | { campaign: PortfolioCampaign; status: "loading" }
@@ -1564,10 +1564,11 @@ function OperationsPortfolio() {
         .catch((error: unknown) => {
           if (controller.signal.aborted || currentRefreshId !== portfolioRefreshId.current) return;
           const message = error instanceof Error ? error.message : "This campaign source could not be loaded.";
+          const sourceOrigin = (error as { sourceOrigin?: string } | null)?.sourceOrigin;
           setItems((current) =>
             current.map((item) =>
               item.campaign.id === campaign.id
-                ? { campaign, status: "error", title: "Campaign source unavailable", message, local: portfolioLocalCounts(campaign.id) }
+                ? { campaign, status: "error", title: "Campaign source unavailable", message, sourceOrigin, local: portfolioLocalCounts(campaign.id) }
                 : item,
             ),
           );
@@ -1640,6 +1641,11 @@ function OperationsPortfolio() {
                     </div>
                     <h2 className="mt-3 text-2xl font-medium tracking-tight">{item.status === "ready" ? item.source.title : item.status === "loading" ? "Loading campaign…" : item.title}</h2>
                     <p className="mt-1 text-sm text-muted-foreground">{item.status === "ready" ? item.source.place : item.status === "loading" ? "Reading public run and compiled documents." : item.message}</p>
+                    {item.status === "error" && item.sourceOrigin ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Checked read-only source: <span className="font-medium text-foreground">{item.sourceOrigin}</span>
+                      </p>
+                    ) : null}
                     {source ? (
                       <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                         <p className="rounded-[var(--r-xl)] border border-ops-line bg-background/75 p-3"><span className="block font-medium">{source.readyCount}/{source.documents.length} documents ready</span><span className="text-muted-foreground">{source.incompleteDocuments.map((doc) => `${doc.name}: ${doc.status}`).join(" · ") || "All compiled documents ready"}</span></p>
