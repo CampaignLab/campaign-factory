@@ -1926,7 +1926,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       activity:
         current.activeDraft === activeDraft
           ? current.activity
-          : [record(`Opened draft library item: ${workspaceDraftLibrary.find((draft) => draft.id === activeDraft)?.title ?? "Draft"}.`), ...current.activity].slice(0, 7),
+          : [record(`Viewed draft library item: ${workspaceDraftLibrary.find((draft) => draft.id === activeDraft)?.title ?? "Draft"}.`), ...current.activity].slice(0, 7),
     }));
   };
 
@@ -1939,7 +1939,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         activeDraft: "supporter_email",
         activity:
           draft && current.activeWorkingDraftId !== draft.id
-            ? [record(`Opened local working copy: ${draft.title}.`), ...current.activity].slice(0, 7)
+            ? [record(`Viewed local working copy: ${draft.title}.`), ...current.activity].slice(0, 7)
             : current.activity,
       };
     });
