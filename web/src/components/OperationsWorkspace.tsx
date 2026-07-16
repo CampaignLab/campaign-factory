@@ -1758,7 +1758,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     const controller = new AbortController();
     queueMicrotask(() => setSourceState({ status: "loading", campaignId }));
     fetchCampaignSource(campaignId, controller.signal)
-      .then((source) => setSourceState({ status: "ready", source }))
+      .then((source) => {
+        if (controller.signal.aborted) return;
+        setSourceState({ status: "ready", source });
+      })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         const message = error instanceof Error ? error.message : "The public campaign source could not be loaded.";
@@ -1815,6 +1818,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       const controller = new AbortController();
       fetchCampaignSource(campaign.id, controller.signal)
         .then((source) => {
+          if (controller.signal.aborted) return;
           setSwitcherItems((current) =>
             current.map((item) => (item.campaign.id === campaign.id ? { campaign, status: "ready", source } : item)),
           );
