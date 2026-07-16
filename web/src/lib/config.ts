@@ -20,7 +20,9 @@ export const config = {
   // Conference access code. Empty string = gate disabled (local dev).
   accessCode: (process.env.CF_ACCESS_CODE || "").trim(),
   // Runs allowed per browser session (cookie — easy to reset by clearing cookies).
-  runCap: intEnv("CF_RUN_CAP", 3),
+  // Conference day (16 Jul): effectively uncapped per person (user decision) —
+  // queue fairness and the daily kill-switch are the operative controls.
+  runCap: intEnv("CF_RUN_CAP", 200),
   // Runs allowed per client IP (harder backstop against abuse). Set to 1 for
   // "everyone gets one run". Cost is controlled here, not by degrading research.
   // venue NAT: hundreds of attendees share one egress IP — default high so the
