@@ -53,6 +53,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
+  if (run.value.status !== "partial" && run.value.status !== "completed") {
+    return NextResponse.json(
+      {
+        error: "Campaign source not ready",
+        detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
+        runStatus: run.value.status,
+        sourceOrigin: origin,
+      },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const docs = await fetchSourceJson<Pick<OperationsSourcePayload, "documents" | "evidence">>(origin, `/api/factory/runs/${encodeURIComponent(id)}/documents`);
   if (!docs.ok) {
     return NextResponse.json({ error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin }, { status: docs.status === 404 ? 404 : 502 });
