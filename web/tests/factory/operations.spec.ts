@@ -407,10 +407,10 @@ test("operations workbench: campaignId route loads a read-only public campaign s
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documents = [
     ["campaign_brief", "Campaign Brief", "ready", "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nThe source brief says the campaign must defend the council refusal against appeal risk."],
-    ["objective_theory_of_change", "Objective and Theory of Change", "ready", "OBJECTIVE AND THEORY OF CHANGE\n\nDismiss any appeal and uphold West Lancashire Borough Council's refusal."],
-    ["power_stakeholder_map", "Power and Stakeholder Map", "ready", "POWER AND STAKEHOLDER MAP\n\nPlanning Inspectorate, council officers, ward councillors, residents and applicant."],
-    ["campaign_strategy", "Campaign Strategy", "ready", "CAMPAIGN STRATEGY\n\nVerify the official appeal position before escalating."],
-    ["tactics_timeline", "Tactics and Timeline", "ready", "TACTICS AND TIMELINE\n\nPhase 0: retrieve the official appeal record."],
+    ["objective_theory_of_change", "Objective and Theory of Change", "ready", "OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Planning Inspectorate appeal decision-maker\n\nSpecific action: dismiss any appeal and uphold West Lancashire Borough Council's refusal\n\nBy: only after the official appeal status is verified\n\nMinimum viable win: a dated, citable official appeal record is retrieved and used before public escalation."],
+    ["power_stakeholder_map", "Power and Stakeholder Map", "ready", "POWER AND STAKEHOLDER MAP\n\nDecides\n\nPlanning Inspector — National appeal body, Planning Inspectorate\n\nPower: High\n\nPosition: Appeal decision-maker whose current decision status is unverified\n\nInfluences\n\nWard councillor — Existing elected ally\n\nPower: Medium\n\nPosition: Can coordinate residents and planning officers without becoming an imported contact."],
+    ["campaign_strategy", "Campaign Strategy", "ready", "CAMPAIGN STRATEGY\n\nRoute to influence\n\nPrivate/formal first: confirm appeal status before any public action and use official written-representation routes only if live.\n\nCoalition strategy\n\nAffected residents and Cllr Gareth Dowling remain the core coalition while school-community voices provide careful evidence.\n\nPriority audiences\n\n- Residents directly affected by amenity and noise\n\n- Parents linked to the school route"],
+    ["tactics_timeline", "Tactics and Timeline", "ready", "TACTICS AND TIMELINE\n\nP0 Official status verification of appeal/decision\n\nType: research/administrative\n\nTarget: Planning Inspectorate appeals database\n\nP0 Private coordination with Cllr Gareth Dowling and planning officers"],
     ["organising_plan", "Organising Plan", "ready", "ORGANISING PLAN\n\nCoordinate residents without implying a connected CRM."],
     ["lobbying_pack", "Lobbying Pack", "ready", "LOBBYING PACK\n\nMeeting request email and briefing drafts are available for later local working copies."],
     ["media_pack", "Media Pack", "assembling", "MEDIA PACK\n\nNothing in this pack yet."],
@@ -522,4 +522,13 @@ test("operations workbench: campaignId route loads a read-only public campaign s
   await page.getByRole("button", { name: /Campaign brief/ }).first().click();
   await expect(page.getByText("What the source says", { exact: true })).toBeVisible();
   await expect(page.getByText(/source brief says the campaign must defend the council refusal/i)).toBeVisible();
+  await page.getByRole("button", { name: /Objective & targets/ }).first().click();
+  await expect(page.getByText("Planning Inspectorate appeal decision-maker")).toBeVisible();
+  await expect(page.getByText(/a dated, citable official appeal record/i)).toBeVisible();
+  await page.getByRole("button", { name: /Power map/ }).first().click();
+  await expect(page.getByLabel("Source-backed stakeholder lanes")).toContainText("Planning Inspector");
+  await expect(page.getByLabel("Source-backed stakeholder lanes")).toContainText("Appeal decision-maker whose current decision status is unverified");
+  await page.getByRole("button", { name: /Strategy & tactics/ }).first().click();
+  await expect(page.getByText(/Private\/formal first: confirm appeal status/i)).toBeVisible();
+  await expect(page.getByText(/P0 Official status verification of appeal\/decision/i)).toBeVisible();
 });

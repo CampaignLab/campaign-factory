@@ -114,6 +114,7 @@ type Segment = {
 type NavItem = { id: ViewId; label: string; badge?: string; note: string };
 type CampaignContextRow = { label: string; detail: string; use: string; owner: string };
 type RunwayStage = { label: string; view: ViewId; status: StageStatus; statusLabel: string; detail: string };
+type SourceStakeholder = { group: string; name: string; power: string; position: string };
 type DraftLibraryItem = {
   id: DraftId;
   title: string;
@@ -718,6 +719,97 @@ function documentExcerpt(doc: CompiledDocument | undefined, max = 260) {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
+const SOURCE_SECTION_LABELS = [
+  "Decision-maker",
+  "Specific action",
+  "By",
+  "Minimum viable win",
+  "Success looks like",
+  "Route to influence",
+  "Coalition strategy",
+  "Priority audiences",
+  "Resources assumed",
+  "Constraints",
+  "Type",
+  "Target",
+  "Owner",
+  "Purpose",
+  "Timing",
+  "Dependencies",
+  "Resources",
+  "Expected effect",
+  "Success sign",
+  "What follows",
+  "Escalation",
+  "Human approval",
+  "Power",
+  "Position",
+  "Cares about",
+  "What we ask of them",
+  "Recommended approach",
+  "Evidence",
+  "Confidence",
+] as const;
+
+const SOURCE_SECTION_BOUNDARY = new RegExp(`^(${SOURCE_SECTION_LABELS.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}):\\s*`, "i");
+
+function sourceSectionValue(doc: CompiledDocument | undefined, label: string, max = 300) {
+  const lines = doc?.plainText?.split(/\r?\n/) ?? [];
+  const start = lines.findIndex((line) => line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`));
+  if (start < 0) return null;
+  const first = lines[start].trim().replace(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*`, "i"), "");
+  const continuation: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (continuation.length) break;
+      continue;
+    }
+    if (SOURCE_SECTION_BOUNDARY.test(trimmed) || /^[A-Z][A-Za-z0-9 ()/&,-]{2,80}$/.test(trimmed)) break;
+    continuation.push(trimmed);
+  }
+  const value = [first, ...continuation].map((line) => line.trim()).filter(Boolean).join(" ");
+  if (!value) return null;
+  return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+}
+
+function sourceLinesAfterHeading(doc: CompiledDocument | undefined, heading: string, maxItems = 4) {
+  const lines = doc?.plainText?.split(/\r?\n/).map((line) => line.trim()) ?? [];
+  const start = lines.findIndex((line) => line.toLowerCase() === heading.toLowerCase());
+  if (start < 0) return [];
+  const items: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (!line) continue;
+    if (items.length && /^[A-Z][A-Za-z /&-]{2,60}$/.test(line) && !/^\d+\./.test(line) && !/^(P\d+|Phase\s+\d+)/i.test(line)) break;
+    if (/^[-•]\s+/.test(line) || /^\d+\.\s+/.test(line) || /^(P\d+|Phase\s+\d+)/i.test(line)) {
+      items.push(line.replace(/^[-•]\s+/, ""));
+      if (items.length >= maxItems) break;
+    }
+  }
+  return items;
+}
+
+function extractSourceStakeholders(doc: CompiledDocument | undefined, maxItems = 5): SourceStakeholder[] {
+  const lines = doc?.plainText?.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) ?? [];
+  const stakeholders: SourceStakeholder[] = [];
+  let group = "Stakeholder";
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^(Decides|Influences|Blocks|Potential blockers|Allies|Persuadables)$/i.test(line)) {
+      group = line;
+      continue;
+    }
+    if (!line.includes(" — ") || SOURCE_SECTION_BOUNDARY.test(line)) continue;
+    const [name] = line.split(" — ");
+    const window = lines.slice(index + 1, index + 10);
+    const power = window.find((candidate) => /^Power:/i.test(candidate))?.replace(/^Power:\s*/i, "") || "Power not labelled";
+    const position = window.find((candidate) => /^Position:/i.test(candidate))?.replace(/^Position:\s*/i, "") || "Position not labelled in source excerpt";
+    stakeholders.push({ group, name: name.trim(), power, position: shortText(position, 150) });
+    if (stakeholders.length >= maxItems) break;
+  }
+  return stakeholders;
+}
+
 function compactCampaignLabel(value: string) {
   return value
     .replace(/^Keep\s+/i, "")
@@ -941,6 +1033,18 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
   const media = byKey.get("media_pack");
   const evidenceTotals = source.evidence.totals;
   const nextGate = source.nextGate ?? source.evidence.nextChecks[0]?.description ?? "Review unresolved load-bearing checks before the campaign changes phase.";
+  const objectiveDecisionMaker = sourceSectionValue(objective, "Decision-maker");
+  const objectiveAction = sourceSectionValue(objective, "Specific action");
+  const objectiveBy = sourceSectionValue(objective, "By");
+  const objectiveMinimumWin = sourceSectionValue(objective, "Minimum viable win");
+  const routeToInfluence = sourceSectionValue(strategy, "Route to influence");
+  const coalitionStrategy = sourceSectionValue(strategy, "Coalition strategy");
+  const priorityAudiences = sourceLinesAfterHeading(strategy, "Priority audiences", 5);
+  const tacticTitles = tactics?.plainText
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^(P\d+|Phase\s+\d+)/i.test(line))
+    .slice(0, 4) ?? [];
 
   return {
     brief: {
@@ -975,19 +1079,31 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
     },
     objectives: {
       title: "Objective & targets",
-      intro: "The objective is read from the compiled public campaign documents, with unresolved official-decision checks kept prominent.",
+      intro: "The objective is read from labelled fields in the compiled public campaign documents, with unresolved official-decision checks kept prominent.",
       rows: [
         {
-          label: "Objective source",
-          detail: documentExcerpt(objective),
-          use: "Ground the next operational decision in the actual accepted objective/theory-of-change document.",
+          label: "Decision-maker",
+          detail: objectiveDecisionMaker ?? documentExcerpt(objective),
+          use: "Names the route this local workspace is planning around; it does not import a recipient or contact record.",
           owner: "Campaign source",
         },
         {
-          label: "Current gate",
-          detail: nextGate,
-          use: "Confirm appeal or decision status before stronger claims, phase changes, or external-facing copy.",
+          label: "Specific action",
+          detail: objectiveAction ?? "The typed source did not expose a labelled specific-action field; use the source excerpt until a campaigner verifies it.",
+          use: "Keeps drafts and actions attached to the actual ask rather than a fixture objective.",
+          owner: "Campaign source",
+        },
+        {
+          label: "Timing / decision window",
+          detail: objectiveBy ?? nextGate,
+          use: "Shows whether the operational gate is a live deadline, a missing date, or a source uncertainty.",
           owner: "Reviewer",
+        },
+        {
+          label: "Minimum viable win",
+          detail: objectiveMinimumWin ?? "Minimum viable win was not exposed as a labelled source field.",
+          use: "Lets local actions target a truthful near-term win instead of overstating the campaign outcome.",
+          owner: "Campaign source",
         },
         {
           label: "Evidence boundary",
@@ -999,14 +1115,14 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
     },
     power: {
       title: "Power map",
-      intro: "The first slice exposes the real power-map source document and its provenance without inferring imported contacts or owners.",
+      intro: "The stakeholder map is read from the real source document while contact inference, CRM import, and delivery targets stay disconnected.",
       rows: [
-        {
-          label: "Source map",
-          detail: documentExcerpt(power),
-          use: "Use the accepted stakeholder map as the source for later audience and target actions.",
+        ...extractSourceStakeholders(power, 4).map((stakeholder) => ({
+          label: `${stakeholder.group}: ${stakeholder.name}`,
+          detail: `${stakeholder.power}. ${stakeholder.position}`,
+          use: "Plan an audience, briefing, or review question from the source role without claiming an imported contact.",
           owner: "Campaign source",
-        },
+        })),
         {
           label: "Contact boundary",
           detail: "No CRM, consent register, or imported contact list is connected to this operations view.",
@@ -1017,18 +1133,30 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
     },
     strategy: {
       title: "Strategy & tactics",
-      intro: "Strategy and tactics are loaded from the source campaign documents; local action creation comes after this read-only routing slice.",
+      intro: "Strategy and tactics are loaded from labelled source sections, then kept separate from browser-local actions and drafts.",
       rows: [
         {
-          label: "Campaign strategy",
-          detail: documentExcerpt(strategy),
+          label: "Route to influence",
+          detail: routeToInfluence ?? documentExcerpt(strategy),
           use: "Keeps the operational runway anchored to the real strategic sequence.",
           owner: "Campaign source",
         },
         {
+          label: "Coalition strategy",
+          detail: coalitionStrategy ?? "Coalition strategy was not exposed as a labelled source section.",
+          use: "Shapes ally/audience planning without creating a shared contact list.",
+          owner: "Campaign source",
+        },
+        {
+          label: "Priority audiences",
+          detail: priorityAudiences.length ? priorityAudiences.join(" · ") : "Priority audiences were not exposed as a source list.",
+          use: "Feeds the local audience-intent labels while keeping consent and CRM boundaries visible.",
+          owner: "Campaign source",
+        },
+        {
           label: "Tactics timeline",
-          detail: documentExcerpt(tactics),
-          use: "Seed actions from real tactics in the next deep-dive slice, without writing back to the source campaign.",
+          detail: tacticTitles.length ? tacticTitles.join(" · ") : documentExcerpt(tactics),
+          use: "Seed local action candidates from actual tactics without writing back to the source campaign.",
           owner: "Campaign source",
         },
       ],
@@ -1430,6 +1558,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
 
   const sourceLoaded = Boolean(source);
   const sourceContext = useMemo(() => (source ? buildSourceContext(source) : campaignContext), [source]);
+  const sourceStakeholders = useMemo(
+    () => (source ? extractSourceStakeholders(source.documents.find((doc) => doc.key === "power_stakeholder_map"), 5) : []),
+    [source],
+  );
   const sourceResources = useMemo(() => (source ? extractSourceResources(source) : []), [source]);
   const audienceSegments = useMemo(() => (source ? buildSourceAudienceSegments(source) : segments), [source]);
   const workspaceDraftLibrary = useMemo(() => (source ? buildSourceDraftLibrary(source) : draftLibrary), [source]);
@@ -2555,12 +2687,26 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             : "A spatial influence board for allies, persuadables, blockers, and the decision target. It is fixture-grounded and uses text labels as well as colour."}
         </p>
         {sourceLoaded ? (
-          <div className="mt-6 rounded-[var(--r-2xl)] border border-ops-line bg-background p-5">
-            <SmallLabel>Read-only source document</SmallLabel>
-            <h3 className="mt-2 text-2xl font-medium">Stakeholder map loaded from the public campaign bundle</h3>
-            <p className="mt-3 text-sm text-muted-foreground">
-              The next slice can turn this source into local actions and communications. This slice deliberately avoids inventing a contact graph, imported list, or delivery target.
-            </p>
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.65fr)_minmax(0,1fr)] lg:items-stretch" aria-label="Source-backed stakeholder lanes">
+            {sourceStakeholders.length ? sourceStakeholders.map((stakeholder, index) => (
+              <div
+                key={`${stakeholder.group}-${stakeholder.name}`}
+                className={`rounded-[var(--r-2xl)] border border-ops-line p-4 ${index === 0 ? "border-2 border-ops-ink bg-background text-center shadow-sm" : index % 3 === 1 ? "bg-ops-mint" : index % 3 === 2 ? "bg-ops-yellow" : "bg-ops-blue/70"}`}
+              >
+                <SmallLabel>{stakeholder.group} · {stakeholder.power}</SmallLabel>
+                <h3 className="mt-2 text-xl font-medium">{stakeholder.name}</h3>
+                <p className="mt-2 text-sm text-ops-ink/72">{stakeholder.position}</p>
+                <p className="mt-3 text-xs text-ops-ink/60">Read-only source role; no contact record or delivery target is imported.</p>
+              </div>
+            )) : (
+              <div className="rounded-[var(--r-2xl)] border border-ops-line bg-background p-5 lg:col-span-3">
+                <SmallLabel>Read-only source document</SmallLabel>
+                <h3 className="mt-2 text-2xl font-medium">Stakeholder map loaded from the public campaign bundle</h3>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  The source did not expose parseable stakeholder lanes, so the complete power-map layout shows the document table below without inventing a contact graph, imported list, or delivery target.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.65fr)_minmax(0,1fr)] lg:items-stretch">
