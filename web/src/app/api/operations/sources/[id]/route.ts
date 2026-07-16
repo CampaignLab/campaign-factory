@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { OPERATIONS_DEFAULT_SOURCE_ORIGIN, isOperationsPublicCampaignId, type OperationsSourcePayload } from "@/lib/operations/source";
+import { OPERATIONS_DEFAULT_SOURCE_ORIGIN, isOperationsPublicCampaignId, normaliseOperationsSourceOrigin, type OperationsSourcePayload } from "@/lib/operations/source";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sourceOrigin() {
-  const raw = process.env.OPERATIONS_SOURCE_ORIGIN?.trim() || OPERATIONS_DEFAULT_SOURCE_ORIGIN;
-  return raw.replace(/\/+$/, "");
+  return normaliseOperationsSourceOrigin(process.env.OPERATIONS_SOURCE_ORIGIN) ?? OPERATIONS_DEFAULT_SOURCE_ORIGIN;
 }
 
 async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string }> {

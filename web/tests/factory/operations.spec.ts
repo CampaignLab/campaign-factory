@@ -1361,6 +1361,41 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
+        sourceOrigin: "javascript:alert(1)",
+        run: { campaignId, status: "partial", stateVersion: 3, lastSequence: 3, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Unsafe source origin should not hydrate Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to source brief" })).toHaveAttribute(
+    "href",
+    "https://campaign-factory.vercel.app/factory/c/69f257b6-9913-4395-94f7-5c25b4b5fe95",
+  );
+  await expect(page.getByText("Unsafe source origin should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.unroute(`**/api/operations/sources/${campaignId}`);
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: "57678ae0-29fd-4b4b-8a53-5c711cdb21cf", status: "partial", stateVersion: 3, lastSequence: 3, events: [] },
         documents: [

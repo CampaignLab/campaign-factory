@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { foldEvents } from "@/lib/factory/client/fold";
 import type { RunReadModel } from "@/lib/factory/contracts/api";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
-import { OPERATIONS_PUBLIC_CAMPAIGNS, type OperationsSourcePayload } from "@/lib/operations/source";
+import { OPERATIONS_PUBLIC_CAMPAIGNS, normaliseOperationsSourceOrigin, type OperationsSourcePayload } from "@/lib/operations/source";
 
 const STORAGE_KEY = "cf_operations_demo_v3";
 const LEGACY_STORAGE_KEYS = ["cf_operations_demo_v2", "cf_operations_demo_v1"];
@@ -1447,8 +1447,9 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     throw new Error(errorBody?.detail || errorBody?.error || `The public campaign source could not be loaded (HTTP ${sourceRes.status}).`);
   }
   const sourceBody = (await sourceRes.json()) as OperationsSourcePayload;
+  const sourceOrigin = normaliseOperationsSourceOrigin(sourceBody.sourceOrigin);
   const run = sourceBody.run;
-  if (run.campaignId !== campaignId || !Array.isArray(run.events)) {
+  if (!sourceOrigin || run.campaignId !== campaignId || !Array.isArray(run.events)) {
     throw new Error("The public campaign source did not match the requested campaign.");
   }
   const folded = foldEvents(campaignId, run.events);
@@ -1483,8 +1484,8 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     readyCount,
     incompleteDocuments,
     nextGate: priorityGate?.description ?? body.evidence.nextChecks[0]?.description,
-    sourceHref: `${sourceBody.sourceOrigin}/factory/c/${campaignId}`,
-    sourceOrigin: sourceBody.sourceOrigin,
+    sourceHref: `${sourceOrigin}/factory/c/${campaignId}`,
+    sourceOrigin,
   };
 }
 

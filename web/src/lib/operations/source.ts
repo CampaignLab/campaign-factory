@@ -11,6 +11,19 @@ export const OPERATIONS_PUBLIC_CAMPAIGNS = [
 
 export const OPERATIONS_PUBLIC_CAMPAIGN_IDS = new Set<string>(OPERATIONS_PUBLIC_CAMPAIGNS.map((campaign) => campaign.id));
 
+export function normaliseOperationsSourceOrigin(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.origin.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 export type OperationsSourcePayload = {
   sourceOrigin: string;
   run: RunReadModel;
