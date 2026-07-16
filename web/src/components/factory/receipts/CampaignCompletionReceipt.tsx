@@ -3,9 +3,14 @@
 // Campaign Completion Receipt (parameters §6, ADR 0011). Replaces a completed
 // agent cluster in the Factory Gallery and also heads the completed campaign
 // page. Every figure comes from W6's event-derived buildCampaignReceipt — no
-// fabricated counts. Honest about partial completion and terminal gaps. The
+// fabricated counts. Honest about incomplete work and terminal gaps. The
 // full Campaign Brief opens in a NEW tab.
+//
+// Grade language (15 Jul 2026): every user-facing grade label derives from the
+// shared campaignGrade ladder over accepted sections — never from recorded
+// summaries or raw status words ("partial"/"failed" never render).
 
+import { campaignGrade } from "@/lib/factory/documents";
 import type { CampaignReceipt } from "@/lib/factory/documents";
 import "./receipts.css";
 
@@ -17,14 +22,32 @@ function fmtElapsed(ms?: number): string | null {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-const STATUS_HEADLINE: Record<CampaignReceipt["status"], string> = {
-  queued: "Campaign queued",
-  running: "Campaign in progress",
-  completed: "Campaign brief ready",
-  partial: "Brief partly ready",
-  failed: "Run failed — partial output kept",
-  cancelled: "Run cancelled — partial output kept",
+type Grade = ReturnType<typeof campaignGrade>;
+
+// campaignGrade tone → the shared .tag palette (green / amber / grey — never red).
+const GRADE_TAG: Record<Grade["tone"], string> = {
+  complete: "real",
+  nearly: "mock",
+  neutral: "ext",
 };
+
+function headline(status: CampaignReceipt["status"], grade: Grade): string {
+  switch (status) {
+    case "queued":
+      return "Campaign queued";
+    case "running":
+      return "Campaign in progress";
+    case "failed":
+      return "Stopped early — finished work kept";
+    case "cancelled":
+      return "Run cancelled — finished work kept";
+    default:
+      // completed | partial — graded by accepted sections, not echoed status.
+      if (grade.tone === "complete") return "Campaign brief ready";
+      if (grade.tone === "nearly") return "Campaign brief nearly complete";
+      return `Campaign brief — ${grade.label.toLowerCase()}`;
+  }
+}
 
 export function CampaignCompletionReceipt({
   receipt,
@@ -32,7 +55,8 @@ export function CampaignCompletionReceipt({
   compact = false,
   briefUrl,
 }: {
-  receipt: CampaignReceipt;
+  /** W6 receipt; the gallery bridge adds the generated campaign name (name flip). */
+  receipt: CampaignReceipt & { campaignName?: string };
   /** optional campaign hue accent for the left edge (gallery) */
   accent?: string;
   /** compact = the gallery cluster-replacement size */
@@ -44,6 +68,8 @@ export function CampaignCompletionReceipt({
   const incomplete =
     receipt.status === "partial" || receipt.status === "failed" || receipt.status === "cancelled";
   const href = briefUrl ?? receipt.briefPath;
+  const grade = campaignGrade(receipt.sections.accepted, receipt.sections.total);
+  const campaignName = receipt.campaignName?.trim();
 
   const tiles: Array<[number | string, string]> = [
     [receipt.agents.spawned, receipt.agents.spawned === 1 ? "agent" : "agents"],
@@ -58,11 +84,19 @@ export function CampaignCompletionReceipt({
       style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
     >
       <div className="fa-rcpt__head">
-        <span className="fa-rcpt__title">{STATUS_HEADLINE[receipt.status]}</span>
-        {incomplete ? <span className="tag mock">partial</span> : <span className="tag real">complete</span>}
+        <span className="fa-rcpt__title">{headline(receipt.status, grade)}</span>
+        <span className={`tag ${GRADE_TAG[grade.tone]}`}>{grade.label}</span>
       </div>
 
-      {receipt.place || receipt.problem ? (
+      {/* Name flip: the generated campaign name leads; the place is the caption.
+          Without a name (older recordings), current behavior: place · problem. */}
+      {campaignName ? (
+        <p className="fa-rcpt__sub">
+          <b>{campaignName}</b>
+          {receipt.place ? " · " : null}
+          {receipt.place ? <span>{receipt.place}</span> : null}
+        </p>
+      ) : receipt.place || receipt.problem ? (
         <p className="fa-rcpt__sub">
           {receipt.place ? <b>{receipt.place}</b> : null}
           {receipt.place && receipt.problem ? " · " : null}

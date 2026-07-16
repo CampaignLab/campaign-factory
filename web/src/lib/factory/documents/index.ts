@@ -24,6 +24,11 @@ export {
 export {
   PLAIN_LABEL,
   plainLabel,
+  PLAIN_LABEL_TONE,
+  plainLabelTone,
+  type LabelTone,
+  SOURCE_TIER_COPY,
+  NEXT_STEPS_TITLE,
   campaignGrade,
   documentPill,
   PLAIN_DOC_STATUS,

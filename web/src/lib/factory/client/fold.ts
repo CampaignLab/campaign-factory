@@ -144,6 +144,11 @@ export interface RunVM {
   lastSequence: number;
   problem?: string;
   place?: string;
+  /** Generated campaign name from the problem section's content
+   *  (problemSchema.campaignName, state/sections.ts). Appears mid-run once the
+   *  problem section is accepted/applied; absent before then and on recordings
+   *  that predate the field — consumers fall back to place/problem. */
+  campaignName?: string;
   startedAt?: string;
   agents: AgentCardVM[]; // spawn order
   sections: Record<JourneyStepKey, SectionVM>;
@@ -398,6 +403,13 @@ function applyEvent(ctx: FoldCtx, e: FactoryEvent): void {
       sec.lastActivityAt = e.at;
       const content = detail?.["content"];
       if (content !== undefined) sec.content = content;
+      // The generated campaign name rides in the problem section's content.
+      // Surface it on the run as soon as it lands so titles can flip from
+      // place → campaign name mid-run (name flip, 15 Jul 2026 decision).
+      if (def.key === "problem" && content && typeof content === "object") {
+        const name = (content as Record<string, unknown>)["campaignName"];
+        if (typeof name === "string" && name.trim()) run.campaignName = name.trim();
+      }
       const report = detailStr(detail, "stepReport");
       if (report) sec.stepReport = report;
       if (status === "accepted" || status === "needs_verification") {

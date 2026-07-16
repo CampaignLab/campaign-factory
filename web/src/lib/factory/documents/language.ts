@@ -14,6 +14,7 @@
 
 import type { VerificationLabel } from "../../pipeline/labels";
 import type { DocumentStatus } from "../contracts/documents";
+import type { SourceTier } from "../contracts/evidence";
 import type { SectionStatus } from "../contracts/journey";
 import { JOURNEY_STEPS } from "../contracts/journey";
 
@@ -33,6 +34,51 @@ export const PLAIN_LABEL: Record<VerificationLabel, string> = {
 export function plainLabel(label: string): string {
   return (PLAIN_LABEL as Record<string, string>)[label] ?? label;
 }
+
+/* ---- label pill tones for claim rows (original-brief redesign, 15 Jul 2026) ----
+   The Campaign Brief's claim rows carry inline pills in the legacy journey.css
+   tag vocabulary. Tones map onto the existing tag classes — green ("real"),
+   brand ("gen"), amber ("mock"), grey ("ext") — and are NEVER the red "verify"
+   class: unresolved labels read amber/grey, calm not alarming. */
+
+export type LabelTone = "real" | "gen" | "mock" | "ext";
+
+export const PLAIN_LABEL_TONE: Record<VerificationLabel, LabelTone> = {
+  "Verified public information": "real",
+  "Supported inference": "gen",
+  "Generated campaign recommendation": "gen",
+  "Campaign assumption": "mock",
+  "Conflicting evidence": "mock",
+  "Verification incomplete": "mock",
+  "External information unavailable": "ext",
+};
+
+/** Pill tone for a label; off-enum strings read as grey, never red. */
+export function plainLabelTone(label: string): LabelTone {
+  return (PLAIN_LABEL_TONE as Record<string, LabelTone>)[label] ?? "ext";
+}
+
+/* ---- source tiers → plain English (the Sources step register) ---- */
+
+export const SOURCE_TIER_COPY: Record<SourceTier, { title: string; caption: string }> = {
+  A: {
+    title: "Official records",
+    caption: "Councils, public bodies, legislation, official minutes and decisions",
+  },
+  B: {
+    title: "Official statistics and oversight",
+    caption: "National statistics, audit bodies, inspectorates and authoritative datasets",
+  },
+  C: {
+    title: "Journalism and civic data",
+    caption:
+      "Reputable local and national reporting — shows something was reported, not that it's true",
+  },
+  D: {
+    title: "Campaign and community voices",
+    caption: "Campaign groups, companies and community posts — attributed claims, never independent verification",
+  },
+};
 
 /* ---- document status badges ---- */
 
@@ -123,8 +169,13 @@ export const TERMINAL_GAPS_NOTE =
   "This work didn't finish in the time available. Nothing was invented to cover it.";
 
 /** The evidence/claims apparatus renders as ONE cohesive section under this
- *  heading, at the bottom of the brief and of every compiled document. */
+ *  heading at the foot of every compiled document. */
 export const FACT_CHECKS_TITLE = "Fact checks";
+
+/** On the brief PAGE the same material is the final "Next steps" rung
+ *  (original-brief redesign, 15 Jul 2026) — presented like the legacy Sources
+ *  step: plain-English categories, all collapsed dropdowns. */
+export const NEXT_STEPS_TITLE = "Next steps";
 
 /** Next-checks rendered as a fact-check category (same style as the others). */
 export const NEXT_CHECKS_GROUP = {

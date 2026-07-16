@@ -3,19 +3,34 @@
 // the calm layer the dense agent overlay must never hide.
 
 import { X } from "lucide-react";
-import type { RunStatus } from "@/lib/factory/contracts";
+import { JOURNEY_STEPS, type RunStatus } from "@/lib/factory/contracts";
+import { campaignGrade } from "@/lib/factory/documents";
 import { hueByIndex } from "@/components/factory/cards";
 import styles from "./gallery.module.css";
 import type { GalleryCampaign } from "./viewModel";
 
-const STATUS_LABEL: Record<RunStatus, string> = {
-  queued: "Queued",
-  running: "Building",
-  completed: "Complete",
-  partial: "Partial",
-  failed: "Failed",
-  cancelled: "Cancelled",
-};
+// Nine acceptable sections: the compiled "documents" step is never counted
+// (same denominator as campaignGrade everywhere else).
+const ACCEPTABLE_TOTAL = JOURNEY_STEPS.filter((s) => s.key !== "documents").length;
+
+// Terminal states speak the shared campaignGrade ladder (documents/language.ts)
+// — raw status words like "partial"/"failed" never render as user-facing
+// labels, and recorded runs get the same graded wording as live ones.
+function statusLabel(status: RunStatus, sectionsAccepted: number): string {
+  switch (status) {
+    case "queued":
+      return "Queued";
+    case "running":
+      return "Building";
+    case "failed":
+      return "Stopped early";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      // completed | partial → graded by accepted sections, never echoed status
+      return campaignGrade(sectionsAccepted, ACCEPTABLE_TOTAL).label;
+  }
+}
 
 export function CampaignAnchor({
   campaign,
@@ -31,6 +46,12 @@ export function CampaignAnchor({
   const hue = hueByIndex(campaign.hue);
   const { run } = campaign;
   const canCancel = onCancel && (run.status === "running" || run.status === "queued");
+  // Name flip (15 Jul 2026): once the problem section lands the generated
+  // campaign name is the anchor title (untruncated — CSS ellipsis handles
+  // overflow) and the place becomes the small caption. Before that, current
+  // behavior: place-derived short name over the problem text.
+  const campaignName = run.campaignName?.trim();
+  const caption = campaignName ? run.place : run.problem;
 
   return (
     <div
@@ -59,9 +80,9 @@ export function CampaignAnchor({
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
-          title={run.place}
+          title={campaignName || run.place}
         >
-          {campaign.shortName}
+          {campaignName || campaign.shortName}
         </span>
         <span
           style={{
@@ -73,7 +94,7 @@ export function CampaignAnchor({
             flexShrink: 0,
           }}
         >
-          {STATUS_LABEL[run.status]}
+          {statusLabel(run.status, sectionsAccepted)}
         </span>
         {canCancel ? (
           <button
@@ -100,7 +121,7 @@ export function CampaignAnchor({
         ) : null}
       </div>
 
-      {run.problem ? (
+      {caption ? (
         <p
           style={{
             margin: "6px 0 0",
@@ -113,7 +134,7 @@ export function CampaignAnchor({
             overflow: "hidden",
           }}
         >
-          {run.problem}
+          {caption}
         </p>
       ) : null}
 
@@ -127,7 +148,7 @@ export function CampaignAnchor({
         }}
       >
         <span>{activeAgents} working</span>
-        <span>{sectionsAccepted}/10 accepted</span>
+        <span>{sectionsAccepted}/{ACCEPTABLE_TOTAL} accepted</span>
       </div>
     </div>
   );

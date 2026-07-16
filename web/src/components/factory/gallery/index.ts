@@ -13,6 +13,7 @@ export { PublishedBriefStack } from "./PublishedBriefStack";
 export { JudgementCard } from "./JudgementCard";
 export { ConnectorLayer } from "./ConnectorLayer";
 export { runVmToCampaignReceipt } from "./receiptModel";
+export type { GalleryCampaignReceipt } from "./receiptModel";
 export { selectPresentation, COMPLETION_READABLE_MS } from "./presentation";
 export type { PresentationOptions } from "./presentation";
 export {

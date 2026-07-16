@@ -2,9 +2,11 @@
 
 // Public factory intake (W4). Problem + Place, both required; the place must be
 // a NAMED, specific place (parameters §8 input gate: no run accepts a blank or
-// ambiguous place). Light Awake style, reusing the shared ui primitives and the
-// .cta pill without editing shared files. On a successful start it stores the
-// stream coordinates in localStorage (cf_factory_run) and redirects to
+// ambiguous place). Styled in the legacy brief-page language (journey.css /
+// awake): calm left-aligned hero with a small serif flourish, a brand-tinted
+// frame around the form, a brand-coloured .cta pill, and the prepared example
+// as an ink-bordered framed card. On a successful start it stores the stream
+// coordinates in localStorage (cf_factory_run) and redirects to
 // /factory/c/[campaignId].
 
 import { useState } from "react";
@@ -14,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { startFactoryRun } from "@/lib/factory/client/api";
 import { rememberFactoryRun } from "@/lib/factory/client";
+import styles from "./factory-intake.module.css";
 
 const PROBLEM_PLACEHOLDER =
   "I want [decision-maker or body, if known] to [specific change] by [timeframe, if known], because [problem]. This affects [people or community]. We already know [evidence, allies, or constraints].";
@@ -88,22 +91,23 @@ export default function FactoryIntakePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:py-24">
-      <header className="mb-12 text-center sm:mb-14">
-        <div className="text-xs font-medium uppercase tracking-[0.09em] text-muted-foreground">
-          A real multi-agent campaign build — live
+    <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:py-20">
+      <header className={styles.hero}>
+        <div className={styles.eyebrow}>
+          The agent factory · researched live · every output requires human review
         </div>
-        <h1 className="mx-auto mt-4 max-w-[20ch] text-4xl font-medium tracking-tight sm:text-6xl">
-          Build a whole campaign with a <span className="font-serif font-normal italic">team of agents</span>.
+        <h1 className={styles.title}>
+          Start with a problem, and a <span className={styles.serif}>place</span>.
         </h1>
-        <p className="mx-auto mt-6 max-w-[58ch] text-lg text-muted-foreground sm:text-xl">
-          Describe one local or public-policy problem and the place it affects. A team of research, evidence,
-          strategy and production agents assembles a ten-step campaign brief in front of you — with every claim
-          labelled and every decision left to you.
+        <p className={styles.lede}>
+          A team of research, evidence, strategy and production agents assembles a ten-step campaign brief in
+          front of you — built on real sources, with every claim labelled and every decision left to you.
         </p>
       </header>
 
-      <form onSubmit={submit} className="space-y-7">
+      <form onSubmit={submit} className={styles.formFrame}>
+        <div className={styles.frameLabel}>Tell the factory</div>
+
         <div className="space-y-2.5">
           <Label htmlFor="problem" className="text-base">
             What&apos;s the problem?
@@ -114,13 +118,13 @@ export default function FactoryIntakePage() {
             onChange={(e) => setProblem(e.target.value)}
             placeholder={PROBLEM_PLACEHOLDER}
             rows={5}
-            className="min-h-[9.5rem] rounded-[var(--r-2xl)] border-[1.5px] p-5 text-base leading-relaxed sm:text-lg"
+            className={`${styles.field} min-h-[9.5rem] rounded-[var(--r-2xl)] p-5 text-base leading-relaxed sm:text-lg`}
             autoFocus
           />
         </div>
 
-        <div className="space-y-2.5">
-          <Label htmlFor="place" className="text-base">
+        <div className="mt-6 space-y-2.5">
+          <Label htmlFor="place" className="flex-wrap text-base">
             Where? <span className="font-normal text-muted-foreground">(a specific, named place — required)</span>
           </Label>
           <Input
@@ -129,7 +133,7 @@ export default function FactoryIntakePage() {
             onChange={(e) => setPlace(e.target.value)}
             onBlur={() => setTouchedPlace(true)}
             placeholder="e.g. Leicester · Stratford, London E20 · a named school, ward, or constituency"
-            className="h-auto rounded-full border-[1.5px] px-4 py-2.5 text-base"
+            className={`${styles.field} h-auto rounded-full px-4 py-2.5 text-base`}
             aria-invalid={touchedPlace && !placeOk}
           />
           {touchedPlace && !placeOk ? (
@@ -144,35 +148,40 @@ export default function FactoryIntakePage() {
           )}
         </div>
 
-        {error ? <p className="text-sm text-[var(--bad)]">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm text-[var(--bad)]">{error}</p> : null}
 
-        <div className="flex flex-wrap items-center gap-4 pt-1">
-          <button type="submit" className="cta" disabled={!canSubmit}>
+        <div className="mt-7 flex flex-wrap items-center gap-4">
+          <button type="submit" className={`cta ${styles.ctaBrand}`} disabled={!canSubmit}>
             {busy ? "Starting…" : "Build the campaign"}
             <span className="chip">→</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setProblem(EXAMPLE.problem);
-              setPlace(EXAMPLE.place);
-              setTouchedPlace(false);
-              setError(null);
-            }}
-            className="max-w-md flex-1 cursor-pointer rounded-[var(--r-xl)] border border-dashed border-[var(--ring)] bg-secondary px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-          >
-            <b className="mb-0.5 block text-foreground">Prepared example — Leicester school street</b>
-            A permanent, enforced school street before the experimental order lapses.
-          </button>
+          <span className="text-sm text-muted-foreground">Takes a few minutes — you watch it assemble.</span>
         </div>
       </form>
 
-      <p className="mx-auto mt-10 max-w-[60ch] text-center text-sm text-muted-foreground">
-        Optimised for UK local government, public bodies, transport, planning, environment, education, health,
-        and consultations. Drafts, not decisions: everything produced needs human review and verification.
-      </p>
+      <button
+        type="button"
+        onClick={() => {
+          setProblem(EXAMPLE.problem);
+          setPlace(EXAMPLE.place);
+          setTouchedPlace(false);
+          setError(null);
+        }}
+        className={styles.exampleCard}
+      >
+        <span className={styles.exampleBar}>
+          <span className="dots"><i /><i /><i /></span>
+          prepared example · Leicester
+          <span className="fill">Use this →</span>
+        </span>
+        <span className={styles.exampleBody}>
+          <b>Leicester school street</b>
+          A permanent, enforced school street outside St John the Baptist CofE Primary, before the experimental
+          order lapses.
+        </span>
+      </button>
 
-      <p className="mx-auto mt-4 text-center text-sm">
+      <p className="mt-8 text-center text-sm">
         <a href="/factory/replay/conference" className="underline underline-offset-4 hover:text-foreground">
           Or watch the 15-minute agent factory session
         </a>

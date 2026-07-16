@@ -1,15 +1,20 @@
 "use client";
 
-// Live container for the Campaign Assembly View (W4). Recovers the stream
-// coordinates + intake echo from localStorage (cf_factory_run) so a refresh
-// drops straight back into the running campaign with its problem/place hero,
-// then drives the pure AssemblyView via useFactoryRun. A shared link with no
-// stored run still works: the hook bootstraps + polls the public event log.
+// Live container for the Campaign Brief (W4). Recovers the stream coordinates
+// + intake echo from localStorage (cf_factory_run) so a refresh drops straight
+// back into the running campaign with its problem/place hero, then drives the
+// pure AssemblyView via useFactoryRun. A shared link with no stored run still
+// works: the hook bootstraps + polls the public event log.
 //
-// Completed-brief upgrade: once the run is terminal we try W2's durable read
-// route (GET /runs/[id]/documents — coordinator ruling 15 Jul 2026) for W6's
-// compiled document bodies + evidence ledger. If it isn't available the view
-// simply keeps its honest status-only surfaces.
+// Two upgrades over the raw event fold:
+//  - Brief Register: the server component ships the source register + claim
+//    rows on first paint; while the run is live we refresh it through the
+//    fetchBriefRegister Server Function (and once more on terminal) so the
+//    Sources rung and the evidence card grow with the research.
+//  - Completed brief: once the run is terminal we try W2's durable read route
+//    (GET /runs/[id]/documents — coordinator ruling 15 Jul 2026) for W6's
+//    compiled document bodies + evidence ledger. If it isn't available the
+//    view simply keeps its honest status-only surfaces.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -19,18 +24,25 @@ import {
   useFactoryRun,
   type CompiledCampaignBundle,
 } from "@/lib/factory/client";
+import { fetchBriefRegister } from "@/app/factory/c/[campaignId]/actions";
+import { EMPTY_BRIEF_REGISTER, type BriefRegister } from "./briefData";
 import { AssemblyView } from "./AssemblyView";
+
+const REGISTER_POLL_MS = 45_000;
 
 export function AssemblyClient({
   campaignId,
   problem,
   place,
+  register,
 }: {
   campaignId: string;
   /** Server-fetched run header echo (page.tsx) so a SHARED link still gets an
    *  honest hero — the recorded event log may not carry problem/place. */
   problem?: string;
   place?: string;
+  /** Server-built Brief Register (sources + claim rows + campaign name). */
+  register?: BriefRegister;
 }) {
   const stored = useMemo(() => getStoredFactoryRun(campaignId), [campaignId]);
   const seed = useMemo(
@@ -45,10 +57,36 @@ export function AssemblyClient({
     seed,
   });
 
+  const terminal = isTerminal(run.status);
+
+  // ---- Brief Register: live growth + one final refresh on terminal ----
+  const [reg, setReg] = useState<BriefRegister>(register ?? EMPTY_BRIEF_REGISTER);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const next = await fetchBriefRegister(campaignId).catch(() => null);
+      if (!cancelled && next) setReg(next);
+    };
+    if (terminal) {
+      // one final refresh so a viewer who watched the run live gets the
+      // complete register without reloading
+      void refresh();
+      return () => {
+        cancelled = true;
+      };
+    }
+    const iv = setInterval(refresh, REGISTER_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(iv);
+    };
+  }, [campaignId, terminal]);
+
+  // ---- compiled documents + evidence ledger (terminal runs) ----
   const [compiled, setCompiled] = useState<CompiledCampaignBundle | null>(null);
   const attempted = useRef(false);
   useEffect(() => {
-    if (attempted.current || !isTerminal(run.status)) return;
+    if (attempted.current || !terminal) return;
     attempted.current = true;
     let cancelled = false;
     // W2 emits the terminal run.* event only AFTER finalisation persists the
@@ -68,7 +106,7 @@ export function AssemblyClient({
     return () => {
       cancelled = true;
     };
-  }, [run.status, campaignId]);
+  }, [terminal, campaignId]);
 
   return (
     <main className="min-h-dvh">
@@ -76,6 +114,7 @@ export function AssemblyClient({
         run={run}
         connection={connection}
         compiled={compiled}
+        register={reg}
         onAnswer={(jid, action, answer) => answerJudgement(jid, action, answer)}
       />
     </main>
