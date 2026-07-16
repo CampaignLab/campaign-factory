@@ -718,6 +718,103 @@ test("operations workbench: campaign switching isolates local actions and source
   await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toBeVisible();
 });
 
+test("operations workbench: real source working copies move through local review and queue", async ({ page }) => {
+  const campaigns = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
+      title: "Keep KFC Out of Ormskirk",
+      place: "Ormskirk, Lancashire",
+      status: "partial",
+      packTitle: "Ormskirk supporter email",
+      subject: "Ormskirk KFC source update",
+      body: "Dear supporter,\n\nThe public source says this copy must keep the appeal-status check visible before any local outreach is considered.",
+      next: "Check the Planning Inspectorate appeal status before queueing local copy",
+    },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": {
+      title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+      place: "Tower Hamlets, London",
+      status: "partial",
+      packTitle: "Tower Hamlets supporter email",
+      subject: "Tower Hamlets homes source update",
+      body: "Dear supporter,\n\nKeep housing target source checks visible before any local outreach is considered.",
+      next: "Verify Tower Hamlets housing target papers before queueing local copy",
+    },
+    "6b54225d-afa3-41d1-b053-89741094f153": {
+      title: "Stop the leisure park redevelopment in Barnet",
+      place: "Barnet, London",
+      status: "completed",
+      packTitle: "Barnet supporter email",
+      subject: "Barnet leisure park source update",
+      body: "Dear supporter,\n\nKeep decision-record source checks visible before any local outreach is considered.",
+      next: "Check Barnet decision records before queueing local copy",
+    },
+  } as const;
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] as keyof typeof campaigns;
+    const campaign = campaigns[id];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: campaign.status, stateVersion: 18, lastSequence: 31, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          {
+            key: "digital_pack",
+            num: 2,
+            name: "Digital Campaign Pack",
+            status: "ready",
+            html: "",
+            plainText: [`DIGITAL CAMPAIGN PACK`, "", campaign.packTitle, "", `Subject: ${campaign.subject}`, "", campaign.body, "", "Before you send this, check", "", "- Keep the public source boundary attached."].join("\n"),
+            isPack: true,
+            sectionKeys: [],
+            resourceCount: 1,
+            flags: [],
+          },
+          { key: "media_pack", num: 3, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: campaign.next, reason: "Review/queue regression", claimIds: ["C1"], affectedSections: ["digital_pack"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 12, loadBearing: 8, verifiedLoadBearing: 4, unresolvedLoadBearing: 4 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95&view=drafts");
+  await page.getByLabel("Source pack resources").getByRole("button", { name: "Use in editable draft" }).first().click();
+  await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toBeVisible();
+  await expect(page.getByText(/Copied from Digital Campaign Pack in campaign/)).toBeVisible();
+  await expect(page.getByLabel("Subject")).toHaveValue("Ormskirk KFC source update");
+
+  await page.getByRole("button", { name: "Mark ready for review" }).click();
+  await expect(page.getByRole("heading", { name: "Human approval gate" })).toBeVisible();
+  await expect(page.getByLabel("Local working drafts for review")).toContainText("Ormskirk supporter email");
+  await expect(page.getByLabel("Communication preview for approval")).toContainText("Digital Campaign Pack");
+
+  await page.getByRole("button", { name: "Approve as human reviewer" }).click();
+  await expect(page.getByRole("heading", { name: "Approved by human" })).toBeVisible();
+  await page.getByRole("button", { name: "Queue locally for demo" }).click();
+  await expect(page.getByRole("heading", { name: "One local queue item" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Ormskirk KFC source update");
+  await expect(page.locator("main")).toContainText("Local copy from Digital Campaign Pack");
+  await expect(page.getByText(/It is not connected to an email provider/)).toBeVisible();
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const ormskirkRow = portfolio.locator("article", { hasText: "Keep KFC Out of Ormskirk" });
+  const towerHamletsRow = portfolio.locator("article", { hasText: "Build 5,000 affordable houses" });
+  const barnetRow = portfolio.locator("article", { hasText: "Stop the leisure park redevelopment" });
+
+  await expect(ormskirkRow).toContainText("Local signals: 1 working draft · 1 queued locally.");
+  await expect(towerHamletsRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(barnetRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+});
+
 test("operations workbench: failed or not-yet-usable real source loads do not fall back to the fixture", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
