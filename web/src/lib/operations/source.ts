@@ -46,6 +46,10 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return isFiniteNumber(value) && Number.isInteger(value) && value >= 0;
+}
+
 const OPERATIONS_DOCUMENT_KEYS = new Set<string>(CANONICAL_DOCUMENTS.map((doc) => doc.key));
 const OPERATIONS_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial", "completed", "failed", "cancelled"]);
@@ -58,8 +62,8 @@ function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
 }
 
-function isOptionalFiniteNumber(value: unknown): value is number | undefined {
-  return value === undefined || isFiniteNumber(value);
+function isOptionalNonNegativeInteger(value: unknown): value is number | undefined {
+  return value === undefined || isNonNegativeInteger(value);
 }
 
 function isOptionalStringArray(value: unknown): value is string[] | undefined {
@@ -71,16 +75,16 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
   const payload = value.payload;
   return (
     typeof value.eventId === "string" &&
-    isFiniteNumber(value.sequence) &&
+    isNonNegativeInteger(value.sequence) &&
     value.campaignId === campaignId &&
     isOptionalString(value.batchId) &&
     isOptionalString(value.agentRunId) &&
     isOptionalString(value.parentAgentRunId) &&
-    isOptionalFiniteNumber(value.journeyStep) &&
+    isOptionalNonNegativeInteger(value.journeyStep) &&
     typeof value.type === "string" &&
     OPERATIONS_EVENT_TYPES.has(value.type) &&
     typeof value.at === "string" &&
-    isOptionalFiniteNumber(value.stateVersion) &&
+    isOptionalNonNegativeInteger(value.stateVersion) &&
     typeof value.visibility === "string" &&
     OPERATIONS_EVENT_VISIBILITIES.has(value.visibility) &&
     typeof payload.summary === "string" &&
@@ -92,7 +96,7 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     isOptionalString(payload.proposalId) &&
     isOptionalString(payload.judgementId) &&
     isOptionalString(payload.handoffToAgentRunId) &&
-    isOptionalFiniteNumber(payload.sectionStep) &&
+    isOptionalNonNegativeInteger(payload.sectionStep) &&
     isOptionalString(payload.sectionStatus) &&
     isOptionalString(payload.documentKey) &&
     isOptionalString(payload.documentStatus) &&
@@ -106,8 +110,8 @@ export function isOperationsRunReadModel(value: unknown, campaignId: string): va
     isOptionalString(value.batchId) &&
     typeof value.status === "string" &&
     OPERATIONS_RUN_STATUSES.has(value.status) &&
-    isFiniteNumber(value.stateVersion) &&
-    isFiniteNumber(value.lastSequence) &&
+    isNonNegativeInteger(value.stateVersion) &&
+    isNonNegativeInteger(value.lastSequence) &&
     Array.isArray(value.events) &&
     value.events.every((event) => isOperationsFactoryEvent(event, campaignId))
   );
@@ -118,7 +122,7 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
   return (
     typeof value.key === "string" &&
     OPERATIONS_DOCUMENT_KEYS.has(value.key) &&
-    isFiniteNumber(value.num) &&
+    isNonNegativeInteger(value.num) &&
     typeof value.name === "string" &&
     typeof value.status === "string" &&
     OPERATIONS_DOCUMENT_STATUSES.has(value.status) &&
@@ -126,7 +130,7 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     typeof value.plainText === "string" &&
     typeof value.isPack === "boolean" &&
     isStringArray(value.sectionKeys) &&
-    isFiniteNumber(value.resourceCount) &&
+    isNonNegativeInteger(value.resourceCount) &&
     isStringArray(value.flags)
   );
 }
@@ -153,7 +157,7 @@ function isOperationsEvidenceClaimView(value: unknown) {
     typeof value.confidence === "string" &&
     OPERATIONS_CLAIM_CONFIDENCES.has(value.confidence) &&
     isOptionalString(value.excerpt) &&
-    isFiniteNumber(value.sourceCount) &&
+    isNonNegativeInteger(value.sourceCount) &&
     isStringArray(value.affectedOutputs) &&
     isOptionalStringArray(value.contradictsClaimIds)
   );
@@ -164,7 +168,7 @@ function isOperationsSourceLedgerGroup(value: unknown) {
     isRecord(value) &&
     typeof value.label === "string" &&
     OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
-    isFiniteNumber(value.count) &&
+    isNonNegativeInteger(value.count) &&
     Array.isArray(value.claims) &&
     value.claims.every(isOperationsEvidenceClaimView)
   );
@@ -187,7 +191,7 @@ function isOperationsTerminalGap(value: unknown) {
     typeof value.id === "string" &&
     typeof value.description === "string" &&
     isOptionalString(value.agentRunId) &&
-    isOptionalFiniteNumber(value.step) &&
+    isOptionalNonNegativeInteger(value.step) &&
     typeof value.at === "string"
   );
 }
@@ -200,10 +204,10 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
   if (!isRecord(value) || !isRecord(value.totals)) return false;
   const totals = value.totals;
   if (
-    !isFiniteNumber(totals.claims) ||
-    !isFiniteNumber(totals.loadBearing) ||
-    !isFiniteNumber(totals.verifiedLoadBearing) ||
-    !isFiniteNumber(totals.unresolvedLoadBearing)
+    !isNonNegativeInteger(totals.claims) ||
+    !isNonNegativeInteger(totals.loadBearing) ||
+    !isNonNegativeInteger(totals.verifiedLoadBearing) ||
+    !isNonNegativeInteger(totals.unresolvedLoadBearing)
   ) {
     return false;
   }

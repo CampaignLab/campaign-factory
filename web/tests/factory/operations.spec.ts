@@ -414,7 +414,7 @@ test("operations portfolio: manual refresh ignores stale source responses", asyn
       nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio refresh race", claimIds: [], affectedSections: [] }],
       terminalGaps: [],
       draftNotes: [],
-      totals: { claims: 30, loadBearing: 24, verifiedLoadBearing: 24 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+      totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
     },
   });
 
@@ -521,7 +521,7 @@ test("operations portfolio: local signals reflect only genuine campaign-local wo
           nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio local signal regression", claimIds: [], affectedSections: [] }],
           terminalGaps: [],
           draftNotes: [],
-          totals: { claims: 30, loadBearing: 24, verifiedLoadBearing: 24 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+          totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
         },
       }),
     });
@@ -592,7 +592,7 @@ test("operations workbench: resetting one real campaign leaves other campaign-lo
           nextChecks: [{ id: "next", description: campaign.next, reason: "Reset isolation regression", claimIds: [], affectedSections: [] }],
           terminalGaps: [],
           draftNotes: [],
-          totals: { claims: 30, loadBearing: 24, verifiedLoadBearing: 24 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+          totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
         },
       }),
     });
@@ -670,7 +670,7 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
           nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio next gate", claimIds: [], affectedSections: [] }],
           terminalGaps: [],
           draftNotes: [],
-          totals: { claims: 40, loadBearing: 30, verifiedLoadBearing: 30 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+          totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
         },
       }),
     });
@@ -1753,6 +1753,51 @@ test("operations workbench: malformed source evidence entries do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: rejects fractional source counters before hydration", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 12, lastSequence: 18, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "",
+            plainText: "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nFractional source counters should never hydrate.",
+            isPack: false,
+            sectionKeys: [],
+            resourceCount: 0.5,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Fractional counter regression", reason: "Contract validation", affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 1, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 0.5 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Fractional source counters should never hydrate")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: invalid or non-curated campaign IDs are blocked without fixture fallback", async ({ page }) => {
   await page.goto("/operations?campaignId=not-a-campaign-id");
 
@@ -1912,7 +1957,7 @@ test("operations workbench: all real campaign routes export source-specific loca
           nextChecks: [{ id: "next", description: campaign.next, reason: "Export should carry source-specific evidence gates", claimIds: ["C1"], affectedSections: ["evidence"] }],
           terminalGaps: [],
           draftNotes: [],
-          totals: { claims: 30, loadBearing: 24, verifiedLoadBearing: 24 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+          totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
         },
       }),
     });
