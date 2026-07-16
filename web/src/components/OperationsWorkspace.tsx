@@ -21,6 +21,7 @@ type Mode = "compose" | "preview";
 type StageStatus = "complete" | "current" | "blocked" | "soon";
 type ViewId =
   | "overview"
+  | "actions"
   | "brief"
   | "objectives"
   | "power"
@@ -38,6 +39,19 @@ type Activity = {
   label: string;
 };
 
+type LocalActionStatus = "next" | "in_progress" | "blocked" | "done";
+
+type LocalAction = {
+  id: string;
+  title: string;
+  source: string;
+  owner: string;
+  timing: string;
+  priority: "High" | "Medium" | "Low";
+  status: LocalActionStatus;
+  provenance: string;
+};
+
 type DemoState = {
   selectedSegment: SegmentId;
   subject: string;
@@ -50,6 +64,7 @@ type DemoState = {
   contactReadinessFilter: "all" | "ready" | "review" | "blocked";
   scheduleIntent: "after_approval" | "tomorrow_morning" | "school_run";
   queuedAt: string | null;
+  localActions: LocalAction[];
   activity: Activity[];
 };
 
@@ -389,6 +404,7 @@ const campaignContext = {
 
 const viewIds: ViewId[] = [
   "overview",
+  "actions",
   "brief",
   "objectives",
   "power",
@@ -415,6 +431,7 @@ const initialState: DemoState = {
   contactReadinessFilter: "all",
   scheduleIntent: "after_approval",
   queuedAt: null,
+  localActions: [],
   activity: [{ id: "seed", label: "Demo workspace loaded with seeded campaign brief and local fixture contacts." }],
 };
 
@@ -451,6 +468,29 @@ const stageClass: Record<StageStatus, string> = {
   soon: "ops-stage-soon",
 };
 
+const localActionStatusCopy: Record<LocalActionStatus, string> = {
+  next: "Next",
+  in_progress: "In progress",
+  blocked: "Blocked",
+  done: "Done",
+};
+
+function normaliseLocalActions(actions: unknown): LocalAction[] {
+  if (!Array.isArray(actions)) return [];
+  return actions
+    .filter((action): action is Partial<LocalAction> => Boolean(action) && typeof action === "object")
+    .map((action, index) => ({
+      id: typeof action.id === "string" && action.id ? action.id : `local-action-${index + 1}`,
+      title: typeof action.title === "string" && action.title ? action.title : "Untitled local action",
+      source: typeof action.source === "string" && action.source ? action.source : "Local workspace",
+      owner: typeof action.owner === "string" && action.owner ? action.owner : "Campaigner",
+      timing: typeof action.timing === "string" && action.timing ? action.timing : "Next",
+      priority: action.priority === "High" || action.priority === "Medium" || action.priority === "Low" ? action.priority : "Medium",
+      status: action.status === "next" || action.status === "in_progress" || action.status === "blocked" || action.status === "done" ? action.status : "next",
+      provenance: typeof action.provenance === "string" && action.provenance ? action.provenance : "Created in this browser-local operations workspace.",
+    }));
+}
+
 function normaliseState(parsed: Partial<DemoState>): DemoState {
   return {
     ...initialState,
@@ -475,6 +515,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     scheduleIntent: ["after_approval", "tomorrow_morning", "school_run"].includes(parsed.scheduleIntent || "")
       ? (parsed.scheduleIntent as DemoState["scheduleIntent"])
       : initialState.scheduleIntent,
+    localActions: normaliseLocalActions(parsed.localActions),
     activity: parsed.activity?.length ? parsed.activity : initialState.activity,
     mode: parsed.mode === "preview" ? "preview" : "compose",
   };
@@ -863,6 +904,10 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
   const filteredContacts = contacts.filter(
     (contact) => (state.contactFilter === "all" || contact.segmentId === state.contactFilter) && readinessMatches(contact),
   );
+  const appealActionId = source ? `source:${source.campaignId}:appeal-status` : "fixture:council-timing-check";
+  const mediaActionId = source ? `source:${source.campaignId}:media-pack` : "fixture:media-boundary";
+  const hasAppealAction = state.localActions.some((action) => action.id === appealActionId);
+  const hasMediaAction = state.localActions.some((action) => action.id === mediaActionId);
   const selectedSegmentContacts = contacts.filter((contact) => contact.segmentId === selected.id);
   const readyContactCount = contacts.filter((contact) => contact.readiness === "Ready fixture").length;
   const reviewContactCount = contacts.filter((contact) => contact.readiness === "Review first").length;
@@ -924,6 +969,7 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
       title: "Campaign",
       items: [
         { id: "overview", label: "Overview", note: "Today’s work and next decision" },
+        { id: "actions", label: "Action plan", note: "Owned local checks and tactics", badge: state.localActions.length ? String(state.localActions.length) : undefined },
         { id: "brief", label: "Campaign brief", note: "Outcome, place, provenance" },
         { id: "objectives", label: "Objective & targets", note: "Decision-maker and influences" },
         { id: "power", label: "Power map", note: "Allies, blockers, persuadables" },
@@ -1015,8 +1061,59 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
     }));
   };
 
+  const createLocalAction = (action: LocalAction) => {
+    setState((current) => {
+      if (current.localActions.some((item) => item.id === action.id)) return { ...current, activeView: "actions" };
+      return {
+        ...current,
+        activeView: "actions",
+        localActions: [action, ...current.localActions],
+        activity: [record(`Created local action: ${action.title}.`), ...current.activity].slice(0, 7),
+      };
+    });
+  };
+
+  const createAppealStatusAction = () => {
+    createLocalAction({
+      id: appealActionId,
+      title: source ? "Confirm Planning Inspectorate appeal status" : "Verify council order status",
+      source: source ? "Campaign source · Evidence & checks" : "Fixture evidence check",
+      owner: "Reviewer",
+      timing: "Before phase change or stronger public claims",
+      priority: "High",
+      status: "next",
+      provenance: source
+        ? `Source campaign ${source.campaignId}; derived from the unresolved appeal-status gate and stored only in this browser.`
+        : "Derived from the fixture timing check and stored only in this browser.",
+    });
+  };
+
+  const createMediaPackAction = () => {
+    createLocalAction({
+      id: mediaActionId,
+      title: source ? "Create action for incomplete Media Pack" : "Keep media escalation blocked until checked",
+      source: source ? "Campaign source · Media Pack incomplete" : "Fixture media boundary",
+      owner: "Local organiser",
+      timing: "After appeal status and evidence checks are understood",
+      priority: "Medium",
+      status: "blocked",
+      provenance: source
+        ? `Source campaign ${source.campaignId}; Media Pack remains incomplete, so this is a local work item rather than a false ready state.`
+        : "Fixture media action stored locally; no newsroom or provider list exists.",
+    });
+  };
+
+  const updateLocalActionStatus = (id: string, actionStatus: LocalActionStatus) => {
+    setState((current) => ({
+      ...current,
+      localActions: current.localActions.map((action) => (action.id === id ? { ...action, status: actionStatus } : action)),
+      activity: [record(`Updated action status: ${current.localActions.find((action) => action.id === id)?.title ?? "Local action"} → ${localActionStatusCopy[actionStatus]}.`), ...current.activity].slice(0, 7),
+    }));
+  };
+
   const reset = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey);
+    if (storageKey !== STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
     LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
     setState({
       ...initialState,
@@ -1075,6 +1172,107 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
     <Button type="button" variant="outline" onClick={() => setView(view)}>
       {label}
     </Button>
+  );
+
+  const recommendedActions = [
+    {
+      id: appealActionId,
+      title: source ? "Confirm Planning Inspectorate appeal status" : "Verify council order status",
+      detail: source?.nextGate ?? "Check the current decision route before any stronger campaign claims are used.",
+      priority: "High" as const,
+      disabled: hasAppealAction,
+      create: createAppealStatusAction,
+    },
+    {
+      id: mediaActionId,
+      title: source ? "Create action for incomplete Media Pack" : "Keep media escalation blocked until checked",
+      detail: source?.incompleteDocuments.find((doc) => doc.key === "media_pack")
+        ? "Media Pack is still assembling, so the useful operation is a local follow-up action, not a ready-state claim."
+        : "Media escalation should wait until evidence, contact, and provider boundaries are understood.",
+      priority: "Medium" as const,
+      disabled: hasMediaAction,
+      create: createMediaPackAction,
+    },
+  ];
+
+  const renderActionPlanView = () => (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <Panel className="bg-ops-paper">
+        <SmallLabel>Action plan</SmallLabel>
+        <h2 className="mt-2 text-3xl font-medium tracking-tight">Owned local work from source checks</h2>
+        <p className="mt-3 max-w-3xl text-muted-foreground">
+          Actions created here are browser-local operations work. They preserve source provenance and never write back to Campaign Factory, import contacts, or trigger provider scheduling.
+        </p>
+        <div className="mt-6 grid gap-3 md:grid-cols-2" aria-label="Recommended source actions">
+          {recommendedActions.map((action) => (
+            <div key={action.id} className="rounded-[var(--r-2xl)] border border-ops-line bg-background p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{action.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{action.detail}</p>
+                </div>
+                <span className="rounded-full bg-ops-yellow px-2.5 py-1 text-xs font-medium text-ops-ink">{action.priority}</span>
+              </div>
+              <Button type="button" variant="outline" className="mt-4" onClick={action.create} disabled={action.disabled}>
+                {action.disabled ? "Already in action plan" : "Create local action"}
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border bg-background">
+          <div className="hidden grid-cols-[minmax(0,1fr)_0.65fr_0.75fr_0.75fr_0.7fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground lg:grid">
+            <span>Action</span><span>Owner</span><span>Timing</span><span>Priority</span><span>Status</span>
+          </div>
+          {state.localActions.length ? state.localActions.map((action) => (
+            <div key={action.id} className="grid gap-3 border-b border-border px-4 py-4 text-sm last:border-0 lg:grid-cols-[minmax(0,1fr)_0.65fr_0.75fr_0.75fr_0.7fr]">
+              <div>
+                <span className="font-medium lg:hidden">Action: </span><span className="font-medium">{action.title}</span>
+                <p className="mt-1 text-xs text-muted-foreground">{action.source}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{action.provenance}</p>
+              </div>
+              <div><span className="font-medium lg:hidden">Owner: </span>{action.owner}</div>
+              <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Timing: </span>{action.timing}</div>
+              <div><span className="font-medium lg:hidden">Priority: </span>{action.priority}</div>
+              <div>
+                <Label htmlFor={`action-status-${action.id}`} className="sr-only">Status for {action.title}</Label>
+                <select
+                  id={`action-status-${action.id}`}
+                  value={action.status}
+                  onChange={(event) => updateLocalActionStatus(action.id, event.target.value as LocalActionStatus)}
+                  className="h-10 w-full rounded-full border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {Object.entries(localActionStatusCopy).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )) : (
+            <div className="px-4 py-6 text-sm text-muted-foreground">
+              No local actions yet. Create the appeal-status check action to turn the real campaign boundary into owned work.
+            </div>
+          )}
+        </div>
+      </Panel>
+      <Panel>
+        <SmallLabel>Read-only source boundary</SmallLabel>
+        <h3 className="mt-2 text-2xl font-medium">Local work, not source mutation</h3>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The action plan stores presenter work in this browser only. It keeps campaign ID, source section, timing, and evidence warnings attached without changing the public campaign run.
+        </p>
+        <div className="mt-5 space-y-3 rounded-[var(--r-xl)] border border-border p-3 text-sm">
+          <p><span className="font-medium">Source:</span> {source ? source.title : "Fixture campaign"}</p>
+          <p><span className="font-medium">Actions:</span> {state.localActions.length} local item{state.localActions.length === 1 ? "" : "s"}</p>
+          <p><span className="font-medium">Write-back:</span> Not connected</p>
+        </div>
+        <div className="mt-5 flex flex-col gap-3">
+          {goButton("evidence", "Review checks")}
+          {goButton("strategy", "Review tactics")}
+          {goButton("drafts", "Open drafts")}
+        </div>
+      </Panel>
+    </div>
   );
 
   const renderAudienceView = () => (
@@ -1671,9 +1869,16 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
         <div className="mt-5 space-y-3 rounded-[var(--r-xl)] border border-border p-3 text-sm">
           <p><span className="font-medium">Selected audience:</span> {selected.name}</p>
           <p><span className="font-medium">Draft status:</span> {status.label}</p>
+          <p><span className="font-medium">Action plan:</span> {state.localActions.length} local item{state.localActions.length === 1 ? "" : "s"}</p>
           <p><span className="font-medium">Provider:</span> Not connected</p>
         </div>
         <div className="mt-5 flex flex-col gap-3">
+          {section.title === "Evidence & checks" ? (
+            <Button type="button" onClick={createAppealStatusAction} disabled={hasAppealAction}>
+              {hasAppealAction ? "Appeal-status action created" : "Create appeal-status action"}
+            </Button>
+          ) : null}
+          {section.title === "Strategy & tactics" ? goButton("actions", "Open Action plan") : null}
           {goButton("audiences", "Choose Audiences")}
           {goButton("drafts", "Open Drafts")}
           {goButton("reviews", "Open Reviews")}
@@ -1828,6 +2033,7 @@ export function OperationsWorkspace({ campaignId }: { campaignId?: string }) {
 
   const viewContent: Record<ViewId, React.ReactNode> = {
     overview: renderOverview(),
+    actions: renderActionPlanView(),
     brief: renderCampaignContextView(sourceContext.brief),
     objectives: renderCampaignContextView(sourceContext.objectives),
     power: renderPowerMapView(),

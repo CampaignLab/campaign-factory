@@ -95,6 +95,7 @@ test("operations workbench: all sidebar destinations are navigable and designed"
 
   const destinations = [
     { nav: /Overview/, heading: /Make the St John the Baptist school street/i },
+    { nav: /Action plan/, heading: "Owned local work from source checks" },
     { nav: /Campaign brief/, heading: "Campaign brief" },
     { nav: /Objective & targets/, heading: "Objective & targets" },
     { nav: /Power map/, heading: "Power map" },
@@ -156,6 +157,7 @@ test("operations workbench: contacts, disabled boundaries, and legacy local stat
 test("operations workbench: all views avoid overflow across presentation sizes", async ({ page }) => {
   const destinations = [
     /Overview/,
+    /Action plan/,
     /Campaign brief/,
     /Objective & targets/,
     /Power map/,
@@ -310,6 +312,13 @@ test("operations workbench: campaignId route loads a read-only public campaign s
   await expect(page.getByText(/34 unresolved key facts/i).first()).toBeVisible();
   await expect(page.getByText(/Check the Planning Inspectorate appeals database/i).first()).toBeVisible();
   await expect(page.getByText(/Media Pack: assembling/i)).toBeVisible();
+  await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
+  await page.getByRole("button", { name: "Create appeal-status action" }).click();
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Source campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95/)).toBeVisible();
+  await page.getByLabel(/Status for Confirm Planning Inspectorate appeal status/).selectOption("in_progress");
+  await expect(page.getByLabel(/Status for Confirm Planning Inspectorate appeal status/)).toHaveValue("in_progress");
   await expect(page.getByRole("link", { name: /Back to source brief|View original brief/ }).first()).toHaveAttribute(
     "href",
     `/factory/c/${campaignId}`,
