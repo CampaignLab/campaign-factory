@@ -335,6 +335,73 @@ test("operations portfolio: three curated public campaigns load independently", 
   await expect(page.getByRole("link", { name: "Open workspace" }).first()).toHaveAttribute("href", "/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
 });
 
+test("operations portfolio: local signals reflect only genuine campaign-local work", async ({ page }) => {
+  const campaigns = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
+      title: "Keep KFC Out of Ormskirk",
+      place: "Ormskirk, Lancashire",
+      status: "partial",
+      next: "Check Ormskirk appeal status before public escalation",
+      unresolved: 34,
+    },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": {
+      title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+      place: "Tower Hamlets, London",
+      status: "partial",
+      next: "Verify Tower Hamlets housing targets before local operations",
+      unresolved: 22,
+    },
+    "6b54225d-afa3-41d1-b053-89741094f153": {
+      title: "Stop the leisure park redevelopment in Barnet",
+      place: "Barnet, London",
+      status: "completed",
+      next: "Retrieve Barnet decision records before local escalation",
+      unresolved: 17,
+    },
+  } as const;
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] as keyof typeof campaigns;
+    const campaign = campaigns[id];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: campaign.status, stateVersion: 3, lastSequence: 11, events: [] },
+        documents: [
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 2, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "media_pack", num: 3, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio local signal regression", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 30, loadBearing: 24, verifiedLoadBearing: 24 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95&view=evidence");
+  await page.getByLabel("Source next checks ledger").getByRole("button", { name: "Create action" }).first().click();
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("Check Ormskirk appeal status before public escalation", { exact: true }).first()).toBeVisible();
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const ormskirkRow = portfolio.locator("article", { hasText: "Keep KFC Out of Ormskirk" });
+  const towerHamletsRow = portfolio.locator("article", { hasText: "Build 5,000 affordable houses" });
+  const barnetRow = portfolio.locator("article", { hasText: "Stop the leisure park redevelopment" });
+
+  await expect(ormskirkRow).toContainText("Local signals: 1 action.");
+  await expect(towerHamletsRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(barnetRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(ormskirkRow).not.toContainText("working draft");
+});
+
 test("operations portfolio: one failed source does not blank usable campaigns", async ({ page }) => {
   const campaigns = {
     "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
