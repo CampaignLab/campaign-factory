@@ -3,6 +3,7 @@ import { FACTORY_EVENT_TYPES, type FactoryEvent } from "@/lib/factory/contracts/
 import { CANONICAL_DOCUMENTS, DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
 import { UNRESOLVED_LABELS } from "@/lib/factory/documents/render";
+import { JOURNEY_STEPS } from "@/lib/factory/contracts/journey";
 import { VERIFICATION_LABELS } from "@/lib/pipeline/labels";
 
 export const OPERATIONS_DEFAULT_SOURCE_ORIGIN = "https://campaign-factory.vercel.app";
@@ -58,6 +59,7 @@ const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial",
 const OPERATIONS_EVENT_TYPES = new Set<string>(FACTORY_EVENT_TYPES);
 const OPERATIONS_EVENT_VISIBILITIES = new Set<string>(["public", "internal"]);
 const OPERATIONS_SECTION_STATUSES = new Set<string>(["empty", "assembling", "under_review", "accepted", "needs_verification"]);
+const OPERATIONS_JOURNEY_SECTION_KEYS = new Set<string>(JOURNEY_STEPS.map((step) => step.key));
 const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const OPERATIONS_CLAIM_CONFIDENCES = new Set<string>(["high", "medium", "low"]);
 
@@ -93,6 +95,16 @@ function isIsoDateTimeString(value: unknown): value is string {
 
 function isOptionalStringArray(value: unknown): value is string[] | undefined {
   return value === undefined || isStringArray(value);
+}
+
+function isJourneySectionKeyArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string" || !OPERATIONS_JOURNEY_SECTION_KEYS.has(item) || seen.has(item)) return false;
+    seen.add(item);
+  }
+  return true;
 }
 
 function isOperationsFactoryEvent(value: unknown, campaignId: string): value is FactoryEvent {
@@ -169,7 +181,9 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     typeof value.html === "string" &&
     typeof value.plainText === "string" &&
     value.isPack === shouldBePack &&
-    isStringArray(value.sectionKeys) &&
+    isJourneySectionKeyArray(value.sectionKeys) &&
+    (shouldBePack || value.sectionKeys.length > 0) &&
+    (!shouldBePack || value.sectionKeys.length === 0) &&
     isNonNegativeInteger(value.resourceCount) &&
     isStringArray(value.flags)
   );

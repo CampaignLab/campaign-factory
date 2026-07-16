@@ -348,7 +348,7 @@ test("operations portfolio: three curated public campaigns load independently", 
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
           { key: "media_pack", num: 8, name: "Media Pack", status: campaign.mediaStatus, html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
@@ -405,7 +405,7 @@ test("operations portfolio: manual refresh ignores stale source responses", asyn
     sourceOrigin: "https://campaign-factory.vercel.app",
     run: { campaignId: id, status: campaign.status, stateVersion: sequence, lastSequence: sequence, events: [] },
     documents: [
-      { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nPortfolio refresh race fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+      { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nPortfolio refresh race fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
       { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
     ],
     evidence: {
@@ -511,8 +511,8 @@ test("operations portfolio: local signals reflect only genuine campaign-local wo
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 3, lastSequence: 11, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: ["tactics"], resourceCount: 0, flags: [] },
           { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
@@ -582,8 +582,8 @@ test("operations workbench: resetting one real campaign leaves other campaign-lo
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 5, lastSequence: 15, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.next}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: ["tactics"], resourceCount: 0, flags: [] },
           { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
@@ -661,7 +661,7 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
           { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
         evidence: {
@@ -752,9 +752,9 @@ test("operations portfolio: source labels carry through workspace switching with
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "power_stakeholder_map", num: 3, name: "Power and Stakeholder Map", status: "ready", html: "", plainText: `POWER MAP\n\n${campaign.title} stakeholder clues.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: campaign.organising, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+          { key: "power_stakeholder_map", num: 3, name: "Power and Stakeholder Map", status: "ready", html: "", plainText: `POWER MAP\n\n${campaign.title} stakeholder clues.`, isPack: false, sectionKeys: ["power", "pressure"], resourceCount: 0, flags: [] },
+          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: campaign.organising, isPack: false, sectionKeys: ["organising"], resourceCount: 0, flags: [] },
           { key: "digital_pack", num: 9, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
           { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
         ],
@@ -838,8 +838,8 @@ test("operations workbench: campaign switching isolates local actions and source
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 12, lastSequence: 3, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.check}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+          { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: `TACTICS AND TIMELINE\n\n${campaign.check}\n\nType: research\n\nTarget: public source record`, isPack: false, sectionKeys: ["tactics"], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
             num: 9,
@@ -937,7 +937,7 @@ test("operations workbench: real source working copies move through local review
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 18, lastSequence: 31, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
             num: 9,
@@ -1034,7 +1034,7 @@ test("operations workbench: editing a queued source working copy clears local qu
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: "partial", stateVersion: 18, lastSequence: 31, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${sourceTitle}\n\nPlace: ${sourcePlace}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${sourceTitle}\n\nPlace: ${sourcePlace}\n\nTHE PROBLEM\nSource-backed campaign problem.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
           {
             key: "digital_pack",
             num: 9,
@@ -1097,7 +1097,7 @@ test("operations portfolio ignores stale local state under the wrong campaign ke
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 11, lastSequence: 22, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nPortfolio state isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nPortfolio state isolation fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1164,7 +1164,7 @@ test("operations workbench ignores source actions whose provenance belongs to an
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 14, lastSequence: 25, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nSource action provenance isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nSource action provenance isolation fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1247,7 +1247,7 @@ test("operations workbench ignores source working drafts whose provenance belong
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 12, lastSequence: 23, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nWorking draft provenance isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nWorking draft provenance isolation fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1349,7 +1349,7 @@ test("operations workbench resets legacy top-level source drafts from another ca
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: isBarnet ? "completed" : "partial", stateVersion: 13, lastSequence: 24, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nLegacy top-level source copy isolation fixture.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${isBarnet ? "Stop the leisure park redevelopment in Barnet" : "Keep KFC Out of Ormskirk"}\n\nPlace: ${isBarnet ? "Barnet, London" : "Ormskirk, Lancashire"}\n\nTHE PROBLEM\nLegacy top-level source copy isolation fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1473,7 +1473,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId, status: "running", stateVersion: 1, lastSequence: 1, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "assembling", html: "", plainText: "Keep KFC Out of Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "assembling", html: "", plainText: "Keep KFC Out of Ormskirk", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1524,7 +1524,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
         sourceOrigin: "javascript:alert(1)",
         run: { campaignId, status: "partial", stateVersion: 3, lastSequence: 3, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Unsafe source origin should not hydrate Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Unsafe source origin should not hydrate Ormskirk", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1558,7 +1558,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
       body: JSON.stringify({
         sourceOrigin: "https://campaign-factory.vercel.app",
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Malformed source without a run should not hydrate Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Malformed source without a run should not hydrate Ormskirk", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1589,7 +1589,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId, status: "partial", stateVersion: 3, lastSequence: 3, events: [null] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Malformed run event should not hydrate Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Malformed run event should not hydrate Ormskirk", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1620,7 +1620,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: "57678ae0-29fd-4b4b-8a53-5c711cdb21cf", status: "partial", stateVersion: 3, lastSequence: 3, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Mismatched Tower Hamlets source should not hydrate Ormskirk", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Mismatched Tower Hamlets source should not hydrate Ormskirk", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
         ],
         evidence: {
           groups: [],
@@ -1708,7 +1708,7 @@ test("operations workbench: compiled source documents must match canonical metad
             html: "<p>Canonical metadata mismatch should not hydrate Ormskirk</p>",
             plainText: "Canonical metadata mismatch should not hydrate Ormskirk",
             isPack: true,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -1735,6 +1735,51 @@ test("operations workbench: compiled source documents must match canonical metad
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: compiled source documents must use canonical section keys", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 9, lastSequence: 99, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Fixture section key should not hydrate Ormskirk</p>",
+            plainText: "Fixture section key should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: ["fixture_section"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Canonical section-key regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 1, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 1 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Fixture section key should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source evidence entries do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
@@ -1753,7 +1798,7 @@ test("operations workbench: malformed source evidence entries do not hydrate a r
             html: "<p>Valid document shell should still be held back</p>",
             plainText: "Valid document shell should still be held back",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -1832,7 +1877,7 @@ test("operations workbench: malformed source timestamps do not hydrate a real wo
             html: "<p>Valid source shell should still be held back</p>",
             plainText: "Valid source shell should still be held back",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -1875,7 +1920,7 @@ test("operations workbench: malformed source timestamps do not hydrate a real wo
             html: "<p>Malformed terminal gap timestamp should not hydrate Ormskirk</p>",
             plainText: "Malformed terminal gap timestamp should not hydrate Ormskirk",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -1943,7 +1988,7 @@ test("operations workbench: malformed source event references do not hydrate a r
             html: "<p>Valid document shell should remain hidden behind bad event refs</p>",
             plainText: "Valid document shell should remain hidden behind bad event refs",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -1989,7 +2034,7 @@ test("operations workbench: rejects inconsistent evidence totals before hydratio
             html: "<p>Inconsistent evidence totals should not hydrate Ormskirk</p>",
             plainText: "Inconsistent evidence totals should not hydrate Ormskirk",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -2052,7 +2097,7 @@ test("operations workbench: rejects evidence aggregates that do not match groupe
             html: "<p>Mismatched grouped evidence should not hydrate Ormskirk</p>",
             plainText: "Mismatched grouped evidence should not hydrate Ormskirk",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0,
             flags: [],
           },
@@ -2115,7 +2160,7 @@ test("operations workbench: rejects fractional source counters before hydration"
             html: "",
             plainText: "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nFractional source counters should never hydrate.",
             isPack: false,
-            sectionKeys: [],
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
             resourceCount: 0.5,
             flags: [],
           },
@@ -2194,9 +2239,9 @@ test("operations workbench: source updates preserve browser-local work and requi
     sourceOrigin: "https://campaign-factory.vercel.app",
     run: { campaignId, status: "partial", stateVersion: sourceVersion, lastSequence, events: [] },
     documents: [
-      { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nPublic source changed safely.", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "campaign_strategy", num: 4, name: "Campaign Strategy", status: "ready", html: "", plainText: "CAMPAIGN STRATEGY\n\nPriority audiences\n\n- Residents directly affected by amenity", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-      { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: "TACTICS AND TIMELINE\n\nP0 Official status verification\n\nType: research\n\nTarget: Planning Inspectorate", isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+      { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nPublic source changed safely.", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+      { key: "campaign_strategy", num: 4, name: "Campaign Strategy", status: "ready", html: "", plainText: "CAMPAIGN STRATEGY\n\nPriority audiences\n\n- Residents directly affected by amenity", isPack: false, sectionKeys: ["strategy"], resourceCount: 0, flags: [] },
+      { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", status: "ready", html: "", plainText: "TACTICS AND TIMELINE\n\nP0 Official status verification\n\nType: research\n\nTarget: Planning Inspectorate", isPack: false, sectionKeys: ["tactics"], resourceCount: 0, flags: [] },
       { key: "media_pack", num: 8, name: "Media Pack", status: sourceVersion === 44 ? "assembling" : "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: sourceVersion === 44 ? 0 : 1, flags: [] },
     ],
     evidence: {
@@ -2290,9 +2335,9 @@ test("operations workbench: all real campaign routes export source-specific loca
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 7, lastSequence: 21, events: [] },
         documents: [
-          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-specific export fixture for ${campaign.title}.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "objective_theory_of_change", num: 2, name: "Objective and Theory of Change", status: "ready", html: "", plainText: `OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Local decision route for ${campaign.title}\n\nMinimum viable win: Verified public evidence boundary before any local operations work is approved.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
-          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: `ORGANISING PLAN\n\nResidents and campaign supporters for ${campaign.place} are source audience clues only.`, isPack: false, sectionKeys: [], resourceCount: 0, flags: [] },
+          { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nSource-specific export fixture for ${campaign.title}.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
+          { key: "objective_theory_of_change", num: 2, name: "Objective and Theory of Change", status: "ready", html: "", plainText: `OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Local decision route for ${campaign.title}\n\nMinimum viable win: Verified public evidence boundary before any local operations work is approved.`, isPack: false, sectionKeys: ["objective"], resourceCount: 0, flags: [] },
+          { key: "organising_plan", num: 6, name: "Organising Plan", status: "ready", html: "", plainText: `ORGANISING PLAN\n\nResidents and campaign supporters for ${campaign.place} are source audience clues only.`, isPack: false, sectionKeys: ["organising"], resourceCount: 0, flags: [] },
           { key: "digital_pack", num: 9, name: "Digital Campaign Pack", status: "ready", html: "", plainText: `DIGITAL CAMPAIGN PACK\n\nSupporter email — ${campaign.title}\n\nSubject: Source update for ${campaign.place}\n\nUse verified source boundaries before outreach.`, isPack: true, sectionKeys: [], resourceCount: 1, flags: [] },
         ],
         evidence: {
@@ -2346,7 +2391,7 @@ test("operations workbench: all real campaign routes export source-specific loca
 
 test("operations workbench: campaignId route loads a read-only public campaign source", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
-  const documents = [
+  const documentRows = [
     ["campaign_brief", "Campaign Brief", "ready", "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nThe source brief says the campaign must defend the council refusal against appeal risk."],
     ["objective_theory_of_change", "Objective and Theory of Change", "ready", "OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Planning Inspectorate appeal decision-maker\n\nSpecific action: dismiss any appeal and uphold West Lancashire Borough Council's refusal\n\nBy: only after the official appeal status is verified\n\nMinimum viable win: a dated, citable official appeal record is retrieved and used before public escalation."],
     ["power_stakeholder_map", "Power and Stakeholder Map", "ready", "POWER AND STAKEHOLDER MAP\n\nDecides\n\nPlanning Inspector — National appeal body, Planning Inspectorate\n\nPower: High\n\nPosition: Appeal decision-maker whose current decision status is unverified\n\nInfluences\n\nWard councillor — Existing elected ally\n\nPower: Medium\n\nPosition: Can coordinate residents and planning officers without becoming an imported contact."],
@@ -2398,7 +2443,20 @@ test("operations workbench: campaignId route loads a read-only public campaign s
         "POST 1: Follow for verified updates on the Ormskirk KFC planning status.",
       ].join("\n"),
     ],
-  ].map(([key, name, status, plainText], index) => ({
+  ];
+  const documentSectionKeys: Record<string, string[]> = {
+    campaign_brief: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+    objective_theory_of_change: ["objective"],
+    power_stakeholder_map: ["power", "pressure"],
+    campaign_strategy: ["strategy"],
+    tactics_timeline: ["tactics"],
+    organising_plan: ["organising"],
+    lobbying_pack: [],
+    media_pack: [],
+    digital_pack: [],
+  };
+
+  const documents = documentRows.map(([key, name, status, plainText], index) => ({
     key,
     num: index + 1,
     name,
@@ -2406,7 +2464,7 @@ test("operations workbench: campaignId route loads a read-only public campaign s
     html: `<p>${plainText}</p>`,
     plainText,
     isPack: index >= 6,
-    sectionKeys: [],
+    sectionKeys: documentSectionKeys[key],
     resourceCount: key === "media_pack" ? 0 : index >= 6 ? 2 : 0,
     flags: [],
   }));
