@@ -15,7 +15,17 @@ import type { RunVM } from "@/lib/factory/client/fold";
 import { CANONICAL_DOCUMENTS, JOURNEY_STEPS } from "@/lib/factory/contracts";
 import type { CampaignReceipt } from "@/lib/factory/documents";
 
-export function runVmToCampaignReceipt(run: RunVM): CampaignReceipt {
+// Nine acceptable sections — same denominator as W6's buildCampaignReceipt
+// (acceptableSteps) and campaignGrade: the compiled "documents" step is a
+// derived artefact, never an acceptable section.
+const ACCEPTABLE_STEPS = JOURNEY_STEPS.filter((s) => s.key !== "documents");
+
+/** CampaignReceipt plus gallery-only extras: the generated campaign name from
+ *  the problem section (name flip, 15 Jul 2026) rides along so receipt
+ *  components can title with it. Purely additive over W6's shape. */
+export type GalleryCampaignReceipt = CampaignReceipt & { campaignName?: string };
+
+export function runVmToCampaignReceipt(run: RunVM): GalleryCampaignReceipt {
   const agents = { spawned: run.agents.length, completed: 0, partial: 0, failed: 0 };
   let sourcesFetched = 0;
   for (const a of run.agents) {
@@ -25,7 +35,9 @@ export function runVmToCampaignReceipt(run: RunVM): CampaignReceipt {
     else if (a.status === "failed") agents.failed += 1;
   }
 
-  const sectionsAccepted = Object.values(run.sections).filter((s) => s.status === "accepted").length;
+  const sectionsAccepted = ACCEPTABLE_STEPS.filter(
+    (s) => run.sections[s.key]?.status === "accepted",
+  ).length;
   const documentsReady = run.documents.filter((d) => d.status === "ready").length;
   const documentsNeedsVerification = run.documents.filter((d) => d.status === "needs verification").length;
 
@@ -48,12 +60,13 @@ export function runVmToCampaignReceipt(run: RunVM): CampaignReceipt {
     batchId: run.batchId,
     place: run.place,
     problem: run.problem,
+    campaignName: run.campaignName,
     status: run.status,
     partial: run.status === "partial",
     agents,
     sourcesFetched,
     claims: { total: 0, loadBearing: 0, unresolvedLoadBearing: 0, byLabel: {}, labelSource: "none" },
-    sections: { accepted: sectionsAccepted, total: JOURNEY_STEPS.length },
+    sections: { accepted: sectionsAccepted, total: ACCEPTABLE_STEPS.length },
     documents: {
       ready: documentsReady,
       needsVerification: documentsNeedsVerification,

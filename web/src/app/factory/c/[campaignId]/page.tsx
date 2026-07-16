@@ -1,31 +1,33 @@
 // Public Campaign Brief route (W4). Server component: unwrap the async params
 // (Next 16 — params is a Promise), then hand off to the live client container.
 // The brief opens immediately and the client attaches the SSE/polling stream;
-// there is no server data fetch for the page body (the read model is
-// events-only and the client folds it). generateMetadata does ONE small run
-// lookup so the tab is titled with the campaign's name.
+// the body stays events-only and client-folded. The server contributes three
+// small reads so a SHARED link renders honestly on first paint:
+//   - the run header (problem/place hero echo),
+//   - the latest accepted state (the generated campaign name — the hero title
+//     once it exists; name flip, 15 Jul 2026 decision),
+//   - the evidence ledger's source register + claims (the Sources rung and the
+//     evidence rung's "Key claims on the record" card).
+// generateMetadata titles the tab with the same campaign name, falling back to
+// the user's problem text while no name exists yet.
 
 import type { Metadata } from "next";
 import { AssemblyClient } from "@/components/factory/assembly/AssemblyClient";
+import {
+  buildBriefRegister,
+  campaignNameFromState,
+  type BriefRegister,
+} from "@/components/factory/assembly/briefData";
 import { factorySql } from "@/lib/factory/store/client";
 import { getRun } from "@/lib/factory/store/runs";
+import { getClaims, getSources } from "@/lib/factory/store/evidence";
+import { loadLatestState } from "@/lib/factory/store/state-versions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Same derivation as the gallery cards' short name (deriveShortName in
-// components/factory/gallery/viewModel.ts — replicated locally because that
-// module is frozen for this build and takes a folded RunVM, which a server
-// component doesn't have): first comma-segment of the place, falling back to
-// the first three words of the problem.
-function deriveCampaignName(place?: string, problem?: string): string | undefined {
-  const p = (place || "").split(",")[0]?.trim();
-  if (p) return p.length > 18 ? `${p.slice(0, 17)}…` : p;
-  const prob = (problem || "").trim();
-  if (prob) {
-    const words = prob.split(/\s+/).slice(0, 3).join(" ");
-    return words.length > 18 ? `${words.slice(0, 17)}…` : words;
-  }
-  return undefined;
+function truncate(s: string, cap: number): string {
+  const t = s.trim();
+  return t.length <= cap ? t : `${t.slice(0, cap - 1).trimEnd()}…`;
 }
 
 export async function generateMetadata({
@@ -36,8 +38,14 @@ export async function generateMetadata({
   const { campaignId } = await params;
   if (UUID_RE.test(campaignId)) {
     try {
-      const run = await getRun(factorySql(), campaignId);
-      const name = run ? deriveCampaignName(run.place, run.problem) : undefined;
+      const sql = factorySql();
+      const [run, state] = await Promise.all([
+        getRun(sql, campaignId),
+        loadLatestState(sql, campaignId).catch(() => null),
+      ]);
+      // Name flip: the factory-generated campaign name titles the tab; the
+      // user's problem text is the honest fallback while no name exists yet.
+      const name = campaignNameFromState(state) || (run?.problem ? truncate(run.problem, 60) : undefined);
       if (name) {
         return {
           title: `${name} · Campaign brief`,
@@ -57,19 +65,34 @@ export default async function CampaignAssemblyPage({
   params: Promise<{ campaignId: string }>;
 }) {
   const { campaignId } = await params;
-  // One small header read so a SHARED link renders an honest problem/place
-  // hero even when the stored event log carries no run.started detail. The
-  // body stays events-only and client-folded; failures fall back cleanly.
+  // Small header + register reads so a SHARED link renders an honest hero and
+  // source register even when the stored event log carries no run.started
+  // detail. The section content stays events-only and client-folded; every
+  // read fails soft so the client can still render from events alone.
   let problem: string | undefined;
   let place: string | undefined;
+  let register: BriefRegister | undefined;
   if (UUID_RE.test(campaignId)) {
+    const sql = factorySql();
     try {
-      const run = await getRun(factorySql(), campaignId);
+      const run = await getRun(sql, campaignId);
       problem = run?.problem || undefined;
       place = run?.place || undefined;
     } catch {
       // db unreachable — the client still renders from events/seedless
     }
+    try {
+      const [sources, claims, state] = await Promise.all([
+        getSources(sql, campaignId),
+        getClaims(sql, campaignId),
+        loadLatestState(sql, campaignId),
+      ]);
+      register = buildBriefRegister(sources, claims, campaignNameFromState(state));
+    } catch {
+      // register unavailable — the rungs render their honest empty states
+    }
   }
-  return <AssemblyClient campaignId={campaignId} problem={problem} place={place} />;
+  return (
+    <AssemblyClient campaignId={campaignId} problem={problem} place={place} register={register} />
+  );
 }

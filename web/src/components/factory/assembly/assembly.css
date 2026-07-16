@@ -1,9 +1,9 @@
-/* Campaign Brief page (14 Jul 2026 redesign). The page IS the original Journey
-   rail/rung design (journey.css) with awake tokens (globals.css); this sheet
-   styles only the four factory grafts W4 owns: the Agent Build Bar (all live
-   theatre in one slim bar), the graded-receipt header line, the Fact checks
-   section chrome, plus skeletons, the connection badge, and the mobile compact
-   column. All classes are `fa-` prefixed. Motion is transform/opacity only and
+/* Campaign Brief page (original-brief redesign, 15 Jul 2026). The page IS the
+   original Journey rail/rung design (journey.css) with awake tokens
+   (globals.css); this sheet styles only the factory grafts W4 owns: the Agent
+   Build Bar (all live theatre in one slim bar), the graded-receipt header
+   line, the Sources-rung register entries, plus skeletons and the connection
+   badge. All classes are `fa-` prefixed. Motion is transform/opacity only and
    honours reduced-motion (parameters §6). */
 
 :root {
@@ -171,8 +171,48 @@
 .fa-skeleton span:nth-child(3) { width: 60%; }
 .fa-skeleton__hint { font-size: 0.85rem; color: var(--muted-foreground); }
 
-/* ---- Fact checks section chrome (categories live in documents.css) ---- */
-.fa-evidence { padding: 2.5rem 0; border-top: 1px solid rgba(27, 29, 30, 0.1); }
+/* ---- Sources rung: register entries (legacy .srccard look, collapsed) ---- */
+.fa-src {
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 0.65rem 1.1rem;
+  margin-bottom: 0.55rem;
+  background: var(--card);
+}
+.fa-src > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  list-style: none;
+}
+.fa-src > summary::-webkit-details-marker { display: none; }
+.fa-src > summary::before {
+  content: "▸";
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  transition: transform 0.15s ease;
+}
+.fa-src[open] > summary::before { transform: rotate(90deg); }
+.fa-src__org {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+.fa-src__tier {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.fa-src .src-meta { margin: 0.45rem 0 0.15rem; }
 
 /* ---- connection badge ---- */
 .fa-conn {
@@ -191,10 +231,6 @@
 .fa-conn[data-state="reconnecting"] .fa-conn__dot,
 .fa-conn[data-state="connecting"] .fa-conn__dot { background: var(--pastel-blue); animation: fa-pulse 1s ease-in-out infinite; }
 .fa-conn[data-state="error"] .fa-conn__dot { background: var(--bad); }
-
-/* ---- mobile Compact Build View (single calm column) ---- */
-.fa-mobile { display: flex; flex-direction: column; gap: 1rem; }
-.fa-mobile__h { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); margin: 0.4rem 0; }
 
 /* ---- motion ---- */
 @keyframes fa-enter { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }

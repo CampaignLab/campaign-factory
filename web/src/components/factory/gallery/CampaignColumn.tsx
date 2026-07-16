@@ -44,7 +44,11 @@ export function CampaignColumn({
   const { run } = campaign;
 
   const activeAgents = cards.filter((c) => c.status === "queued" || c.status === "running").length;
-  const sectionsAccepted = Object.values(run.sections).filter((s) => s.status === "accepted").length;
+  // Nine acceptable sections: the compiled "documents" step never counts toward
+  // the anchor's N/9 or its graded terminal label (campaignGrade denominator).
+  const sectionsAccepted = Object.values(run.sections).filter(
+    (s) => s.key !== "documents" && s.status === "accepted",
+  ).length;
   const showReceipt = run.status === "completed" || run.status === "partial" || !!run.receiptAt;
 
   // Chronological interleave: agent workspaces by start time, published brief

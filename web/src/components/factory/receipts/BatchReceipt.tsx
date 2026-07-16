@@ -1,21 +1,38 @@
 "use client";
 
 // Batch Receipt (parameters §6, ADR 0011). Summarises a presenter batch across
-// its campaigns from event-derived per-campaign receipts. Partial and failed
-// campaigns are reported honestly alongside complete ones — never hidden, never
-// rolled up into a fake success count.
+// its campaigns from event-derived per-campaign receipts. Incomplete and
+// stopped campaigns are reported honestly alongside complete ones — never
+// hidden, never rolled up into a fake success count.
+//
+// Grade language (15 Jul 2026): terminal rows speak the shared campaignGrade
+// ladder over accepted sections; raw status words ("partial"/"failed") never
+// render as user-facing labels. Failed runs read "Stopped early".
 
+import { campaignGrade } from "@/lib/factory/documents";
 import type { BatchReceipt as BatchReceiptData, CampaignReceipt } from "@/lib/factory/documents";
 import "./receipts.css";
 
-const STATUS_TAG: Record<CampaignReceipt["status"], string> = {
-  queued: "gen",
-  running: "gen",
-  completed: "real",
-  partial: "mock",
-  failed: "verify",
-  cancelled: "ext",
-};
+/** Receipts built by the gallery bridge carry the generated campaign name. */
+type RowReceipt = CampaignReceipt & { campaignName?: string };
+
+function rowStatus(c: CampaignReceipt): { label: string; tag: string } {
+  switch (c.status) {
+    case "queued":
+      return { label: "Queued", tag: "gen" };
+    case "running":
+      return { label: "Building", tag: "gen" };
+    case "failed":
+      return { label: "Stopped early", tag: "ext" };
+    case "cancelled":
+      return { label: "Cancelled", tag: "ext" };
+    default: {
+      // completed | partial — graded by accepted sections (green/amber/grey, never red).
+      const g = campaignGrade(c.sections.accepted, c.sections.total);
+      return { label: g.label, tag: g.tone === "complete" ? "real" : g.tone === "nearly" ? "mock" : "ext" };
+    }
+  }
+}
 
 export function BatchReceipt({ batch }: { batch: BatchReceiptData }) {
   const { totals } = batch;
@@ -73,13 +90,18 @@ export function BatchReceipt({ batch }: { batch: BatchReceiptData }) {
           </tr>
         </thead>
         <tbody>
-          {batch.campaigns.map((c) => (
+          {batch.campaigns.map((c: RowReceipt) => {
+            const status = rowStatus(c);
+            // Name flip: campaign name leads, place trails as the caption.
+            const name = c.campaignName?.trim();
+            return (
             <tr key={c.campaignId}>
               <td>
-                <b>{c.place || c.problem || c.campaignId}</b>
+                <b>{name || c.place || c.problem || c.campaignId}</b>
+                {name && c.place ? <span> · {c.place}</span> : null}
               </td>
               <td>
-                <span className={`tag ${STATUS_TAG[c.status]}`}>{c.status}</span>
+                <span className={`tag ${status.tag}`}>{status.label}</span>
               </td>
               <td className="fa-mono">
                 {c.sections.accepted}/{c.sections.total}
@@ -94,7 +116,8 @@ export function BatchReceipt({ batch }: { batch: BatchReceiptData }) {
                 </a>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

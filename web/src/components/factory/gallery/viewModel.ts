@@ -40,8 +40,14 @@ export interface ConnectorEdge {
 
 const ACTIVE = new Set(["queued", "running"]);
 
-/** Short campaign label from the place (fallback to problem, then index). */
+/** Short campaign label. Name flip (user decision, 15 Jul 2026): the generated
+ *  campaign name (problem section's campaignName, surfaced on the fold) is the
+ *  title everywhere once it lands; before then fall back to the place, then the
+ *  problem, then an index. The campaign-name cap is wider than the place cap so
+ *  names like "No KFC at Hattersley Centre" stay readable in the card pills. */
 export function deriveShortName(run: RunVM, index: number): string {
+  const name = (run.campaignName || "").trim();
+  if (name) return name.length > 28 ? `${name.slice(0, 27)}…` : name;
   const place = (run.place || "").split(",")[0]?.trim();
   if (place) return place.length > 18 ? `${place.slice(0, 17)}…` : place;
   const prob = (run.problem || "").trim();

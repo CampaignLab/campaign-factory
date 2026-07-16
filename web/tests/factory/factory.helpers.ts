@@ -30,7 +30,15 @@ export const ROSTER_NAMES: string[] = Array.from(
 );
 
 // Anchor status labels that mean the campaign is finished (honest terminal set).
-export const TERMINAL_STATUS_LABELS = new Set(["Complete", "Partial", "Failed", "Cancelled"]);
+// Graded vocabulary (16 Jul redesign): terminal anchors read the campaignGrade
+// ladder or the stopped/cancelled phrasing — never "Partial"/"Failed".
+export const TERMINAL_STATUS_LABELS = new Set([
+  "Complete",
+  "Nearly complete",
+  "Stopped early",
+  "Run cancelled",
+]);
+const TERMINAL_LABEL_RE = /^\d+ of \d+ sections built$/;
 
 // ---- The five presenter-batch fixture campaigns (gallery-inspired) -----------
 
@@ -168,7 +176,7 @@ export function totalBackscrollRows(snap: CampaignSnapshot[]): number {
 
 /** A campaign is terminal when it shows a receipt or a terminal anchor status. */
 export function isCampaignTerminal(c: CampaignSnapshot): boolean {
-  return c.hasReceipt || TERMINAL_STATUS_LABELS.has(c.statusLabel);
+  return c.hasReceipt || TERMINAL_STATUS_LABELS.has(c.statusLabel) || TERMINAL_LABEL_RE.test(c.statusLabel);
 }
 
 /** Fabrication-tell scan: no bare undefined / null / NaN in visible text. */

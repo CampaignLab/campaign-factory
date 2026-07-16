@@ -1,0 +1,139 @@
+/* Factory intake — legacy brief-page design language (journey.css/awake), scoped
+   to this page only. Brand-purple tinted form frame + focus rings, an ink-bordered
+   framed example card, and a brand-coloured variant of the shared .cta pill.
+   Doubled class selectors keep these overrides ahead of the unlayered globals. */
+
+.hero {
+  margin-bottom: 2.25rem;
+}
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(27, 29, 30, 0.6);
+}
+.title {
+  font-size: clamp(2.1rem, 5vw, 3.2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0.5rem 0 1rem;
+}
+.serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+.lede {
+  font-size: 1.1rem;
+  color: var(--muted-foreground);
+  max-width: 62ch;
+}
+
+/* tinted frame around the whole form (brand purple family) */
+.formFrame {
+  border: 1px solid rgba(73, 40, 253, 0.22);
+  background: linear-gradient(180deg, rgba(238, 234, 254, 0.55), rgba(238, 234, 254, 0.18));
+  border-radius: var(--r-3xl);
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+@media (min-width: 640px) {
+  .formFrame {
+    padding: 1.75rem 2rem 2rem;
+  }
+}
+.frameLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+  margin-bottom: 1.1rem;
+}
+
+/* fields: white surface, ink border, brand focus ring */
+.field.field {
+  background: #fff;
+  border: 1.5px solid rgba(27, 29, 30, 0.2);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field.field:hover {
+  border-color: rgba(27, 29, 30, 0.45);
+}
+.field.field:focus,
+.field.field:focus-visible {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3.5px rgba(73, 40, 253, 0.16);
+  outline: none;
+}
+.field.field[aria-invalid="true"] {
+  border-color: var(--bad);
+  box-shadow: 0 0 0 3.5px rgba(223, 34, 37, 0.1);
+}
+
+/* brand-coloured variant of the shared .cta sliding-arrow pill */
+.ctaBrand.ctaBrand {
+  background: var(--brand);
+  color: #fff;
+}
+.ctaBrand.ctaBrand :global(.chip) {
+  color: var(--brand);
+}
+
+/* prepared example — a legacy framed card (wire-style bar + body), clickable */
+.exampleCard {
+  display: block;
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 0;
+  text-align: left;
+  border: 1px solid rgba(27, 29, 30, 0.12);
+  border-radius: var(--r-2xl);
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.exampleCard:hover {
+  border-color: var(--brand);
+}
+.exampleBar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid rgba(27, 29, 30, 0.08);
+  background: var(--secondary);
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+.exampleBar :global(.dots) {
+  display: flex;
+  gap: 0.3rem;
+}
+.exampleBar :global(.dots) i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #d4d4d4;
+}
+.exampleBar :global(.fill) {
+  margin-left: auto;
+  color: var(--brand);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.exampleBody {
+  display: block;
+  padding: 0.9rem 1.2rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.exampleBody b {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}

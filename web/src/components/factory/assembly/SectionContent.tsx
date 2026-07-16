@@ -18,7 +18,16 @@
 import { useState, type ReactNode } from "react";
 import type { JourneyStepKey } from "@/lib/factory/contracts";
 import { isJourneyStepKey, validateSectionContent } from "@/lib/factory/state/sections";
+import { plainLabel, plainLabelTone } from "@/lib/factory/documents";
+import type { ClaimRowVM } from "./briefData";
 import "@/components/factory/documents/documents.css";
+
+/** Register-backed extras for the evidence rung: source-attributed claim rows
+ *  for the framed "Key claims on the record" card. */
+export interface EvidenceExtras {
+  claims: ClaimRowVM[];
+  sourceCount: number;
+}
 
 /* ---- local field types mirroring sections.ts (schemas are type-erased) ---- */
 
@@ -96,20 +105,29 @@ const TAG_CLS: Record<string, string> = {
 };
 
 // Clean prose (product decision, 15 Jul 2026): the seven verification labels
-// never render inline in section content. The ONE exception: a fact labelled
+// never render inline in prose. The ONE exception: a fact labelled
 // "Conflicting evidence" gets the power-map question-mark visual, linking to
-// the Fact checks section at the bottom of the brief. Everything stripped here
-// stays visible there — nothing is deleted from data.
+// the Next steps rung at the bottom of the brief. Everything stripped here
+// stays visible there — nothing is deleted from data. CLAIM ROWS are different:
+// the evidence rung's framed card carries plain-language label pills (legacy
+// anatomy, never red) via <LabelPill/>.
 function ConflictMark() {
   return (
     <a
       className="pm-inf pm-inf--inline"
-      href="#fa-evidence-checks"
-      title="Sources disagree on this — see Fact checks"
+      href="#fa-next-steps"
+      title="Sources disagree on this — see Next steps"
     >
       ?
     </a>
   );
+}
+
+/** Inline label pill for a claim row — the legacy tag vocabulary with the
+ *  plain-language labels ("Confirmed from public sources"), never red. */
+function LabelPill({ label }: { label?: string }) {
+  if (!label) return null;
+  return <span className={`tag ${plainLabelTone(label)}`}>{plainLabel(label)}</span>;
 }
 
 function Tag({ label }: { label?: string }) {
@@ -224,7 +242,8 @@ function renderValue(value: unknown, depth: number): ReactNode {
 }
 
 /** Renders any fields the bespoke renderer didn't consume — the reducer keeps
- *  the agent's original object, so richer-than-schema output still shows. */
+ *  the agent's original object, so richer-than-schema output still shows. Top
+ *  level fields read as the legacy titled groups (h3), nested keys stay h4. */
 function Extras({ content, consumed }: { content: Record<string, unknown>; consumed: readonly string[] }) {
   const extra = Object.entries(content).filter(
     ([k, v]) => !consumed.includes(k) && v != null && v !== "" && !(Array.isArray(v) && v.length === 0),
@@ -234,7 +253,7 @@ function Extras({ content, consumed }: { content: Record<string, unknown>; consu
     <>
       {extra.map(([k, v]) => (
         <div key={k}>
-          <h4>{humanise(k)}</h4>
+          <h3>{humanise(k)}</h3>
           {renderValue(v, 1)}
         </div>
       ))}
@@ -250,17 +269,19 @@ const strs = (v: unknown): string[] | undefined =>
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
 // -- 1 problem --
+// campaignName is consumed here but rendered in the HERO (name flip) — never
+// repeated inside the rung.
 const PROBLEM_KEYS = ["statement", "campaignName", "interpretation", "context"] as const;
 function ProblemContent(c: Record<string, unknown>) {
   const ctx = isPlainObject(c.context) ? c.context : undefined;
   return (
     <>
-      {str(c.campaignName) ? <div className="eyebrow">{str(c.campaignName)}</div> : null}
       <blockquote className="userquote">{str(c.statement)}</blockquote>
       {str(c.interpretation) ? (
         <>
+          {/* the legacy light-blue callout pattern, retitled for the factory */}
           <h3>How the agent factory read it</h3>
-          <p className="callout warm">{str(c.interpretation)}</p>
+          <p className="callout">{str(c.interpretation)}</p>
         </>
       ) : null}
       {ctx ? (
@@ -281,7 +302,7 @@ function ProblemContent(c: Record<string, unknown>) {
             {str(ctx.howItChanged) ? (
               <>
                 <h3>How research changed the request</h3>
-                <p className="callout">{str(ctx.howItChanged)}</p>
+                <p className="callout warm">{str(ctx.howItChanged)}</p>
               </>
             ) : null}
           </div>
@@ -307,7 +328,49 @@ const EVIDENCE_KEYS = [
   "localMedia",
   "unresolved",
 ] as const;
-function EvidenceContent(c: Record<string, unknown>) {
+
+/** The legacy framed card: faux browser-chrome dots, an "evidence · N sources ·
+ *  every claim labelled" header line, and source-attributed claim rows with
+ *  inline plain-language label pills. Load-bearing claims lead. */
+function KeyClaimsCard({ extras }: { extras: EvidenceExtras }) {
+  if (!extras.claims.length) return null;
+  const rows = [...extras.claims]
+    .sort((a, b) => Number(b.loadBearing) - Number(a.loadBearing))
+    .slice(0, 7);
+  const nSources = extras.sourceCount;
+  return (
+    <>
+      <h3>Key claims on the record</h3>
+      <div className="wire">
+        <div className="wire-bar">
+          <span className="dots">
+            <i />
+            <i />
+            <i />
+          </span>{" "}
+          evidence · {nSources || extras.claims.length}{" "}
+          {nSources ? `source${nSources === 1 ? "" : "s"}` : `claim${extras.claims.length === 1 ? "" : "s"}`} · every
+          claim labelled
+        </div>
+        <div className="wire-body">
+          {rows.map((c) => (
+            <div key={c.id} className="line">
+              <span className="c-src">{c.sourceOrg || "Research"}</span>
+              <span>
+                {c.text} <LabelPill label={c.label} />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="hint-sm">
+        Full source register with URLs, dates and tiers in <a href="#fa-sources">Sources</a>.
+      </p>
+    </>
+  );
+}
+
+function EvidenceContent(c: Record<string, unknown>, extras?: EvidenceExtras) {
   return (
     <>
       {str(c.summary) ? <p>{str(c.summary)}</p> : null}
@@ -321,9 +384,10 @@ function EvidenceContent(c: Record<string, unknown>) {
           <H3List title="Likely allies" items={strs(c.allies)} />
           <H3List title="Likely opponents" items={strs(c.opponents)} />
           <H3List title="Local media" items={strs(c.localMedia)} />
-          <H3List title="Still unresolved" items={strs(c.unresolved)} />
         </div>
       </div>
+      {extras ? <KeyClaimsCard extras={extras} /> : null}
+      <H3List title="Still unresolved" items={strs(c.unresolved)} />
     </>
   );
 }
@@ -379,6 +443,10 @@ function ObjectiveContent(c: Record<string, unknown>) {
           ) : null}
           <H3List title="Constraints" items={strs(c.constraints)} />
         </div>
+      </div>
+      <div className="stagegate">
+        <span className="g-ok">✓ Objective check</span> framed to the SMART test and the check-in formula — every
+        stage below builds on this.
       </div>
     </>
   );
@@ -846,7 +914,7 @@ function DocumentsContent(c: Record<string, unknown>) {
 
 const BESPOKE: Record<
   JourneyStepKey,
-  { render: (c: Record<string, unknown>) => ReactNode; consumed: readonly string[] }
+  { render: (c: Record<string, unknown>, extras?: EvidenceExtras) => ReactNode; consumed: readonly string[] }
 > = {
   problem: { render: ProblemContent, consumed: PROBLEM_KEYS },
   evidence: { render: EvidenceContent, consumed: EVIDENCE_KEYS },
@@ -860,7 +928,16 @@ const BESPOKE: Record<
   documents: { render: DocumentsContent, consumed: DOCUMENTS_KEYS },
 };
 
-export function SectionContent({ stepKey, content }: { stepKey?: JourneyStepKey; content: unknown }) {
+export function SectionContent({
+  stepKey,
+  content,
+  evidenceExtras,
+}: {
+  stepKey?: JourneyStepKey;
+  content: unknown;
+  /** Register-backed claim rows, consumed by the evidence renderer only. */
+  evidenceExtras?: EvidenceExtras;
+}) {
   if (content == null) return null;
 
   if (stepKey && isJourneyStepKey(stepKey) && isPlainObject(content)) {
@@ -869,7 +946,7 @@ export function SectionContent({ stepKey, content }: { stepKey?: JourneyStepKey;
       const { render, consumed } = BESPOKE[stepKey];
       return (
         <div className="rc fa-content">
-          {render(content)}
+          {render(content, evidenceExtras)}
           <Extras content={content} consumed={consumed} />
         </div>
       );

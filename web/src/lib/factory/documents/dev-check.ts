@@ -8,7 +8,14 @@ import type { Claim } from "../contracts/evidence";
 import { compileDocuments, isExportable } from "./compile";
 import { buildEvidenceAndNextChecks } from "./evidence";
 import { buildCampaignReceipt, buildBatchReceipt } from "./receipts";
-import { DOCUMENT_DISCLAIMER, campaignGrade, documentPill } from "./language";
+import {
+  DOCUMENT_DISCLAIMER,
+  PLAIN_LABEL_TONE,
+  SOURCE_TIER_COPY,
+  campaignGrade,
+  documentPill,
+  plainLabelTone,
+} from "./language";
 import { FIXTURE_CAMPAIGN_ID, FIXTURE_STATE, FIXTURE_CLAIMS, FIXTURE_EVENTS } from "./fixtures";
 
 let failures = 0;
@@ -308,6 +315,29 @@ assert(
   "5/9 → '5 of 9 sections built' (grey)",
 );
 assert(campaignGrade(3, 3).tone === "complete", "all-of-total is Complete for any denominator");
+
+console.log("\n=== label pill tones + source tiers (original-brief redesign) ===");
+const tones = Object.values(PLAIN_LABEL_TONE);
+assert(
+  tones.every((t) => ["real", "gen", "mock", "ext"].includes(t)),
+  "every verification label maps to a calm tag tone (real/gen/mock/ext)",
+);
+assert(!(tones as string[]).includes("verify"), "no label ever maps to the red 'verify' tag");
+assert(
+  PLAIN_LABEL_TONE["Verified public information"] === "real",
+  "verified public information reads green",
+);
+assert(
+  PLAIN_LABEL_TONE["Conflicting evidence"] === "mock",
+  "conflicting evidence reads amber, never red",
+);
+assert(plainLabelTone("not-a-real-label") === "ext", "off-enum labels read grey, never red");
+assert(
+  (["A", "B", "C", "D"] as const).every(
+    (t) => SOURCE_TIER_COPY[t].title.length > 0 && SOURCE_TIER_COPY[t].caption.length > 0,
+  ),
+  "all four source tiers carry plain-English titles and captions",
+);
 
 console.log("\n=== documentPill (document card vocabulary) ===");
 const pReady = documentPill("ready");

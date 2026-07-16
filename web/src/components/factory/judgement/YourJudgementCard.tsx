@@ -30,7 +30,7 @@ import type {
   JudgementKind,
   JudgementStatus,
 } from "@/lib/factory/contracts";
-import { JUDGEMENT_FRAME } from "@/lib/factory/documents";
+import { JUDGEMENT_FRAME, plainOutputName } from "@/lib/factory/documents";
 import "./judgement.css";
 
 /** Structural view accepted by the card — both the frozen JudgementRequest
@@ -207,7 +207,7 @@ export function YourJudgementCard({
       <p className="yj-q">{judgement.question}</p>
       {judgement.rationale ? <p className="yj-why">{judgement.rationale}</p> : null}
       {judgement.affectedOutputs.length ? (
-        <p className="yj-meta">Affects: {judgement.affectedOutputs.join(", ")}</p>
+        <p className="yj-meta">Affects: {judgement.affectedOutputs.map(plainOutputName).join(", ")}</p>
       ) : null}
 
       {optionButtons}

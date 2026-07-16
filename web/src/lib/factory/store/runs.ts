@@ -4,7 +4,7 @@
 import type { BatchId, CampaignId, RunStatus } from "../contracts/core";
 import type { RunReadModel } from "../contracts/api";
 import type { Db, JsonInput, Row } from "./types";
-import { newId, numOrUndef, strOrUndef, toIso, toIsoOrUndef } from "./types";
+import { newId, strOrUndef, toIso, toIsoOrUndef } from "./types";
 import { readEvents } from "./events";
 import { JOURNEY_STEPS } from "../contracts/journey";
 
@@ -195,8 +195,9 @@ export async function listFinishedPresenterRuns(
   return rows.map(mapRun);
 }
 
-// Accepted-section counts for a set of finished campaigns, in ONE batched
-// query. Source: the latest accepted CampaignState per campaign
+// Accepted-section counts (plus the generated campaign name and the
+// objective's ask) for a set of finished campaigns, in ONE batched query.
+// Source: the latest accepted CampaignState per campaign
 // (factory.campaign_state_versions) — the same authoritative derivation the
 // Campaign Completion Receipt uses (documents/receipts.ts): sections with
 // status "accepted" over the nine acceptable journey steps, never counting the
@@ -208,6 +209,12 @@ export async function listFinishedPresenterRuns(
 export interface RunSectionCounts {
   acceptedSections: number;
   totalSections: number;
+  /** Generated campaign name from the problem section's accepted content
+   *  (problemSchema.campaignName) — the gallery card title (name flip,
+   *  15 Jul 2026). Absent on runs whose problem section never carried one. */
+  campaignName?: string;
+  /** The objective's ask (objective content `action`) — short caption material. */
+  ask?: string;
 }
 
 const ACCEPTABLE_SECTION_TOTAL = JOURNEY_STEPS.filter((s) => s.key !== "documents").length;
@@ -224,7 +231,9 @@ export async function getRunSectionCounts(
            (select count(*)::int
               from jsonb_each(v.state -> 'sections') as s
              where s.key <> 'documents'
-               and s.value ->> 'status' = 'accepted') as accepted
+               and s.value ->> 'status' = 'accepted') as accepted,
+           v.state -> 'sections' -> 'problem' -> 'content' ->> 'campaignName' as campaign_name,
+           v.state -> 'sections' -> 'objective' -> 'content' ->> 'action' as ask
       from factory.campaign_state_versions v
      where v.campaign_id::text = any(${campaignIds})
      order by v.campaign_id, v.version desc`;
@@ -234,6 +243,8 @@ export async function getRunSectionCounts(
       counts.set(String(r.campaign_id), {
         acceptedSections: accepted,
         totalSections: ACCEPTABLE_SECTION_TOTAL,
+        campaignName: strOrUndef(r.campaign_name),
+        ask: strOrUndef(r.ask),
       });
     }
   }
