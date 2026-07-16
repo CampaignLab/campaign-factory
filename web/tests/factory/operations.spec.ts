@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -78,6 +79,24 @@ test("operations workbench: cross-view local review and demo queue flow", async 
   await expect(page.getByRole("heading", { name: "One local queue item" })).toBeVisible();
   await expect(page.getByText("Back the permanent school street before the order lapses")).toBeVisible();
   await expect(page.getByText("Demo intent: next school-run morning after provider setup", { exact: true })).toBeVisible();
+
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  expect(jsonDownload.suggestedFilename()).toMatch(/sample-campaign-operations-pack-\d{4}-\d{2}-\d{2}\.json/);
+  const jsonPath = await jsonDownload.path();
+  expect(jsonPath).toBeTruthy();
+  const pack = JSON.parse(await readFile(jsonPath!, "utf8")) as { boundary: { providerSending: string }; outbox: { queuedCount: number }; selectedAudience: { name: string } };
+  expect(pack.boundary.providerSending).toBe("Not connected");
+  expect(pack.outbox.queuedCount).toBe(1);
+  expect(pack.selectedAudience.name).toBe("Nearby ward parents");
+
+  const [markdownDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download Markdown" }).click(),
+  ]);
+  expect(markdownDownload.suggestedFilename()).toMatch(/sample-campaign-operations-pack-\d{4}-\d{2}-\d{2}\.md/);
 
   await page.getByRole("button", { name: "Reset demo state" }).last().click();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toBeVisible();

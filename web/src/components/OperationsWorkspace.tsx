@@ -580,6 +580,24 @@ const localActionStatusCopy: Record<LocalActionStatus, string> = {
   done: "Done",
 };
 
+function exportFileName(label: string, extension: "json" | "md") {
+  const safeLabel = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 58) || "campaign-operations";
+  const date = new Date().toISOString().slice(0, 10);
+  return `${safeLabel}-operations-pack-${date}.${extension}`;
+}
+
+function downloadClientFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
 function normaliseLocalActions(actions: unknown): LocalAction[] {
   if (!Array.isArray(actions)) return [];
   return actions
@@ -2172,6 +2190,129 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     });
   };
 
+  const buildOperationsPack = () => {
+    const queuedDrafts = [
+      ...(state.status === "queued"
+        ? [{ id: "seeded-supporter-email", title: "Supporter email", subject: state.subject, status: state.status, queuedAt: state.queuedAt, source: state.sourceWorkingCopy?.sourceDocument ?? (source ? "Browser-local source workspace draft" : "Demo fixture draft") }]
+        : []),
+      ...state.workingDrafts.map((draft) => ({
+        id: draft.id,
+        title: draft.title,
+        subject: draft.subject,
+        status: draft.status,
+        queuedAt: draft.queuedAt,
+        source: `${draft.sourceWorkingCopy.sourceDocument} (${draft.sourceWorkingCopy.sourceDocumentKey})`,
+      })),
+    ];
+    return {
+      exportedAt: new Date().toISOString(),
+      campaign: source
+        ? {
+            id: source.campaignId,
+            title: source.title,
+            place: source.place ?? null,
+            sourceHref: source.sourceHref,
+            sourceOrigin: source.sourceOrigin,
+            runStatus: source.runStatus,
+            sourceStateVersion: source.stateVersion,
+            sourceLastSequence: source.lastSequence,
+            sourceBaselineChanged,
+          }
+        : {
+            id: "demo-fixture",
+            title: "Make the St John the Baptist school street permanent",
+            place: "Leicester",
+            sourceHref: null,
+            sourceOrigin: "Local fixture",
+            runStatus: "demo-fixture",
+            sourceBaselineChanged: false,
+          },
+      boundary: {
+        sourceWriteBack: "Not connected",
+        contactImport: source ? "No real contacts imported for this campaign" : "Fixture contacts only",
+        providerSending: "Not connected",
+        productionScheduling: "Not connected",
+        responsesOrResults: "Not connected; no delivery or outcome is claimed",
+      },
+      objective: sourceContext.objectives.rows.map((row) => ({ label: row.label, detail: row.detail })),
+      evidence: source
+        ? {
+            totals: source.evidence.totals,
+            nextChecks: source.evidence.nextChecks.slice(0, 8).map((check) => ({ id: check.id, description: check.description, reason: check.reason, affectedSections: check.affectedSections })),
+            incompleteDocuments: source.incompleteDocuments.map((doc) => ({ key: doc.key, name: doc.name, status: doc.status, resourceCount: doc.resourceCount })),
+          }
+        : {
+            totals: { unresolvedLoadBearing: 2 },
+            nextChecks: ["Verify council order status", "Keep media escalation blocked until checked"],
+            incompleteDocuments: [],
+          },
+      selectedAudience: {
+        name: selected.name,
+        ask: selected.ask,
+        readiness: selected.readiness,
+        caveat: selected.caveat,
+      },
+      actions: state.localActions.map((action) => ({ ...action, statusLabel: localActionStatusCopy[action.status] })),
+      drafts: queuedDrafts,
+      outbox: {
+        queuedCount: queuedItemCount,
+        scheduleIntent: scheduleCopy[state.scheduleIntent],
+      },
+      activity: state.activity.map((item) => item.label),
+    };
+  };
+
+  const exportOperationsPack = (format: "json" | "md") => {
+    const pack = buildOperationsPack();
+    const label = source?.title ?? "sample-campaign";
+    if (format === "json") {
+      downloadClientFile(exportFileName(label, "json"), `${JSON.stringify(pack, null, 2)}\n`, "application/json");
+    } else {
+      const campaign = pack.campaign;
+      const content = [
+        `# ${campaign.title} — Campaign Operations pack`,
+        "",
+        `Exported: ${pack.exportedAt}`,
+        `Source: ${campaign.sourceOrigin}${campaign.sourceHref ? ` · ${campaign.sourceHref}` : ""}`,
+        `Status: ${campaign.runStatus}`,
+        "",
+        "## Operating boundary",
+        `- Source write-back: ${pack.boundary.sourceWriteBack}`,
+        `- Contact import: ${pack.boundary.contactImport}`,
+        `- Provider sending: ${pack.boundary.providerSending}`,
+        `- Production scheduling: ${pack.boundary.productionScheduling}`,
+        `- Responses/results: ${pack.boundary.responsesOrResults}`,
+        "",
+        "## Objective & targets",
+        ...pack.objective.map((row) => `- **${row.label}:** ${row.detail}`),
+        "",
+        "## Evidence & checks",
+        `- Unresolved load-bearing facts: ${pack.evidence.totals.unresolvedLoadBearing}`,
+        ...pack.evidence.nextChecks.map((check) => (typeof check === "string" ? `- ${check}` : `- ${check.description}${check.reason ? ` — ${check.reason}` : ""}`)),
+        ...pack.evidence.incompleteDocuments.map((doc) => `- Incomplete source document: ${doc.name} (${doc.status}, ${doc.resourceCount} resources)`),
+        "",
+        "## Selected audience",
+        `- ${pack.selectedAudience.name}: ${pack.selectedAudience.ask}`,
+        `- Readiness: ${pack.selectedAudience.readiness}`,
+        `- Caveat: ${pack.selectedAudience.caveat}`,
+        "",
+        "## Local actions",
+        ...(pack.actions.length ? pack.actions.map((action) => `- [${action.statusLabel}] ${action.title} — ${action.owner}; ${action.timing}`) : ["- No browser-local actions yet."]),
+        "",
+        "## Drafts & local outbox",
+        ...(pack.drafts.length ? pack.drafts.map((draft) => `- [${draft.status}] ${draft.title}: ${draft.subject}${draft.queuedAt ? ` · queued locally ${formatQueuedTime(draft.queuedAt)}` : ""}`) : ["- No local working drafts or queued items yet."]),
+        `- Queue count: ${pack.outbox.queuedCount}`,
+        `- Schedule intent: ${pack.outbox.scheduleIntent}`,
+        "",
+        "## Activity",
+        ...(pack.activity.length ? pack.activity.map((item) => `- ${item}`) : ["- No local activity recorded."]),
+        "",
+      ].join("\n");
+      downloadClientFile(exportFileName(label, "md"), content, "text/markdown");
+    }
+    setState((current) => ({ ...current, activity: [record(`Exported ${format === "json" ? "JSON" : "Markdown"} operations pack for ${source?.title ?? "the fixture workspace"}.`), ...current.activity].slice(0, 7) }));
+  };
+
   const renderNav = (compact = false, ink = false) => (
     <nav aria-label="Campaign operations views" className="space-y-6">
       {navGroups.map((group) => (
@@ -2824,6 +2965,17 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         <Button type="button" variant="outline" disabled className="mt-4" title="Production scheduling is coming soon and is not connected in this demo.">
           Production scheduler · Coming soon
         </Button>
+        <div className="mt-5 rounded-[var(--r-2xl)] border border-border bg-secondary/55 p-4" aria-label="Export operations pack">
+          <SmallLabel>Export operations pack</SmallLabel>
+          <h4 className="mt-2 text-lg font-medium">Client-side download</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Export this campaign&apos;s local actions, drafts, source evidence boundaries, and disconnected-provider statement. The download is generated in the browser; no server write or source mutation happens.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => exportOperationsPack("md")}>Download Markdown</Button>
+            <Button type="button" variant="outline" onClick={() => exportOperationsPack("json")}>Download JSON</Button>
+          </div>
+        </div>
         <Button type="button" variant="ghost" className="mt-5" onClick={reset}>
           Reset demo state
         </Button>
