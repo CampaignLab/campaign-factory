@@ -304,6 +304,9 @@ type DemoState = {
   sourceLastSequence: number | null;
   sourceDocumentSignature: string | null;
   sourceAcknowledgedAt: string | null;
+  sourceRecheckStateVersion: number | null;
+  sourceRecheckLastSequence: number | null;
+  sourceRecheckDocumentSignature: string | null;
   sourceRecheckVisitedViews: ViewId[];
   selectedSegment: SegmentId;
   subject: string;
@@ -743,6 +746,9 @@ const initialState: DemoState = {
   sourceLastSequence: null,
   sourceDocumentSignature: null,
   sourceAcknowledgedAt: null,
+  sourceRecheckStateVersion: null,
+  sourceRecheckLastSequence: null,
+  sourceRecheckDocumentSignature: null,
   sourceRecheckVisitedViews: [],
   selectedSegment: "school_gates",
   subject: "Make the St John the Baptist school street permanent",
@@ -949,6 +955,9 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     sourceLastSequence: typeof parsed.sourceLastSequence === "number" ? parsed.sourceLastSequence : null,
     sourceDocumentSignature: typeof parsed.sourceDocumentSignature === "string" ? parsed.sourceDocumentSignature : null,
     sourceAcknowledgedAt: typeof parsed.sourceAcknowledgedAt === "string" && parsed.sourceAcknowledgedAt ? parsed.sourceAcknowledgedAt : null,
+    sourceRecheckStateVersion: typeof parsed.sourceRecheckStateVersion === "number" ? parsed.sourceRecheckStateVersion : null,
+    sourceRecheckLastSequence: typeof parsed.sourceRecheckLastSequence === "number" ? parsed.sourceRecheckLastSequence : null,
+    sourceRecheckDocumentSignature: typeof parsed.sourceRecheckDocumentSignature === "string" ? parsed.sourceRecheckDocumentSignature : null,
     sourceRecheckVisitedViews: Array.isArray(parsed.sourceRecheckVisitedViews)
       ? Array.from(new Set(parsed.sourceRecheckVisitedViews.filter((view): view is ViewId => viewIds.includes(view as ViewId))))
       : [],
@@ -2556,7 +2565,14 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const canQueueCommunication = communicationStatus === "approved" && !sourceBaselineChanged;
   const canChangeLocalQueueSchedule = !sourceBaselineChanged;
   const canSelectAudienceWithCurrentSource = !sourceBaselineChanged;
-  const sourceRecheckVisitedViews = new Set(sourceBaselineChanged ? state.sourceRecheckVisitedViews : []);
+  const sourceRecheckMatchesCurrentSource = Boolean(
+    sourceBaselineChanged &&
+      source &&
+      state.sourceRecheckStateVersion === source.stateVersion &&
+      state.sourceRecheckLastSequence === source.lastSequence &&
+      state.sourceRecheckDocumentSignature === currentSourceDocumentSignature,
+  );
+  const sourceRecheckVisitedViews = new Set(sourceRecheckMatchesCurrentSource ? state.sourceRecheckVisitedViews : []);
   const missingSourceRecheckViews = SOURCE_RECHECK_REQUIRED_VIEWS.filter((view) => !sourceRecheckVisitedViews.has(view));
   const canAcknowledgeSourceRefresh = !sourceBaselineChanged || missingSourceRecheckViews.length === 0;
   const reviewBlocked = !canRequestReview;
@@ -2687,9 +2703,22 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     setState((current) => ({
       ...current,
       activeView,
+      sourceRecheckStateVersion:
+        sourceBaselineChanged && source && SOURCE_RECHECK_REQUIRED_VIEWS.includes(activeView) ? source.stateVersion : current.sourceRecheckStateVersion,
+      sourceRecheckLastSequence:
+        sourceBaselineChanged && source && SOURCE_RECHECK_REQUIRED_VIEWS.includes(activeView) ? source.lastSequence : current.sourceRecheckLastSequence,
+      sourceRecheckDocumentSignature:
+        sourceBaselineChanged && source && SOURCE_RECHECK_REQUIRED_VIEWS.includes(activeView) ? currentSourceDocumentSignature : current.sourceRecheckDocumentSignature,
       sourceRecheckVisitedViews:
-        sourceBaselineChanged && SOURCE_RECHECK_REQUIRED_VIEWS.includes(activeView)
-          ? Array.from(new Set([...current.sourceRecheckVisitedViews, activeView]))
+        sourceBaselineChanged && source && SOURCE_RECHECK_REQUIRED_VIEWS.includes(activeView)
+          ? Array.from(
+              new Set([
+                ...(current.sourceRecheckStateVersion === source.stateVersion && current.sourceRecheckLastSequence === source.lastSequence && current.sourceRecheckDocumentSignature === currentSourceDocumentSignature
+                  ? current.sourceRecheckVisitedViews
+                  : []),
+                activeView,
+              ]),
+            )
           : current.sourceRecheckVisitedViews,
     }));
   };
@@ -2978,6 +3007,9 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       sourceLastSequence: source.lastSequence,
       sourceDocumentSignature: currentSourceDocumentSignature,
       sourceAcknowledgedAt: new Date().toISOString(),
+      sourceRecheckStateVersion: null,
+      sourceRecheckLastSequence: null,
+      sourceRecheckDocumentSignature: null,
       sourceRecheckVisitedViews: [],
       activity: [record(`Acknowledged updated read-only source for ${source.title}; existing local work was preserved.`), ...current.activity].slice(0, 7),
     }));

@@ -9166,6 +9166,21 @@ test("operations workbench: source updates preserve browser-local work and requi
   expect(changedMarkdown).toContain("Source update review: re-check this action against the updated read-only source before approving or queueing local work.");
 
   await page.getByRole("button", { name: /Strategy & tactics/ }).first().click();
+  sourceVersion = 46;
+  lastSequence = 1929;
+  await page.reload();
+  await page.getByRole("button", { name: /Overview/ }).first().click();
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededEvidence & checks");
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededStrategy & tactics");
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededDrafts");
+  await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toHaveAttribute(
+    "title",
+    "Reopen Evidence & checks, Strategy & tactics, Drafts before acknowledging this source update.",
+  );
+  await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
+  await page.getByRole("button", { name: /Strategy & tactics/ }).first().click();
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
   await page.getByRole("button", { name: /Overview/ }).first().click();
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("Required source views have been reopened in this browser");
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeEnabled();
