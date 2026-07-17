@@ -3448,6 +3448,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             <p className="mt-1">
               The read-only campaign source changed after these browser-local actions were created. Keep the actions visible, then re-check their evidence and tactic provenance before approval or local queueing resumes.
             </p>
+            {renderSourceRecheckProgress("Action plan source re-check progress")}
           </div>
         ) : null}
         <div className="mt-6 grid gap-3 md:grid-cols-2" aria-label="Recommended source actions">
@@ -3755,9 +3756,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           <span className="font-medium text-foreground">Review warning:</span> {activeSourceWorkingCopy ? `This copy came from ${activeSourceWorkingCopy.sourceDocument}; keep its source warnings attached before approval.` : activeDraft.requires} {activeDraftEditable && !activeSourceWorkingCopy ? selected.caveat : !activeDraftEditable ? (source ? "This staged source outline is not available for approval or queueing." : "This staged fixture is not available for approval or queueing.") : null}
         </div>
         {sourceBaselineChanged && activeDraftEditable ? (
-          <p id="operations-draft-edit-source-pause" className="mt-4 rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-3 text-sm text-ops-ink" role="status">
-            Editing local draft copy is paused until the updated read-only source is acknowledged, so re-checking cannot accidentally rewrite a draft against stale campaign material.
-          </p>
+          <div id="operations-draft-edit-source-pause" className="mt-4 rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-3 text-sm text-ops-ink" role="status">
+            <p>Editing local draft copy is paused until the updated read-only source is acknowledged, so re-checking cannot accidentally rewrite a draft against stale campaign material.</p>
+            {renderSourceRecheckProgress("Draft source re-check progress")}
+          </div>
         ) : null}
         {activeSourceWorkingCopy ? (
           <div className="mt-4 rounded-[var(--r-2xl)] border border-ops-line bg-background/85 p-4 text-sm">

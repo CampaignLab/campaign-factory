@@ -9066,6 +9066,8 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Action plan/ }).first().click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("Action plan source update pause")).toContainText("Action statuses need source re-check.");
+  await expect(page.getByLabel("Action plan source re-check progress")).toContainText("Checked 0/3 required source views for the current baseline.");
+  await expect(page.getByLabel("Action plan source re-check progress")).toContainText("Re-check Evidence & checks");
   await expect(page.getByText("Source re-check required before this local action informs approval or queueing.")).toBeVisible();
   await expect(page.getByLabel("Status for Confirm Planning Inspectorate appeal status")).toBeDisabled();
   await expect(page.getByText("Creating new source-derived actions is paused until the updated read-only source is acknowledged, so new local work starts from the current campaign material.")).toBeVisible();
@@ -9092,6 +9094,9 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Drafts/ }).first().click();
   await expect(page.getByText("New editable copies from source resources are paused until the updated source is acknowledged; existing working copies stay selectable for review.")).toBeVisible();
   await expect(page.getByText("Editing local draft copy is paused until the updated read-only source is acknowledged, so re-checking cannot accidentally rewrite a draft against stale campaign material.")).toBeVisible();
+  await expect(page.getByLabel("Draft source re-check progress")).toContainText("Checked 2/3 required source views for the current baseline.");
+  await expect(page.getByLabel("Draft source re-check progress")).toContainText("NeededStrategy & tactics");
+  await expect(page.getByLabel("Draft source re-check progress")).toContainText("Re-check Strategy & tactics");
   await expect(page.getByLabel("Subject")).toBeDisabled();
   await expect(page.getByLabel("Subject")).toHaveAttribute("title", "Acknowledge the updated read-only source before editing this local draft copy.");
   await expect(page.getByLabel("Message")).toBeDisabled();
