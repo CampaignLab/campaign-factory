@@ -1986,6 +1986,7 @@ test("operations portfolio: not-yet-usable source rows show run status without f
 
   const portfolio = page.getByLabel("Campaign operations portfolio");
   const towerHamletsRow = portfolio.locator("article", { hasText: "Campaign not usable yet" });
+  await expect(towerHamletsRow).toContainText("Source queued");
   await expect(towerHamletsRow).toContainText("This campaign is queued");
   await expect(towerHamletsRow).toContainText("Source run status: Queued");
   await expect(towerHamletsRow).toContainText("Failed source step: run header");

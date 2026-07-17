@@ -1850,7 +1850,7 @@ function OperationsPortfolio() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       {item.campaign.conferenceHero ? <span className="rounded-full bg-ops-ink px-2.5 py-1 text-xs font-medium text-white">Conference deep dive</span> : null}
-                      <span className="rounded-full bg-ops-blue px-2.5 py-1 text-xs text-ops-ink">{source ? sourceStatusPhrase(source) : item.status === "loading" ? "Loading source" : "Source issue"}</span>
+                      <span className="rounded-full bg-ops-blue px-2.5 py-1 text-xs text-ops-ink">{source ? sourceStatusPhrase(source) : item.status === "loading" ? "Loading source" : item.status === "error" && item.runStatus ? `Source ${statusPhrase(item.runStatus).toLowerCase()}` : "Source issue"}</span>
                       <span className="rounded-full border border-ops-line bg-background/80 px-2.5 py-1 text-xs text-muted-foreground">Browser-local state separate</span>
                     </div>
                     <h2 className="mt-3 text-2xl font-medium tracking-tight">{item.status === "ready" ? item.source.title : item.status === "loading" ? "Loading campaign…" : item.title}</h2>
