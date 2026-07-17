@@ -2487,6 +2487,10 @@ test("operations workbench: real source working copies move through local review
   expect(markdownPath).toBeTruthy();
   const markdownPack = await readFile(markdownPath!, "utf8");
   expect(markdownPack).toContain("Reviewer note: Reviewer confirmed the appeal-status warning must stay attached before any provider setup.");
+  expect(markdownPack).toContain("## Source pack resources");
+  expect(markdownPack).toContain("Ormskirk supporter email (Supporter email) — Digital Campaign Pack (digital_pack)");
+  expect(markdownPack).toContain("Subject/source heading: Ormskirk KFC source update");
+  expect(markdownPack).toContain("Preview: Dear supporter");
   expect(markdownPack).toContain("Source/provenance: Digital Campaign Pack (digital_pack)");
   expect(markdownPack).toContain("Source boundary: Copied from Digital Campaign Pack in campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95");
   expect(markdownPack).toContain("Source warning: Keep the public source boundary attached.");
@@ -6160,6 +6164,7 @@ test("operations workbench: all real campaign routes export source-specific loca
       campaign: { id: string; title: string; place: string; sourceOrigin: string; runStatus: string };
       boundary: { sourceWriteBack: string; contactImport: string; providerSending: string; responsesOrResults: string };
       evidence: { totals: { unresolvedLoadBearing: number }; nextChecks: Array<{ description: string }> };
+      sourceResources: Array<{ title: string; channel: string; sourceDocumentKey: string; subject: string; preview: string; warnings: string[] }>;
     };
 
     expect(pack.campaign).toMatchObject({
@@ -6175,6 +6180,13 @@ test("operations workbench: all real campaign routes export source-specific loca
     expect(pack.boundary.responsesOrResults).toContain("no delivery or outcome is claimed");
     expect(pack.evidence.totals.unresolvedLoadBearing).toBe(campaign.unresolved);
     expect(pack.evidence.nextChecks[0].description).toBe(campaign.next);
+    expect(pack.sourceResources[0]).toMatchObject({
+      title: `Supporter email — ${campaign.title}`,
+      channel: "Supporter email",
+      sourceDocumentKey: "digital_pack",
+      subject: `Source update for ${campaign.place}`,
+    });
+    expect(pack.sourceResources[0].preview).toContain("Use verified source boundaries before outreach");
     expect(JSON.stringify(pack)).not.toContain("St John the Baptist");
     expect(JSON.stringify(pack)).not.toContain("demo-fixture");
   }

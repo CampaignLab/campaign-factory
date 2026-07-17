@@ -2557,6 +2557,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             nextChecks: ["Verify council order status", "Keep media escalation blocked until checked"],
             incompleteDocuments: [],
           },
+      sourceResources: sourceResources.map((resource) => ({
+        title: resource.title,
+        channel: resource.channel,
+        sourceDocument: resource.sourceDocument,
+        sourceDocumentKey: resource.sourceDocumentKey,
+        subject: resource.subject,
+        warnings: resource.warnings,
+        preview: resource.preview,
+      })),
       selectedAudience: {
         name: selected.name,
         ask: selected.ask,
@@ -2604,6 +2613,16 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         `- Unresolved load-bearing facts: ${pack.evidence.totals.unresolvedLoadBearing}`,
         ...pack.evidence.nextChecks.map((check) => (typeof check === "string" ? `- ${check}` : `- ${check.description}${check.reason ? ` — ${check.reason}` : ""}`)),
         ...pack.evidence.incompleteDocuments.map((doc) => `- Incomplete source document: ${doc.name} (${doc.status}, ${doc.resourceCount} resources)`),
+        "",
+        "## Source pack resources",
+        ...(pack.sourceResources.length
+          ? pack.sourceResources.flatMap((resource) => [
+              `- ${resource.title} (${resource.channel}) — ${resource.sourceDocument} (${resource.sourceDocumentKey})`,
+              `  - Subject/source heading: ${resource.subject}`,
+              `  - Preview: ${resource.preview}`,
+              ...(resource.warnings.length ? resource.warnings.map((warning) => `  - Source warning: ${warning}`) : ["  - Source warning: none exposed by typed pack resource"]),
+            ])
+          : [source ? "- No ready source pack resources were exposed as editable candidates." : "- Fixture workspace does not expose public source pack resources."]),
         "",
         "## Selected audience",
         `- ${pack.selectedAudience.name}: ${pack.selectedAudience.ask}`,
