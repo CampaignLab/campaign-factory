@@ -82,6 +82,12 @@ function sourceFailureHeaders(result: { retryAfter?: string }) {
   return result.retryAfter ? { ...NO_STORE_HEADERS, "Retry-After": result.retryAfter } : NO_STORE_HEADERS;
 }
 
+type SourceStep = "run" | "documents" | "configuration";
+
+function sourceFailureBody(step: SourceStep, body: Record<string, unknown>) {
+  return { ...body, sourceStep: step };
+}
+
 async function fetchSourceJson<T>(
   origin: string,
   path: string,
@@ -139,7 +145,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   if (!UUID_RE.test(id) || !isOperationsPublicCampaignId(id)) {
     return sourceJson(
-      { error: "Operations source not found", detail: "This read-only preview source path only exposes the curated public operations campaigns." },
+      sourceFailureBody("configuration", { error: "Operations source not found", detail: "This read-only preview source path only exposes the curated public operations campaigns." }),
       404,
     );
   }
@@ -147,7 +153,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const originResult = sourceOrigin();
   if (!originResult.ok) {
     return sourceJson(
-      { error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed." },
+      sourceFailureBody("configuration", { error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed." }),
       502,
     );
   }
@@ -157,46 +163,46 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (run.ok) {
     if (!isOperationsRunReadModel(run.value, id)) {
       return sourceJson(
-        { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin },
+        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin }),
         502,
       );
     }
 
     if (run.value.status !== "partial" && run.value.status !== "completed") {
       return sourceJson(
-        {
+        sourceFailureBody("run", {
           error: "Campaign source not ready",
           detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
           runStatus: run.value.status,
           sourceOrigin: origin,
-        },
+        }),
         409,
       );
     }
 
     if (!hasUnavailableOperationsRunHeaderProvenance(run.value, false)) {
       return sourceJson(
-        { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin },
+        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin }),
         502,
       );
     }
   } else if (run.status === 404) {
-    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 404, sourceFailureHeaders(run));
+    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }), 404, sourceFailureHeaders(run));
   } else if (isRedirectStatus(run.status)) {
     return sourceJson(
-      { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin },
+      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin }),
       502,
     );
   } else if (run.status === 504) {
-    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 504, sourceFailureHeaders(run));
+    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }), 504, sourceFailureHeaders(run));
   } else if (run.contractMismatch) {
     return sourceJson(
-      { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin },
+      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin }),
       502,
     );
   } else {
     return sourceJson(
-      { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin },
+      sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }),
       run.status >= 400 && run.status < 600 ? run.status : 502,
       sourceFailureHeaders(run),
     );
@@ -206,20 +212,20 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!docs.ok) {
     if (isRedirectStatus(docs.status)) {
       return sourceJson(
-        { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin },
+        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin }),
         502,
       );
     }
 
     if (docs.contractMismatch) {
       return sourceJson(
-        { error: "Campaign source contract mismatch", detail: docs.message, sourceOrigin: origin },
+        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: docs.message, sourceOrigin: origin }),
         502,
       );
     }
 
     return sourceJson(
-      { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin },
+      sourceFailureBody("documents", { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin }),
       unavailableSourceStatus(docs.status),
       sourceFailureHeaders(docs),
     );
@@ -231,7 +237,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     !hasConsistentOperationsDocumentEvidence(docs.value.documents, docs.value.evidence)
   ) {
     return sourceJson(
-      { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", sourceOrigin: origin },
+      sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", sourceOrigin: origin }),
       502,
     );
   }

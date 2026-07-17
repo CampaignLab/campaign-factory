@@ -48,6 +48,19 @@ function retryAfterMessage(retryAfter?: string) {
   return retryAfter ? `Source retry guidance: try again after ${retryAfter} second${retryAfter === "1" ? "" : "s"}.` : null;
 }
 
+type SourceFailureStep = "run" | "documents" | "configuration";
+
+function sourceFailureStepLabel(step?: SourceFailureStep) {
+  if (step === "run") return "run header";
+  if (step === "documents") return "compiled documents";
+  if (step === "configuration") return "source configuration";
+  return null;
+}
+
+function sanitizeSourceFailureStep(value: unknown): SourceFailureStep | undefined {
+  return value === "run" || value === "documents" || value === "configuration" ? value : undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -227,8 +240,8 @@ type SourceState =
   | { status: "fixture" }
   | { status: "invalid"; campaignId: string }
   | { status: "loading"; campaignId: string }
-  | { status: "error"; campaignId: string; title: string; message: string; sourceOrigin?: string; retryAfter?: string; checkedAt?: string }
-  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; retryAfter?: string; checkedAt?: string }
+  | { status: "error"; campaignId: string; title: string; message: string; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string }
+  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string }
   | { status: "ready"; source: CampaignSource };
 
 type PortfolioCampaign = {
@@ -247,7 +260,7 @@ type PortfolioLocalCounts = {
 type PortfolioItem =
   | { campaign: PortfolioCampaign; status: "loading"; local: PortfolioLocalCounts }
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource; local: PortfolioLocalCounts }
-  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; sourceOrigin?: string; retryAfter?: string; checkedAt?: string; local: PortfolioLocalCounts };
+  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string; local: PortfolioLocalCounts };
 
 type CampaignSwitcherItem =
   | { campaign: PortfolioCampaign; status: "loading" }
@@ -1589,7 +1602,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
     throw err;
   }
-  let sourceBody: Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>) | null = null;
+  let sourceBody: Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown } & Record<string, unknown>) | null = null;
   let malformedJson = false;
   try {
     sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>);
@@ -1603,17 +1616,20 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
       if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
       throw err;
     }
-    const errorBody = sourceBody as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } | null;
+    const errorBody = sourceBody as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown } | null;
     const sourceOrigin = normaliseOperationsSourceOrigin(errorBody?.sourceOrigin);
+    const sourceStep = sanitizeSourceFailureStep(errorBody?.sourceStep);
     const hasSourceOriginField = isRecord(errorBody) && Object.prototype.hasOwnProperty.call(errorBody, "sourceOrigin");
     const canUseSourceErrorDetail = !hasSourceOriginField || Boolean(sourceOrigin);
     const fallbackMessage = sourceRes.status === 404 && !hasSourceOriginField
       ? "No curated public campaign source was found for that campaign ID."
       : `The public campaign source could not be loaded (HTTP ${sourceRes.status}).`;
     const retryAfter = sanitizeSourceRetryAfter(sourceRes.headers.get("retry-after"));
-    const err = new Error(canUseSourceErrorDetail ? errorBody?.detail || errorBody?.error || fallbackMessage : fallbackMessage);
+    const preferSafeFallbackMessage = sourceRes.status === 404 && !hasSourceOriginField;
+    const err = new Error(canUseSourceErrorDetail && !preferSafeFallbackMessage ? errorBody?.detail || errorBody?.error || fallbackMessage : fallbackMessage);
     if (canUseSourceErrorDetail && errorBody?.runStatus) (err as Error & { runStatus?: RunReadModel["status"] }).runStatus = errorBody.runStatus;
     if (sourceOrigin) (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
+    if (sourceStep) (err as Error & { sourceStep?: SourceFailureStep }).sourceStep = sourceStep;
     if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
     throw err;
   }
@@ -1749,11 +1765,12 @@ function OperationsPortfolio() {
         if (controller.signal.aborted || currentRefreshId !== portfolioRefreshId.current || itemRefreshId !== portfolioItemRefreshIds.current[campaign.id]) return;
         const message = error instanceof Error ? error.message : "This campaign source could not be loaded.";
         const sourceOrigin = (error as { sourceOrigin?: string } | null)?.sourceOrigin;
+        const sourceStep = (error as { sourceStep?: SourceFailureStep } | null)?.sourceStep;
         const retryAfter = (error as { retryAfter?: string } | null)?.retryAfter;
         setItems((current) =>
           current.map((item) =>
             item.campaign.id === campaign.id
-              ? { campaign, status: "error", title: "Campaign source unavailable", message, sourceOrigin, retryAfter, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
+              ? { campaign, status: "error", title: "Campaign source unavailable", message, sourceOrigin, sourceStep, retryAfter, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
               : item,
           ),
         );
@@ -1841,6 +1858,11 @@ function OperationsPortfolio() {
                         Checked read-only source: <span className="font-medium text-foreground">{item.sourceOrigin}</span>
                       </p>
                     ) : null}
+                    {item.status === "error" && sourceFailureStepLabel(item.sourceStep) ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Failed source step: <span className="font-medium text-foreground">{sourceFailureStepLabel(item.sourceStep)}</span>
+                      </p>
+                    ) : null}
                     {item.status === "error" && item.checkedAt ? (
                       <p className="mt-2 text-xs text-muted-foreground">Last source attempt {formatQueuedTime(item.checkedAt)}.</p>
                     ) : null}
@@ -1899,6 +1921,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
         ? "Operations accepts a Campaign Factory UUID in the campaignId query parameter. No fixture campaign has been substituted."
         : state.message;
   const sourceOrigin = "sourceOrigin" in state ? state.sourceOrigin : undefined;
+  const sourceStep = "sourceStep" in state ? sourceFailureStepLabel(state.sourceStep) : null;
   const retryMessage = "retryAfter" in state ? retryAfterMessage(state.retryAfter) : null;
   const checkedAt = "checkedAt" in state ? state.checkedAt : undefined;
   const localCounts = canLinkSource && state.status !== "loading" ? portfolioLocalCounts(campaignId) : emptyPortfolioLocalCounts();
@@ -1928,7 +1951,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
           <p className="mt-4 max-w-3xl text-muted-foreground">{detail}</p>
           {sourceOrigin ? (
             <p className="mt-3 max-w-3xl rounded-[var(--r-xl)] border border-ops-line bg-background/80 px-3 py-2 text-sm text-muted-foreground">
-              Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
+              Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>{sourceStep ? ` · failed source step: ${sourceStep}` : ""}{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
             </p>
           ) : null}
           {retryMessage ? (
@@ -2027,12 +2050,13 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         const message = error instanceof Error ? error.message : "The public campaign source could not be loaded.";
         const runStatus = (error as { runStatus?: RunReadModel["status"] } | null)?.runStatus;
         const sourceOrigin = (error as { sourceOrigin?: string } | null)?.sourceOrigin;
+        const sourceStep = (error as { sourceStep?: SourceFailureStep } | null)?.sourceStep;
         const retryAfter = (error as { retryAfter?: string } | null)?.retryAfter;
         if (runStatus && runStatus !== "completed" && runStatus !== "partial") {
-          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus, sourceOrigin, retryAfter, checkedAt: new Date().toISOString() });
+          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus, sourceOrigin, sourceStep, retryAfter, checkedAt: new Date().toISOString() });
           return;
         }
-        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, sourceOrigin, retryAfter, checkedAt: new Date().toISOString() });
+        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, sourceOrigin, sourceStep, retryAfter, checkedAt: new Date().toISOString() });
       });
     return () => controller.abort();
   }, [campaignId, sourceRetryCount]);
