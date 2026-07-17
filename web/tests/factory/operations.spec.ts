@@ -6063,6 +6063,9 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
   await page.getByRole("button", { name: "Create appeal-status action" }).click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
+  await page.getByRole("button", { name: "Mark ready for review" }).click();
+  await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeEnabled();
 
   sourceVersion = 45;
   lastSequence = 1918;
@@ -6070,8 +6073,14 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Overview/ }).first().click();
   await expect(page.getByText("Read-only source has changed since this local workspace started.")).toBeVisible();
   await expect(page.getByText(/Your browser-local actions and drafts were preserved/)).toBeVisible();
-  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("1 local item need source re-check");
+  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("2 local items need source re-check");
   await expect(page.getByLabel("Local work requiring source re-check")).toContainText("Action: Confirm Planning Inspectorate appeal status · Next · Campaign source · Evidence & checks · strategy");
+  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("Draft: Supporter email · Needs human review · Browser-local source workspace draft");
+  await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
+  await expect(page.getByText("Read-only source baseline current")).toBeVisible();
+  await expect(page.getByText("The public source changed after this local workspace started. Acknowledge the updated source on Overview after re-checking local actions and drafts before approval or queueing.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Queue locally for demo" })).toBeDisabled();
   await page.getByRole("button", { name: /Action plan/ }).first().click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
 
@@ -6113,6 +6122,9 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Overview/ }).first().click();
   await page.getByRole("button", { name: "Acknowledge updated source" }).click();
   await expect(page.getByText("Read-only source has changed since this local workspace started.")).toHaveCount(0);
+  await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
+  await expect(page.getByText("Local approvals are checking against the latest acknowledged read-only source baseline.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeEnabled();
 });
 
 test("operations workbench: all real campaign routes export source-specific local packs", async ({ page }) => {

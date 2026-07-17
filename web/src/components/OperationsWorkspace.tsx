@@ -3232,6 +3232,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                 ? `${source.evidence.totals.unresolvedLoadBearing} unresolved load-bearing source fact${source.evidence.totals.unresolvedLoadBearing === 1 ? "" : "s"} remain visible before approval; next check: ${shortText(source.nextGate ?? source.evidence.nextChecks[0]?.description ?? "Review unresolved source evidence.", 120)}`
                 : "Council timing, legal-order wording, and consent remain called out before any real provider use.",
             },
+            {
+              label: "Read-only source baseline current",
+              ok: !sourceBaselineChanged,
+              detail: sourceBaselineChanged
+                ? "The public source changed after this local workspace started. Acknowledge the updated source on Overview after re-checking local actions and drafts before approval or queueing."
+                : source
+                  ? "Local approvals are checking against the latest acknowledged read-only source baseline."
+                  : "The fixture source is static for this browser demo.",
+            },
             { label: "External action blocked", ok: true, detail: "Provider connection is not active; approval only unlocks the local demo queue." },
           ].map((item) => (
             <div key={item.label} className={`rounded-[var(--r-xl)] border p-4 motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out ${item.ok ? "border-ops-line bg-background" : "border-ops-coral bg-ops-coral/[0.55]"}`}>
@@ -3249,10 +3258,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           <Button type="button" size="lg" onClick={requestReview} disabled={!canRequestReview || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}>
             Mark ready for review
           </Button>
-          <Button type="button" size="lg" variant="outline" onClick={approve} disabled={communicationStatus !== "review"}>
+          <Button type="button" size="lg" variant="outline" onClick={approve} disabled={communicationStatus !== "review" || sourceBaselineChanged}>
             Approve as human reviewer
           </Button>
-          <Button type="button" size="lg" variant="secondary" onClick={queue} disabled={communicationStatus !== "approved"}>
+          <Button type="button" size="lg" variant="secondary" onClick={queue} disabled={communicationStatus !== "approved" || sourceBaselineChanged}>
             Queue locally for demo
           </Button>
         </div>
