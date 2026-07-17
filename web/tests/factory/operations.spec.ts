@@ -452,6 +452,39 @@ test("operations source API: empty upstream run failures stay source-unavailable
   }
 });
 
+test("operations source API: empty upstream run failures are detected without content-length", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(new Uint8Array(), { status: 500, headers: { "x-matched-path": "/api/factory/runs/[id]", "x-vercel-cache": "MISS", "x-vercel-id": "lhr1::iad1::ops-empty-no-length" } });
+    }
+
+    throw new Error("Documents must not hydrate when the source run returns an empty upstream failure.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(500);
+    expectPublicSourceJsonBoundary(response.headers, "empty source run failure without content length");
+
+    const body = (await response.json()) as { error?: string; sourceStep?: string; sourceRequestId?: string; sourceBodyEmpty?: boolean; sourceContentTypeMissing?: boolean; documents?: unknown[] };
+    expect(body.error).toBe("Campaign source run unavailable");
+    expect(body.sourceStep).toBe("run");
+    expect(body.sourceRequestId).toBe("lhr1::iad1::ops-empty-no-length");
+    expect(body.sourceBodyEmpty).toBe(true);
+    expect(body.sourceContentTypeMissing).toBe(true);
+    expect(body.documents).toBeUndefined();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: rate-limited source runs preserve retry guidance and stop document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;

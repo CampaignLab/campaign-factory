@@ -110,7 +110,20 @@ function sanitizeSourceAgeSeconds(value: string | null) {
   return Number.isSafeInteger(seconds) ? seconds : undefined;
 }
 
-function upstreamResponseMetadata(response: Response) {
+function hasEmptyObservedBody(response: Response, bodyText?: string) {
+  if (hasExplicitEmptyBody(response)) return true;
+  return bodyText !== undefined && bodyText.trim().length === 0;
+}
+
+async function safeReadResponseText(response: Response) {
+  try {
+    return await response.text();
+  } catch {
+    return undefined;
+  }
+}
+
+function upstreamResponseMetadata(response: Response, bodyText?: string) {
   const contentType = sanitizeSourceContentType(response.headers.get("content-type"));
   return {
     sourceHttpStatus: response.status,
@@ -118,7 +131,7 @@ function upstreamResponseMetadata(response: Response) {
     sourceMatchedPath: sanitizeSourceMatchedPath(response.headers.get("x-matched-path")),
     sourceCacheStatus: sanitizeSourceCacheStatus(response.headers.get("x-vercel-cache")),
     sourceAgeSeconds: sanitizeSourceAgeSeconds(response.headers.get("age")),
-    sourceBodyEmpty: hasExplicitEmptyBody(response),
+    sourceBodyEmpty: hasEmptyObservedBody(response, bodyText),
     ...("value" in contentType ? { sourceContentType: contentType.value } : {}),
     ...("missing" in contentType ? { sourceContentTypeMissing: true } : {}),
   };
@@ -183,7 +196,7 @@ async function fetchSourceJson<T>(
         path,
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
-        ...upstreamResponseMetadata(response),
+        ...upstreamResponseMetadata(response, await safeReadResponseText(response)),
       };
     }
     if (!hasJsonContentType(response)) {
@@ -193,11 +206,12 @@ async function fetchSourceJson<T>(
         path,
         contractMismatch: true,
         message: `Read-only source ${path} returned a non-JSON content type.`,
-        ...upstreamResponseMetadata(response),
+        ...upstreamResponseMetadata(response, await safeReadResponseText(response)),
       };
     }
+    const responseText = await safeReadResponseText(response);
     try {
-      return { ok: true, value: (await response.json()) as T };
+      return { ok: true, value: JSON.parse(responseText ?? "") as T };
     } catch {
       return {
         ok: false,
@@ -205,7 +219,7 @@ async function fetchSourceJson<T>(
         path,
         contractMismatch: true,
         message: `Read-only source ${path} returned malformed JSON.`,
-        ...upstreamResponseMetadata(response),
+        ...upstreamResponseMetadata(response, responseText),
       };
     }
   } catch {
