@@ -40,10 +40,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -237,7 +233,8 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     isJourneySectionKeyArray(value.sectionKeys) &&
     matchesCanonicalDocumentSections(value.key, value.isPack, value.sectionKeys) &&
     isNonNegativeInteger(value.resourceCount) &&
-    isStringArray(value.flags)
+    (shouldBePack || value.resourceCount === 0) &&
+    isUniqueNonEmptyStringArray(value.flags)
   );
 }
 
