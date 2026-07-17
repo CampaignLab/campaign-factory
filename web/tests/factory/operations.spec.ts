@@ -9052,6 +9052,20 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByLabel("Action plan source update pause")).toContainText("Action statuses need source re-check.");
   await expect(page.getByText("Source re-check required before this local action informs approval or queueing.")).toBeVisible();
   await expect(page.getByLabel("Status for Confirm Planning Inspectorate appeal status")).toBeDisabled();
+  await expect(page.getByText("Creating new source-derived actions is paused until the updated read-only source is acknowledged, so new local work starts from the current campaign material.")).toBeVisible();
+  await expect(page.getByLabel("Recommended source actions").getByRole("button", { name: "Source re-check required" }).first()).toBeDisabled();
+  await expect(page.getByLabel("Recommended source actions").getByRole("button", { name: "Source re-check required" }).first()).toHaveAttribute(
+    "title",
+    "Acknowledge the updated read-only source before creating new source-derived local actions.",
+  );
+
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
+  await expect(page.getByText("New editable copies from source resources are paused until the updated source is acknowledged; existing working copies stay selectable for review.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Acknowledge source update" }).first()).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Acknowledge source update" }).first()).toHaveAttribute(
+    "title",
+    "Acknowledge the updated read-only source before creating a new editable working copy.",
+  );
 
   await page.goto("/operations");
   const portfolio = page.getByLabel("Campaign operations portfolio");

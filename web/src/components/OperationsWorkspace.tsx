@@ -2527,6 +2527,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const reviewerNote = activeWorkingDraft?.reviewerNote ?? state.reviewerNote;
   const status = statusCopy[communicationStatus];
   const canRequestReview = communicationSubject.trim().length > 8 && communicationBody.trim().length > 80;
+  const canCreateSourceDerivedWork = !sourceBaselineChanged;
   const canRequestReviewWithCurrentSource = canRequestReview && !sourceBaselineChanged;
   const canApproveCommunication = communicationStatus === "review" && !sourceBaselineChanged;
   const canQueueCommunication = communicationStatus === "approved" && !sourceBaselineChanged;
@@ -2690,6 +2691,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     if (!source) return;
     setState((current) => {
       const existing = current.workingDrafts.find((draft) => draft.id === resource.id);
+      if (!existing && sourceBaselineChanged) return current;
       const sourceWorkingCopy: SourceWorkingCopy = existing?.sourceWorkingCopy ?? {
         id: resource.id,
         campaignId: source.campaignId,
@@ -2833,6 +2835,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const createLocalAction = (action: LocalAction) => {
+    if (sourceBaselineChanged) return;
     setState((current) => {
       if (current.localActions.some((item) => item.id === action.id)) return { ...current, activeView: "actions" };
       return {
@@ -3311,12 +3314,25 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                 </div>
                 <span className="rounded-full bg-ops-yellow px-2.5 py-1 text-xs font-medium text-ops-ink">{action.priority}</span>
               </div>
-              <Button type="button" variant="outline" className="mt-4" onClick={action.create} disabled={action.disabled}>
-                {action.disabled ? "Already in action plan" : "Create local action"}
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4"
+                onClick={action.create}
+                disabled={action.disabled || !canCreateSourceDerivedWork}
+                aria-describedby={!canCreateSourceDerivedWork ? "operations-action-source-pause" : undefined}
+                title={!canCreateSourceDerivedWork ? "Acknowledge the updated read-only source before creating new source-derived local actions." : undefined}
+              >
+                {action.disabled ? "Already in action plan" : !canCreateSourceDerivedWork ? "Source re-check required" : "Create local action"}
               </Button>
             </div>
           ))}
         </div>
+        {!canCreateSourceDerivedWork ? (
+          <p id="operations-action-source-pause" className="mt-3 rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-2 text-xs text-ops-ink">
+            Creating new source-derived actions is paused until the updated read-only source is acknowledged, so new local work starts from the current campaign material.
+          </p>
+        ) : null}
 
         <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border bg-background">
           <div className="hidden grid-cols-[minmax(0,1fr)_0.65fr_0.75fr_0.75fr_0.7fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground lg:grid">
@@ -3510,29 +3526,41 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                     <span>{group.resources.length} candidate{group.resources.length === 1 ? "" : "s"}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.resources.map((resource) => (
-                      <div key={resource.id} className="rounded-[var(--r-xl)] border border-white/15 bg-white/[0.07] p-3 text-sm text-white">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium">{resource.title}</p>
-                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-white/45">{resource.channel} · {resource.sourceDocument}</p>
+                    {group.resources.map((resource) => {
+                      const existingWorkingCopy = state.workingDrafts.some((draft) => draft.id === resource.id);
+                      const sourceCopyPaused = sourceBaselineChanged && !existingWorkingCopy;
+                      return (
+                        <div key={resource.id} className="rounded-[var(--r-xl)] border border-white/15 bg-white/[0.07] p-3 text-sm text-white">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{resource.title}</p>
+                              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-white/45">{resource.channel} · {resource.sourceDocument}</p>
+                            </div>
+                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">Source</span>
                           </div>
-                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">Source</span>
+                          <p className="mt-2 line-clamp-3 text-xs text-white/60">{resource.preview}</p>
+                          <button
+                            type="button"
+                            onClick={() => createSourceWorkingCopy(resource)}
+                            disabled={sourceCopyPaused}
+                            aria-describedby={sourceCopyPaused ? "operations-source-copy-pause" : undefined}
+                            title={sourceCopyPaused ? "Acknowledge the updated read-only source before creating a new editable working copy." : undefined}
+                            className="mt-3 rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-ops-yellow disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-transparent"
+                          >
+                            {existingWorkingCopy ? "Open working copy" : sourceCopyPaused ? "Acknowledge source update" : "Use in editable draft"}
+                          </button>
                         </div>
-                        <p className="mt-2 line-clamp-3 text-xs text-white/60">{resource.preview}</p>
-                        <button
-                          type="button"
-                          onClick={() => createSourceWorkingCopy(resource)}
-                          className="mt-3 rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-ops-yellow"
-                        >
-                          {state.workingDrafts.some((draft) => draft.id === resource.id) ? "Open working copy" : "Use in editable draft"}
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
             </div>
+            {sourceBaselineChanged ? (
+              <p id="operations-source-copy-pause" className="mt-3 rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-2 text-xs text-ops-ink">
+                New editable copies from source resources are paused until the updated source is acknowledged; existing working copies stay selectable for review.
+              </p>
+            ) : null}
           </div>
         ) : source ? (
           <div className="mt-6 rounded-[var(--r-xl)] border border-white/15 bg-white/[0.07] p-3 text-sm text-white/65">
@@ -4410,8 +4438,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                     <p className="mt-1 text-muted-foreground">{tactic.type} · target: {tactic.target}</p>
                     <p className="mt-1 text-xs text-muted-foreground">Owner: {tactic.owner}; timing: {tactic.timing}. {tactic.detail}</p>
                   </div>
-                  <Button type="button" variant="outline" onClick={() => createSourceTacticAction(tactic)} disabled={actionExists}>
-                    {actionExists ? "Action created" : "Create local action"}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => createSourceTacticAction(tactic)}
+                    disabled={actionExists || !canCreateSourceDerivedWork}
+                    aria-describedby={!canCreateSourceDerivedWork ? "operations-section-source-action-pause" : undefined}
+                    title={!canCreateSourceDerivedWork ? "Acknowledge the updated read-only source before creating new source-derived local actions." : undefined}
+                  >
+                    {actionExists ? "Action created" : !canCreateSourceDerivedWork ? "Source re-check required" : "Create local action"}
                   </Button>
                 </div>
               );
@@ -4435,9 +4470,20 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         </div>
         <div className="mt-5 flex flex-col gap-3">
           {section.title === "Evidence & checks" ? (
-            <Button type="button" onClick={createAppealStatusAction} disabled={hasAppealAction}>
-              {hasAppealAction ? (source ? "Source-check action created" : "Appeal-status action created") : source ? sourcePrimaryCheckButton(source) : "Create appeal-status action"}
+            <Button
+              type="button"
+              onClick={createAppealStatusAction}
+              disabled={hasAppealAction || !canCreateSourceDerivedWork}
+              aria-describedby={!canCreateSourceDerivedWork ? "operations-section-source-action-pause" : undefined}
+              title={!canCreateSourceDerivedWork ? "Acknowledge the updated read-only source before creating new source-derived local actions." : undefined}
+            >
+              {hasAppealAction ? (source ? "Source-check action created" : "Appeal-status action created") : !canCreateSourceDerivedWork ? "Source re-check required" : source ? sourcePrimaryCheckButton(source) : "Create appeal-status action"}
             </Button>
+          ) : null}
+          {!canCreateSourceDerivedWork ? (
+            <p id="operations-section-source-action-pause" className="rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-2 text-xs text-ops-ink">
+              New source-derived local work waits until the refreshed source baseline is acknowledged.
+            </p>
           ) : null}
           {section.title === "Strategy & tactics" ? goButton("actions", "Open Action plan") : null}
           {goButton("audiences", "Choose Audiences")}
