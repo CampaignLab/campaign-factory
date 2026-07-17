@@ -90,9 +90,13 @@ const OPERATIONS_JOURNEY_SECTION_KEYS = new Set<string>(JOURNEY_STEPS.map((step)
 const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const OPERATIONS_CLAIM_CONFIDENCES = new Set<string>(["high", "medium", "low"]);
 const OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM = "Unresolved load-bearing claim: ";
+const OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION = "A source section is flagged needs verification.";
+const OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS = "Contains explicit verification placeholders.";
+const OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE = "Some facts in this section couldn't be fully checked in time";
+const OPERATIONS_PACK_VERIFICATION_NOTES_HEADING = "Before you send this, check";
 const OPERATIONS_DOCUMENT_FLAGS = new Set<string>([
-  "A source section is flagged needs verification.",
-  "Contains explicit verification placeholders.",
+  OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION,
+  OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS,
 ]);
 const OPERATIONS_CLAIM_TYPES = new Set<string>([
   "authority",
@@ -314,9 +318,12 @@ export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocum
   }
 
   for (const doc of documents) {
+    const text = `${doc.plainText}\n${doc.html}`;
     for (const flag of doc.flags) {
       const claimText = operationsDocumentFlagClaimText(flag);
       if (claimText !== null && !unresolvedLoadBearingClaimTexts.has(claimText)) return false;
+      if (flag === OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION && !text.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE)) return false;
+      if (flag === OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS && (!doc.isPack || !text.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING))) return false;
     }
   }
 
