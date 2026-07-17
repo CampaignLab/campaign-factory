@@ -2489,7 +2489,19 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const buildOperationsPack = () => {
     const queuedDrafts = [
       ...(state.status === "queued"
-        ? [{ id: "seeded-supporter-email", title: "Supporter email", subject: state.subject, status: state.status, queuedAt: state.queuedAt, source: state.sourceWorkingCopy?.sourceDocument ?? (source ? "Browser-local source workspace draft" : "Demo fixture draft"), reviewerNote: state.reviewerNote }]
+        ? [
+            {
+              id: "seeded-supporter-email",
+              title: state.sourceWorkingCopy?.title ?? "Supporter email",
+              subject: state.subject,
+              status: state.status,
+              queuedAt: state.queuedAt,
+              source: state.sourceWorkingCopy ? `${state.sourceWorkingCopy.sourceDocument} (${state.sourceWorkingCopy.sourceDocumentKey})` : source ? "Browser-local source workspace draft" : "Demo fixture draft",
+              provenance: state.sourceWorkingCopy?.provenance,
+              warnings: state.sourceWorkingCopy?.warnings ?? [],
+              reviewerNote: state.reviewerNote,
+            },
+          ]
         : []),
       ...state.workingDrafts.map((draft) => ({
         id: draft.id,
@@ -2606,6 +2618,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           ? pack.drafts.flatMap((draft) => [
               `- [${draft.status}] ${draft.title}: ${draft.subject}${draft.queuedAt ? ` · queued locally ${formatQueuedTime(draft.queuedAt)}` : ""}`,
               `  - Source/provenance: ${draft.source}`,
+              ...(draft.provenance ? [`  - Source boundary: ${draft.provenance}`] : []),
+              ...(draft.warnings?.length ? draft.warnings.map((warning) => `  - Source warning: ${warning}`) : []),
               ...(draft.reviewerNote ? [`  - Reviewer note: ${draft.reviewerNote}`] : []),
             ])
           : ["- No local working drafts or queued items yet."]),

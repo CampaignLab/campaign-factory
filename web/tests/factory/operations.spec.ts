@@ -2488,6 +2488,8 @@ test("operations workbench: real source working copies move through local review
   const markdownPack = await readFile(markdownPath!, "utf8");
   expect(markdownPack).toContain("Reviewer note: Reviewer confirmed the appeal-status warning must stay attached before any provider setup.");
   expect(markdownPack).toContain("Source/provenance: Digital Campaign Pack (digital_pack)");
+  expect(markdownPack).toContain("Source boundary: Copied from Digital Campaign Pack in campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95");
+  expect(markdownPack).toContain("Source warning: Keep the public source boundary attached.");
   expect(markdownPack).toContain("Provider sending: Not connected");
 
   await page.goto("/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153&view=outbox");
