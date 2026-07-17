@@ -9096,6 +9096,13 @@ test("operations workbench: source updates preserve browser-local work and requi
     "Acknowledge the updated read-only source before changing the local audience intent.",
   );
 
+  await page.getByRole("button", { name: /Contacts/ }).first().click();
+  await expect(page.getByLabel("Contacts source update boundary")).toContainText("Contact planning stays read-only while the source is re-checked.");
+  await expect(page.getByLabel("Contacts source re-check progress")).toContainText("Checked 1/3 required source views for the current baseline.");
+  await expect(page.getByLabel("Contacts source re-check progress")).toContainText("Re-check Strategy & tactics");
+  await expect(page.getByLabel("Contacts source re-check progress")).toContainText("Re-check Drafts");
+  await expect(page.getByText("No imported contacts for Keep KFC Out of Ormskirk")).toBeVisible();
+
   await page.getByRole("button", { name: /Drafts/ }).first().click();
   await expect(page.getByText("New editable copies from source resources are paused until the updated source is acknowledged; existing working copies stay selectable for review.")).toBeVisible();
   await expect(page.getByText("Editing local draft copy is paused until the updated read-only source is acknowledged, so re-checking cannot accidentally rewrite a draft against stale campaign material.")).toBeVisible();

@@ -4760,6 +4760,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             </p>
           </div>
         ) : null}
+        {sourceBaselineChanged ? (
+          <div className="mt-5 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/55 p-3 text-sm text-ops-ink" role="status" aria-label="Contacts source update boundary">
+            <p className="font-medium">Contact planning stays read-only while the source is re-checked.</p>
+            <p className="mt-1">
+              No imported contacts are created here, but audience clues and named stakeholders should still be reviewed against the refreshed source before local copy or queue decisions resume.
+            </p>
+            {renderSourceRecheckProgress("Contacts source re-check progress")}
+          </div>
+        ) : null}
         <div className="mt-5 grid gap-3 md:grid-cols-3" aria-label="Contact readiness summary">
           {[
             source ? { label: "Imported contacts", count: 0, detail: "No campaign contact list connected" } : { label: "Ready fixtures", count: readyContactCount, detail: "Can be used in reviewed local demo copy" },
