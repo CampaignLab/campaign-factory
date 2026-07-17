@@ -34,6 +34,30 @@ const SOURCE_FETCH_HEADERS = {
 const SOURCE_FETCH_TIMEOUT_MS = 10_000;
 const SOURCE_DIAGNOSTIC_BODY_LIMIT_BYTES = 64 * 1024;
 const SOURCE_JSON_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
+const SOURCE_AFFECTED_SECTION_KEYS = new Set([
+  "problem",
+  "evidence",
+  "objective",
+  "decision_route",
+  "power",
+  "pressure",
+  "strategy",
+  "tactics",
+  "organising",
+  "campaign_brief",
+  "objective_theory_of_change",
+  "power_stakeholder_map",
+  "campaign_strategy",
+  "tactics_timeline",
+  "organising_plan",
+  "lobbying_pack",
+  "media_pack",
+  "digital_pack",
+]);
+// Operations only needs the source run header; request an event-free polling
+// page when recovering from an empty canonical run-read failure so large public
+// event streams do not block real workspace hydration.
+const SOURCE_RUN_HEADER_ONLY_AFTER_SEQUENCE = 2_147_483_647;
 
 function sourceJson<T>(body: T, status = 200, headers: Record<string, string> = NO_STORE_HEADERS) {
   return NextResponse.json(body, { status, headers });
@@ -171,7 +195,10 @@ function sanitizeSourceMatchedPath(value: string | null) {
 function sanitizeSourcePath(value: string | null | undefined) {
   if (!value) return undefined;
   const trimmed = value.trim();
-  return /^\/api\/factory\/runs\/[0-9a-f-]{36}(\/documents)?$/i.test(trimmed) ? trimmed : undefined;
+  const [pathname, search = ""] = trimmed.split("?", 2);
+  if (!/^\/api\/factory\/runs\/[0-9a-f-]{36}(\/documents)?$/i.test(pathname)) return undefined;
+  if (!search) return pathname;
+  return /^after=\d{1,10}$/.test(search) ? pathname : undefined;
 }
 
 function sanitizeSourceCacheStatus(value: string | null) {
@@ -359,6 +386,69 @@ function sourceFailureBody(step: SourceStep, body: Record<string, unknown>) {
 
 function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
+}
+
+function sourceRunHeaderOnly(value: unknown) {
+  return typeof value === "object" && value !== null ? { ...(value as Record<string, unknown>), events: [] } : value;
+}
+
+function uniqueStrings(values: unknown) {
+  if (!Array.isArray(values)) return values;
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string" || seen.has(value)) continue;
+    seen.add(value);
+    unique.push(value);
+  }
+  return unique;
+}
+
+function normalizeSourceDocuments(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((document) => (typeof document === "object" && document !== null ? { ...(document as Record<string, unknown>), flags: uniqueStrings((document as Record<string, unknown>).flags) } : document))
+    : value;
+}
+
+function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>) {
+  if (typeof value !== "object" || value === null) return value;
+  const record = value as Record<string, unknown>;
+  return {
+    ...record,
+    contradictsClaimIds: Array.isArray(record.contradictsClaimIds) && claimIds.size > 0 ? record.contradictsClaimIds.filter((claimId) => typeof claimId === "string" && claimId !== record.id && claimIds.has(claimId)) : record.contradictsClaimIds,
+  };
+}
+
+function normalizeSourceEvidence(value: unknown) {
+  if (typeof value !== "object" || value === null) return value;
+  const record = value as Record<string, unknown>;
+  const claimIds = new Set<string>();
+  if (Array.isArray(record.groups)) {
+    for (const group of record.groups) {
+      if (typeof group !== "object" || group === null || !Array.isArray((group as Record<string, unknown>).claims)) continue;
+      for (const claim of (group as Record<string, unknown>).claims as unknown[]) {
+        if (typeof claim === "object" && claim !== null && typeof (claim as Record<string, unknown>).id === "string") claimIds.add((claim as Record<string, unknown>).id as string);
+      }
+    }
+  }
+  return {
+    ...record,
+    groups: Array.isArray(record.groups)
+      ? record.groups.map((group) => (typeof group === "object" && group !== null && Array.isArray((group as Record<string, unknown>).claims) ? { ...(group as Record<string, unknown>), claims: ((group as Record<string, unknown>).claims as unknown[]).map((claim) => normalizeSourceEvidenceClaim(claim, claimIds)) } : group))
+      : record.groups,
+    conflicts: Array.isArray(record.conflicts) ? record.conflicts.map((claim) => normalizeSourceEvidenceClaim(claim, claimIds)) : record.conflicts,
+    nextChecks: Array.isArray(record.nextChecks)
+      ? record.nextChecks.map((check) => {
+          if (typeof check !== "object" || check === null) return check;
+          const checkRecord = check as Record<string, unknown>;
+          return {
+            ...checkRecord,
+            claimIds: Array.isArray(checkRecord.claimIds) && claimIds.size > 0 ? checkRecord.claimIds.filter((claimId) => typeof claimId === "string" && claimIds.has(claimId)) : checkRecord.claimIds,
+            affectedSections: Array.isArray(checkRecord.affectedSections) ? checkRecord.affectedSections.filter((section) => typeof section === "string" && SOURCE_AFFECTED_SECTION_KEYS.has(section)) : checkRecord.affectedSections,
+          };
+        })
+      : record.nextChecks,
+  };
 }
 
 function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentLengthMalformed?: boolean; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceContentCharset?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; sourceTextEncoding?: "malformed" }) {
@@ -609,21 +699,27 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   const origin = originResult.origin;
-  const run = await fetchSourceJson<OperationsSourcePayload["run"]>(origin, `/api/factory/runs/${encodeURIComponent(id)}`);
+  const runPath = `/api/factory/runs/${encodeURIComponent(id)}`;
+  let run = await fetchSourceJson<OperationsSourcePayload["run"]>(origin, runPath);
+  if (!run.ok && run.sourceFailureKind === "http_error" && run.sourceHttpStatus === 500 && run.sourceBodyEmpty) {
+    const headerOnlyRun = await fetchSourceJson<OperationsSourcePayload["run"]>(origin, `${runPath}?after=${SOURCE_RUN_HEADER_ONLY_AFTER_SEQUENCE}`);
+    if (headerOnlyRun.ok) run = headerOnlyRun;
+  }
   if (run.ok) {
-    if (!isOperationsRunReadModel(run.value, id)) {
+    const runHeader = sourceRunHeaderOnly(run.value);
+    if (!isOperationsRunReadModel(runHeader, id)) {
       return sourceJson(
         sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...run.metadata }) }),
         502,
       );
     }
 
-    if (run.value.status !== "partial" && run.value.status !== "completed") {
+    if (runHeader.status !== "partial" && runHeader.status !== "completed") {
       return sourceJson(
         sourceFailureBody("run", {
           error: "Campaign source not ready",
-          detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
-          runStatus: run.value.status,
+          detail: `This campaign is ${runHeader.status}, so compiled operations source material is not available yet.`,
+          runStatus: runHeader.status,
           sourceOrigin: origin,
           ...upstreamFailureMetadata({ sourceFailureKind: "not_ready", ...run.metadata }),
         }),
@@ -631,12 +727,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       );
     }
 
-    if (!hasUnavailableOperationsRunHeaderProvenance(run.value, false)) {
+    if (!hasUnavailableOperationsRunHeaderProvenance(runHeader, false)) {
       return sourceJson(
         sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...run.metadata }) }),
         502,
       );
     }
+    run.value = runHeader;
   } else if (run.status === 404) {
     return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }), 404, sourceFailureHeaders(run));
   } else if (isRedirectStatus(run.status)) {
@@ -690,10 +787,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
+  const sourceDocuments = normalizeSourceDocuments(docs.value.documents);
+  const sourceEvidence = normalizeSourceEvidence(docs.value.evidence);
   if (
-    !isOperationsCompiledDocumentList(docs.value.documents) ||
-    !isOperationsEvidenceAndNextChecks(docs.value.evidence) ||
-    !hasConsistentOperationsDocumentEvidence(docs.value.documents, docs.value.evidence)
+    !isOperationsCompiledDocumentList(sourceDocuments) ||
+    !isOperationsEvidenceAndNextChecks(sourceEvidence) ||
+    !hasConsistentOperationsDocumentEvidence(sourceDocuments, sourceEvidence)
   ) {
     return sourceJson(
         sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", runStatus: run.value.status, sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...docs.metadata }) }),
@@ -705,8 +804,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     {
       sourceOrigin: origin,
       run: run.value,
-      documents: docs.value.documents,
-      evidence: docs.value.evidence,
+      documents: sourceDocuments,
+      evidence: sourceEvidence,
     } as OperationsSourcePayload,
   );
 }

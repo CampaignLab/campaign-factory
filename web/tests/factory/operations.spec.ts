@@ -453,7 +453,83 @@ test("operations source API: empty upstream run failures stay source-unavailable
     expect(body.sourceContentTypeMissing).toBe(true);
     expect(body.documents).toBeUndefined();
     expect(body.sourceRunUnavailable).toBeUndefined();
-    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}?after=2147483647`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("operations source API: empty upstream run 500 recovers through header-only source read", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({ campaignId: curatedId, status: "partial", stateVersion: 18, lastSequence: 457, events: [] });
+  const documentsBody = JSON.stringify({
+    documents: canonicalOperationsDocuments(),
+    evidence: campaignEvidence([{ id: "source-recovered", description: "Keep KFC appeal evidence checked after source recovery.", reason: "Recovered source reads must still hydrate the real workspace from typed public data.", affectedSections: ["evidence"] }], 1),
+  });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(null, { status: 500, headers: { "content-length": "0", "x-matched-path": "/api/factory/runs/[id]", "x-vercel-cache": "MISS", server: "Vercel", "x-vercel-id": "lhr1::iad1::ops-empty-run-recover" } });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}?after=2147483647`)) {
+      return new Response(runBody, {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(runBody)),
+          "x-matched-path": "/api/factory/runs/[id]",
+          "x-vercel-id": "lhr1::iad1::ops-run-header-recovered",
+        },
+      });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(documentsBody, {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(documentsBody)),
+          "x-matched-path": "/api/factory/runs/[id]/documents",
+          "x-vercel-id": "lhr1::iad1::ops-documents-after-run-recovery",
+        },
+      });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(200);
+    expectPublicSourceJsonBoundary(response.headers, "header-only source recovery");
+
+    const body = (await response.json()) as { sourceOrigin?: string; run?: { campaignId?: string; lastSequence?: number; events?: unknown[] }; documents?: unknown[]; evidence?: { totals?: { unresolvedLoadBearing?: number }; nextChecks?: Array<{ description?: string }> }; sourceFailureKind?: string; sourcePath?: string; sourceRunUnavailable?: boolean };
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.run?.campaignId).toBe(curatedId);
+    expect(body.run?.lastSequence).toBe(457);
+    expect(body.run?.events).toEqual([]);
+    expect(body.documents).toHaveLength(9);
+    expect(body.evidence?.totals?.unresolvedLoadBearing).toBe(1);
+    expect(body.evidence?.nextChecks?.[0]?.description).toContain("KFC appeal evidence");
+    expect(body.sourceFailureKind).toBeUndefined();
+    expect(body.sourcePath).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}?after=2147483647`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -3296,6 +3372,114 @@ test("operations source API: successful source responses keep same-origin resour
     expect(sourceReadOptions).toEqual([
       { method: "GET", credentials: "omit", referrerPolicy: "no-referrer" },
       { method: "GET", credentials: "omit", referrerPolicy: "no-referrer" },
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("operations source API: ignores bulky public events and hydrates from the run header", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({
+    campaignId: curatedId,
+    status: "partial",
+    stateVersion: 44,
+    lastSequence: 1909,
+    events: [
+      { eventId: "legacy-event", sequence: 1, campaignId: curatedId, visibility: "public", type: "legacy.source.event", at: "2026-07-17T10:00:00.000Z", payload: { oldShape: true } },
+    ],
+  });
+  const documentsBody = JSON.stringify({
+    documents: canonicalOperationsDocuments(),
+    evidence: campaignEvidence([{ id: "event-stream-boundary", description: "Confirm source events are not required for Operations hydration.", reason: "Operations should depend on compiled public source data, not legacy event payload shape.", affectedSections: ["evidence"] }], 1),
+  });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(runBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(runBody)), "x-matched-path": "/api/factory/runs/[id]" } });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(documentsBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(documentsBody)), "x-matched-path": "/api/factory/runs/[id]/documents" } });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(200);
+    expectPublicSourceJsonBoundary(response.headers, "event-free source header hydration");
+
+    const body = (await response.json()) as { run?: { lastSequence?: number; events?: unknown[] }; documents?: unknown[]; evidence?: { totals?: { unresolvedLoadBearing?: number } }; sourceFailureKind?: string };
+    expect(body.run?.lastSequence).toBe(1909);
+    expect(body.run?.events).toEqual([]);
+    expect(body.documents).toHaveLength(9);
+    expect(body.evidence?.totals?.unresolvedLoadBearing).toBe(1);
+    expect(body.sourceFailureKind).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("operations source API: normalizes recoverable legacy source references before hydration", async () => {
+  const curatedId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({ campaignId: curatedId, status: "completed", stateVersion: 88, lastSequence: 900, events: [] });
+  const documents = canonicalOperationsDocuments("Stop the leisure park redevelopment in Barnet");
+  documents[0].flags = [
+    "Unresolved load-bearing claim: Unresolved source claim 1",
+    "Unresolved load-bearing claim: Unresolved source claim 1",
+  ];
+  const evidence = campaignEvidence(
+    [{ id: "legacy-reference", description: "Legacy source check keeps the current claim and drops historical ids.", reason: "Older public source builds can carry archived claim ids in next checks.", affectedSections: ["documents", "lobbying_pack", "evidence"] }],
+    1,
+  );
+  evidence.nextChecks[0].claimIds = ["claim-1", "archived-claim-from-previous-build"];
+  const documentsBody = JSON.stringify({ documents, evidence });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(runBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(runBody)), "x-matched-path": "/api/factory/runs/[id]" } });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(documentsBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(documentsBody)), "x-matched-path": "/api/factory/runs/[id]/documents" } });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(200);
+    expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
+
+    const body = (await response.json()) as { documents?: Array<{ flags?: string[] }>; evidence?: { nextChecks?: Array<{ claimIds?: string[]; affectedSections?: string[] }> }; sourceFailureKind?: string };
+    expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1"]);
+    expect(body.evidence?.nextChecks?.[0]?.claimIds).toEqual(["claim-1"]);
+    expect(body.evidence?.nextChecks?.[0]?.affectedSections).toEqual(["lobbying_pack", "evidence"]);
+    expect(body.sourceFailureKind).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
     ]);
   } finally {
     globalThis.fetch = originalFetch;
