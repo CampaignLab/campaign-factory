@@ -4207,6 +4207,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           <p className="mt-2 text-sm text-muted-foreground">
             Export this campaign&apos;s local actions, drafts, source evidence boundaries, and disconnected-provider statement. The download is generated in the browser; no server write or source mutation happens.
           </p>
+          {sourceBaselineChanged ? (
+            <div className="mt-3 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/50 p-3 text-sm text-ops-ink" role="status" aria-label="Export source update boundary">
+              <p className="font-medium">Exports include this source-update warning.</p>
+              <p className="mt-1">
+                The pack remains available for handover, but it marks the read-only source baseline as changed and lists required source views before local approval or queue work resumes.
+              </p>
+              {renderSourceRecheckProgress("Export source re-check progress")}
+            </div>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => exportOperationsPack("md")}>Download Markdown</Button>
             <Button type="button" variant="outline" onClick={() => exportOperationsPack("json")}>Download JSON</Button>

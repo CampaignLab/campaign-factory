@@ -9156,6 +9156,9 @@ test("operations workbench: source updates preserve browser-local work and requi
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Export operations pack")).toContainText("Client-side download");
+  await expect(page.getByLabel("Export source update boundary")).toContainText("Exports include this source-update warning.");
+  await expect(page.getByLabel("Export source re-check progress")).toContainText("Checked 2/3 required source views for the current baseline.");
+  await expect(page.getByLabel("Export source re-check progress")).toContainText("Re-check Strategy & tactics");
   const [changedJsonDownload] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("button", { name: "Download JSON" }).click(),
