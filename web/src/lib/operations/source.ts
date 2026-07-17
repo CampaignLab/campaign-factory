@@ -352,6 +352,11 @@ export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocum
   for (const doc of documents) {
     const plainText = doc.plainText;
     const renderedText = visibleRenderedText(doc.html);
+    const flags = new Set(doc.flags);
+    const hasVerificationNote = plainText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || renderedText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE);
+    const hasPackVerificationNotes = doc.isPack && (plainText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || renderedText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING));
+    if (hasVerificationNote && !flags.has(OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION)) return false;
+    if (hasPackVerificationNotes && !flags.has(OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS)) return false;
     for (const flag of doc.flags) {
       const claimText = operationsDocumentFlagClaimText(flag);
       if (claimText !== null && !unresolvedLoadBearingClaimTexts.has(claimText)) return false;

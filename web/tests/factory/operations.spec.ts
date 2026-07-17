@@ -4019,6 +4019,47 @@ test("operations workbench: document verification notes must remain visible in r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: document verification notes must not hydrate without matching flags", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = canonicalOperationsDocuments();
+  const plainText = `Omitted verification flag should not hydrate Ormskirk\n\n${COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE}\n\n${COMPILED_DOCUMENT_DISCLAIMER}`;
+  documents[0] = {
+    ...documents[0],
+    html: `<p>Omitted verification flag should not hydrate Ormskirk</p><p>${COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE}</p><p>${COMPILED_DOCUMENT_DISCLAIMER}</p>`,
+    plainText,
+    flags: [],
+  };
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 13, lastSequence: 103, events: [] },
+        documents,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Omitted verification flag should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText(COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: unresolved document claim flags must match the evidence ledger before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documents = canonicalOperationsDocuments();
