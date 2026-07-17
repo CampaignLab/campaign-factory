@@ -2802,6 +2802,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const approve = () => {
+    if (sourceBaselineChanged) return;
     setState((current) => ({
       ...current,
       status: current.activeWorkingDraftId ? current.status : "approved",
@@ -2813,6 +2814,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const queue = () => {
+    if (sourceBaselineChanged) return;
     setState((current) => ({
       ...current,
       status: current.activeWorkingDraftId ? current.status : "queued",
@@ -2917,6 +2919,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const updateLocalActionStatus = (id: string, actionStatus: LocalActionStatus) => {
+    if (sourceBaselineChanged) return;
     setState((current) => ({
       ...current,
       localActions: current.localActions.map((action) => (action.id === id ? { ...action, status: actionStatus } : action)),
@@ -3732,14 +3735,35 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             </div>
           ))}
         </div>
+        {sourceBaselineChanged ? (
+          <p id="operations-review-source-pause" className="mt-5 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/55 p-3 text-sm text-ops-ink" role="status" aria-label="Review source update pause">
+            Approval and local queue controls stay locked until the updated read-only source is acknowledged after re-checking this local work.
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-5">
           <Button type="button" size="lg" onClick={requestReview} disabled={!canRequestReview || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}>
             Mark ready for review
           </Button>
-          <Button type="button" size="lg" variant="outline" onClick={approve} disabled={communicationStatus !== "review" || sourceBaselineChanged}>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            onClick={approve}
+            disabled={communicationStatus !== "review" || sourceBaselineChanged}
+            aria-describedby={sourceBaselineChanged ? "operations-review-source-pause" : undefined}
+            title={sourceBaselineChanged ? "Acknowledge the updated read-only source before recording human approval." : undefined}
+          >
             Approve as human reviewer
           </Button>
-          <Button type="button" size="lg" variant="secondary" onClick={queue} disabled={communicationStatus !== "approved" || sourceBaselineChanged}>
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            onClick={queue}
+            disabled={communicationStatus !== "approved" || sourceBaselineChanged}
+            aria-describedby={sourceBaselineChanged ? "operations-review-source-pause" : undefined}
+            title={sourceBaselineChanged ? "Acknowledge the updated read-only source before changing the local queue." : undefined}
+          >
             Queue locally for demo
           </Button>
         </div>

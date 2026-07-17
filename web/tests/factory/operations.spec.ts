@@ -9042,8 +9042,11 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
   await expect(page.getByText("Read-only source baseline current")).toBeVisible();
   await expect(page.getByText("The public source changed after this local workspace started. Acknowledge the updated source on Overview after re-checking local actions and drafts before approval or queueing.")).toBeVisible();
+  await expect(page.getByLabel("Review source update pause")).toContainText("Approval and local queue controls stay locked until the updated read-only source is acknowledged after re-checking this local work.");
   await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toHaveAttribute("title", "Acknowledge the updated read-only source before recording human approval.");
   await expect(page.getByRole("button", { name: "Queue locally for demo" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Queue locally for demo" })).toHaveAttribute("title", "Acknowledge the updated read-only source before changing the local queue.");
   await page.getByRole("button", { name: /Action plan/ }).first().click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("Action plan source update pause")).toContainText("Action statuses need source re-check.");
