@@ -186,10 +186,12 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
 function hasConsistentOperationsRunEvents(value: RunReadModel) {
   const seenEventIds = new Set<string>();
   const seenSequences = new Set<number>();
+  let previousSequence = 0;
   for (const event of value.events) {
     if (
       seenEventIds.has(event.eventId) ||
       seenSequences.has(event.sequence) ||
+      event.sequence <= previousSequence ||
       event.sequence > value.lastSequence ||
       (event.stateVersion !== undefined && event.stateVersion > value.stateVersion)
     ) {
@@ -197,6 +199,7 @@ function hasConsistentOperationsRunEvents(value: RunReadModel) {
     }
     seenEventIds.add(event.eventId);
     seenSequences.add(event.sequence);
+    previousSequence = event.sequence;
   }
   return true;
 }
