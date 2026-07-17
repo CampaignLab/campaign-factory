@@ -154,7 +154,7 @@ type Segment = {
 type NavItem = { id: ViewId; label: string; badge?: string; note: string };
 type CampaignContextRow = { label: string; detail: string; use: string; owner: string };
 type RunwayStage = { label: string; view: ViewId; status: StageStatus; statusLabel: string; detail: string };
-type SourceStakeholder = { group: string; name: string; power: string; position: string };
+type SourceStakeholder = { group: string; name: string; power: string; position: string; caresAbout?: string; ask?: string; approach?: string };
 type DraftLibraryItem = {
   id: DraftId;
   title: string;
@@ -997,6 +997,13 @@ function buildSourceAudienceSignals(source: CampaignSource): SourceAudienceSigna
   return signals.slice(0, 4);
 }
 
+function sourceLabelFromLines(lines: string[], label: string, max = 150) {
+  const value = lines.find((line) => line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`))
+    ?.replace(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*`, "i"), "")
+    .trim();
+  return value ? shortText(value, max) : undefined;
+}
+
 function extractSourceStakeholders(doc: CompiledDocument | undefined, maxItems = 5): SourceStakeholder[] {
   const lines = doc?.plainText?.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) ?? [];
   const stakeholders: SourceStakeholder[] = [];
@@ -1009,10 +1016,13 @@ function extractSourceStakeholders(doc: CompiledDocument | undefined, maxItems =
     }
     if (!line.includes(" — ") || SOURCE_SECTION_BOUNDARY.test(line)) continue;
     const [name] = line.split(" — ");
-    const window = lines.slice(index + 1, index + 10);
-    const power = window.find((candidate) => /^Power:/i.test(candidate))?.replace(/^Power:\s*/i, "") || "Power not labelled";
-    const position = window.find((candidate) => /^Position:/i.test(candidate))?.replace(/^Position:\s*/i, "") || "Position not labelled in source excerpt";
-    stakeholders.push({ group, name: name.trim(), power, position: shortText(position, 150) });
+    const window = lines.slice(index + 1, index + 14);
+    const power = sourceLabelFromLines(window, "Power") || "Power not labelled";
+    const position = sourceLabelFromLines(window, "Position") || "Position not labelled in source excerpt";
+    const caresAbout = sourceLabelFromLines(window, "Cares about");
+    const ask = sourceLabelFromLines(window, "What we ask of them");
+    const approach = sourceLabelFromLines(window, "Recommended approach");
+    stakeholders.push({ group, name: name.trim(), power, position, caresAbout, ask, approach });
     if (stakeholders.length >= maxItems) break;
   }
   return stakeholders;
@@ -1411,8 +1421,8 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
       rows: [
         ...extractSourceStakeholders(power, 4).map((stakeholder) => ({
           label: `${stakeholder.group}: ${stakeholder.name}`,
-          detail: `${stakeholder.power}. ${stakeholder.position}`,
-          use: "Plan an audience, briefing, or review question from the source role without claiming an imported contact.",
+          detail: [stakeholder.power, stakeholder.position, stakeholder.caresAbout ? `Cares about: ${stakeholder.caresAbout}` : null, stakeholder.ask ? `Ask: ${stakeholder.ask}` : null, stakeholder.approach ? `Approach: ${stakeholder.approach}` : null].filter(Boolean).join(" · "),
+          use: stakeholder.ask ? `Turn the source ask into a review question or local action without claiming an imported contact: ${stakeholder.ask}` : "Plan an audience, briefing, or review question from the source role without claiming an imported contact.",
           owner: "Campaign source",
         })),
         {
@@ -3438,6 +3448,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                 <SmallLabel>{stakeholder.group} · {stakeholder.power}</SmallLabel>
                 <h3 className="mt-2 text-xl font-medium">{stakeholder.name}</h3>
                 <p className="mt-2 text-sm text-ops-ink/72">{stakeholder.position}</p>
+                {stakeholder.ask ? <p className="mt-2 text-sm text-ops-ink/72"><span className="font-medium">Source ask:</span> {stakeholder.ask}</p> : null}
+                {stakeholder.approach ? <p className="mt-2 text-xs text-ops-ink/65"><span className="font-medium">Approach:</span> {stakeholder.approach}</p> : null}
                 <p className="mt-3 text-xs text-ops-ink/60">Read-only source role; no contact record or delivery target is imported.</p>
               </div>
             )) : (
@@ -3708,6 +3720,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                         <span className="rounded-full bg-ops-yellow px-2 py-0.5 text-xs text-ops-ink">{stakeholder.group}</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{stakeholder.power}</p>
+                      {stakeholder.ask ? <p className="mt-1 text-xs text-muted-foreground">Source ask: {stakeholder.ask}</p> : null}
+                      {stakeholder.approach ? <p className="mt-1 text-xs text-muted-foreground">Approach: {stakeholder.approach}</p> : null}
                       <p className="mt-1 text-xs text-muted-foreground">Boundary: source mention only; no contact record or consent state exists.</p>
                     </div>
                   ))}

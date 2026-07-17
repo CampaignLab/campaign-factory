@@ -2198,6 +2198,9 @@ test("operations portfolio: source labels carry through workspace switching with
             `${campaign.title} planning lead — source power-map mention only.`,
             "Power: formal decision-route influence",
             "Position: must be researched before any contact claim exists",
+            "Cares about: traceable public decision evidence",
+            "What we ask of them: confirm the current public record before campaign copy escalates",
+            "Recommended approach: create a local review question, not an imported contact task",
           ].join("\n"),
           digital_pack: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`,
         }),
@@ -2219,12 +2222,18 @@ test("operations portfolio: source labels carry through workspace switching with
   await expect(page.getByText("No imported contacts for Keep KFC Out of Ormskirk")).toBeVisible();
   await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Named stakeholders from the source power map");
   await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Keep KFC Out of Ormskirk planning lead");
+  await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Source ask: confirm the current public record before campaign copy escalates");
+  await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Approach: create a local review question, not an imported contact task");
   await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("source mention only; no contact record or consent state exists");
   await expect(page.getByRole("button", { name: "Reset local workspace" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reset demo state" })).toHaveCount(0);
   await expect(page.getByLabel("Campaign switcher")).toContainText("Current: KFC Out of Ormskirk");
   await expect(page.getByLabel("Campaign switcher")).toContainText("Stop the leisure park redevelopment in Barnet");
   await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Power map/ }).first().click();
+  await expect(page.getByLabel("Source-backed stakeholder lanes")).toContainText("Source ask: confirm the current public record before campaign copy escalates");
+  await expect(page.getByLabel("Source-backed stakeholder lanes")).toContainText("Approach: create a local review question, not an imported contact task");
 
   await page.getByRole("button", { name: /Audiences/ }).first().click();
   await expect(page.getByRole("heading", { name: "Plan audiences from this campaign source" })).toBeVisible();
