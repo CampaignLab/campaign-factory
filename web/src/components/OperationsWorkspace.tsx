@@ -2527,6 +2527,9 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const reviewerNote = activeWorkingDraft?.reviewerNote ?? state.reviewerNote;
   const status = statusCopy[communicationStatus];
   const canRequestReview = communicationSubject.trim().length > 8 && communicationBody.trim().length > 80;
+  const canApproveCommunication = communicationStatus === "review" && !sourceBaselineChanged;
+  const canQueueCommunication = communicationStatus === "approved" && !sourceBaselineChanged;
+  const canChangeLocalQueueSchedule = !sourceBaselineChanged;
   const reviewBlocked = !canRequestReview;
   const reviewItemCount = (state.status === "review" ? 1 : 0) + state.workingDrafts.filter((draft) => draft.status === "review").length;
   const queuedItemCount = (state.status === "queued" ? 1 : 0) + state.workingDrafts.filter((draft) => draft.status === "queued").length;
@@ -2802,7 +2805,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const approve = () => {
-    if (sourceBaselineChanged) return;
+    if (!canApproveCommunication) return;
     setState((current) => ({
       ...current,
       status: current.activeWorkingDraftId ? current.status : "approved",
@@ -2814,7 +2817,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const queue = () => {
-    if (sourceBaselineChanged) return;
+    if (!canQueueCommunication) return;
     setState((current) => ({
       ...current,
       status: current.activeWorkingDraftId ? current.status : "queued",
@@ -3749,7 +3752,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             size="lg"
             variant="outline"
             onClick={approve}
-            disabled={communicationStatus !== "review" || sourceBaselineChanged}
+            disabled={!canApproveCommunication}
             aria-describedby={sourceBaselineChanged ? "operations-review-source-pause" : undefined}
             title={sourceBaselineChanged ? "Acknowledge the updated read-only source before recording human approval." : undefined}
           >
@@ -3760,7 +3763,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             size="lg"
             variant="secondary"
             onClick={queue}
-            disabled={communicationStatus !== "approved" || sourceBaselineChanged}
+            disabled={!canQueueCommunication}
             aria-describedby={sourceBaselineChanged ? "operations-review-source-pause" : undefined}
             title={sourceBaselineChanged ? "Acknowledge the updated read-only source before changing the local queue." : undefined}
           >
@@ -3903,7 +3906,13 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           <select
             id="operations-schedule-intent"
             value={state.scheduleIntent}
-            onChange={(event) => setState((current) => ({ ...current, scheduleIntent: event.target.value as DemoState["scheduleIntent"] }))}
+            onChange={(event) => {
+              if (!canChangeLocalQueueSchedule) return;
+              setState((current) => ({ ...current, scheduleIntent: event.target.value as DemoState["scheduleIntent"] }));
+            }}
+            disabled={!canChangeLocalQueueSchedule}
+            aria-describedby={sourceBaselineChanged ? "operations-local-schedule-source-pause" : undefined}
+            title={sourceBaselineChanged ? "Acknowledge the updated read-only source before changing local schedule intent." : undefined}
             className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <option value="after_approval">Hold after approval</option>
@@ -3911,6 +3920,11 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             <option value="school_run">{source ? "After next source check" : "School-run reminder window"}</option>
           </select>
           <p className="text-sm text-muted-foreground">{scheduleCopy[state.scheduleIntent]}</p>
+          {sourceBaselineChanged ? (
+            <p id="operations-local-schedule-source-pause" className="rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-2 text-xs text-ops-ink">
+              Local schedule intent is paused until the updated read-only source is acknowledged, so queued work cannot be retimed against stale campaign material.
+            </p>
+          ) : null}
         </div>
         <Button type="button" variant="outline" disabled className="mt-4" title="Production scheduling is coming soon and is not connected in this demo.">
           Production scheduler · Coming soon

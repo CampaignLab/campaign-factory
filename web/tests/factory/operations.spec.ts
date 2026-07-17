@@ -9061,6 +9061,9 @@ test("operations workbench: source updates preserve browser-local work and requi
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toContainText("Local queue changes are paused for source re-check.");
+  await expect(page.getByLabel("Local schedule intent")).toBeDisabled();
+  await expect(page.getByLabel("Local schedule intent")).toHaveAttribute("title", "Acknowledge the updated read-only source before changing local schedule intent.");
+  await expect(page.getByText("Local schedule intent is paused until the updated read-only source is acknowledged, so queued work cannot be retimed against stale campaign material.")).toBeVisible();
   await expect(page.getByLabel("Reset local workspace scope")).toContainText("Reset clears this campaign's 2 browser-local items currently paused for source re-check");
   await expect(page.getByLabel("Export operations pack")).toContainText("Client-side download");
   const [changedJsonDownload] = await Promise.all([
@@ -9131,6 +9134,7 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeEnabled();
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toHaveCount(0);
+  await expect(page.getByLabel("Local schedule intent")).toBeEnabled();
   await expect(page.getByLabel("Reset local workspace scope")).toContainText("Reset clears only this campaign's browser-local actions, drafts, review notes, local queue intent, and source acknowledgement.");
   await page.getByLabel("Reset local workspace scope").getByRole("button", { name: "Reset local workspace" }).click();
   await page.getByRole("button", { name: /Action plan/ }).first().click();
