@@ -3241,12 +3241,29 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           {queuedItemCount ? (
             [
               ...(state.status === "queued"
-                ? [{ id: "seeded-supporter-email", subject: state.subject, sourceDocument: state.sourceWorkingCopy?.sourceDocument, queuedAt: state.queuedAt }]
+                ? [{ id: "seeded-supporter-email", subject: state.subject, sourceDocument: state.sourceWorkingCopy?.sourceDocument, queuedAt: state.queuedAt, sourceCopy: state.sourceWorkingCopy }]
                 : []),
-              ...state.workingDrafts.filter((draft) => draft.status === "queued").map((draft) => ({ id: draft.id, subject: draft.subject, sourceDocument: draft.sourceWorkingCopy.sourceDocument, queuedAt: draft.queuedAt })),
+              ...state.workingDrafts.filter((draft) => draft.status === "queued").map((draft) => ({ id: draft.id, subject: draft.subject, sourceDocument: draft.sourceWorkingCopy.sourceDocument, queuedAt: draft.queuedAt, sourceCopy: draft.sourceWorkingCopy })),
             ].map((item) => (
               <div key={item.id} className="grid gap-3 border-b border-border px-4 py-4 text-sm last:border-0 md:grid-cols-[1.1fr_0.8fr_0.7fr_0.8fr]">
-                <div><span className="md:hidden font-medium">Communication: </span>{item.subject}{item.sourceDocument ? <p className="mt-1 text-xs text-muted-foreground">Local copy from {item.sourceDocument}</p> : null}</div>
+                <div>
+                  <span className="md:hidden font-medium">Communication: </span>{item.subject}
+                  {item.sourceDocument ? <p className="mt-1 text-xs text-muted-foreground">Local copy from {item.sourceDocument}</p> : null}
+                  {item.sourceCopy ? (
+                    <div className="mt-2 rounded-[var(--r-lg)] border border-ops-line bg-ops-yellow/45 p-2 text-xs text-muted-foreground" aria-label="Queued source boundary">
+                      <p><span className="font-medium text-foreground">Source boundary:</span> {item.sourceCopy.provenance}</p>
+                      {item.sourceCopy.warnings.length ? (
+                        <ul className="mt-1 list-disc space-y-1 pl-4">
+                          {item.sourceCopy.warnings.slice(0, 2).map((warning) => <li key={warning}>{warning}</li>)}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : source ? (
+                    <p className="mt-2 rounded-[var(--r-lg)] border border-ops-line bg-ops-yellow/45 p-2 text-xs text-muted-foreground">
+                      Source boundary: browser-local source workspace draft; keep {shortText(source.nextGate ?? source.evidence.nextChecks[0]?.description ?? "the next source check", 96)} visible before any provider setup.
+                    </p>
+                  ) : null}
+                </div>
                 <div><span className="md:hidden font-medium">Audience: </span>{selected.name}</div>
                 <div><span className="md:hidden font-medium">State: </span>Queued for demo</div>
                 <div><span className="md:hidden font-medium">Local timing: </span>{formatQueuedTime(item.queuedAt)} · {scheduleCopy[state.scheduleIntent]}</div>

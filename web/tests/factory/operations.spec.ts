@@ -2475,6 +2475,8 @@ test("operations workbench: real source working copies move through local review
   await expect(page.getByRole("heading", { name: "One local queue item" })).toBeVisible();
   await expect(page.locator("main")).toContainText("Ormskirk KFC source update");
   await expect(page.locator("main")).toContainText("Local copy from Digital Campaign Pack");
+  await expect(page.getByLabel("Queued source boundary")).toContainText("Copied from Digital Campaign Pack in campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95");
+  await expect(page.getByLabel("Queued source boundary")).toContainText("Keep the public source boundary attached.");
   await expect(page.getByText(/It is not connected to an email provider/)).toBeVisible();
 
   const [markdownDownload] = await Promise.all([
