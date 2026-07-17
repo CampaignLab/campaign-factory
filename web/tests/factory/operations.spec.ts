@@ -9231,7 +9231,7 @@ test("operations workbench: all real campaign routes export source-specific loca
 test("operations workbench: campaignId route loads a read-only public campaign source", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documentRows = [
-    ["campaign_brief", "Campaign Brief", "ready", "Keep KFC Out of Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nThe source brief says the campaign must defend the council refusal against appeal risk."],
+    ["campaign_brief", "Campaign Brief", "ready", "Stop the KFC being built in Ormskirk\n\nPlace: Ormskirk, Lancashire\n\nTHE PROBLEM\nThe source brief says the campaign must defend the council refusal against appeal risk."],
     ["objective_theory_of_change", "Objective and Theory of Change", "ready", "OBJECTIVE AND THEORY OF CHANGE\n\nDecision-maker: Planning Inspectorate appeal decision-maker\n\nSpecific action: dismiss any appeal and uphold West Lancashire Borough Council's refusal\n\nBy: only after the official appeal status is verified\n\nMinimum viable win: a dated, citable official appeal record is retrieved and used before public escalation."],
     ["power_stakeholder_map", "Power and Stakeholder Map", "ready", "POWER AND STAKEHOLDER MAP\n\nDecides\n\nPlanning Inspector — National appeal body, Planning Inspectorate\n\nPower: High\n\nPosition: Appeal decision-maker whose current decision status is unverified\n\nInfluences\n\nWard councillor — Existing elected ally\n\nPower: Medium\n\nPosition: Can coordinate residents and planning officers without becoming an imported contact."],
     ["campaign_strategy", "Campaign Strategy", "ready", "CAMPAIGN STRATEGY\n\nRoute to influence\n\nPrivate/formal first: confirm appeal status before any public action and use official written-representation routes only if live.\n\nCoalition strategy\n\nAffected residents and Cllr Gareth Dowling remain the core coalition while school-community voices provide careful evidence.\n\nPriority audiences\n\n- Residents directly affected by amenity and noise\n\n- Parents linked to the school route"],
@@ -9342,7 +9342,7 @@ test("operations workbench: campaignId route loads a read-only public campaign s
 
   await page.goto(`/operations?campaignId=${campaignId}`);
 
-  await expect(page.getByRole("heading", { name: /Keep KFC Out of Ormskirk into operations/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Stop the KFC being built in Ormskirk into operations/i })).toBeVisible();
   await expect(page.getByText("Real campaign source", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Read-only public data", { exact: true })).toBeVisible();
   await expect(page.getByText(/Partial but usable · 8\/9 docs ready/)).toBeVisible();
