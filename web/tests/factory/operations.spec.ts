@@ -9181,10 +9181,18 @@ test("operations workbench: content-only source title changes preserve local wor
   await expect(page.getByText("Read-only source has changed since this local workspace started.")).toBeVisible();
   await expect(page.getByLabel("Local work requiring source re-check")).toContainText("1 local item needs source re-check");
   await expect(page.getByLabel("Local work requiring source re-check")).toContainText("Action: Confirm Planning Inspectorate appeal status");
-
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
+  await expect(page.getByText("Review requests are paused until the updated source is acknowledged, so local copy cannot move forward against stale campaign material.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark ready for review" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Mark ready for review" })).toHaveAttribute("title", "Acknowledge the updated read-only source before marking this local draft ready for review.");
   await page.goto("/operations");
   const ormskirkRow = page.getByLabel("Campaign operations portfolio").locator("article", { hasText: "Stop the KFC being built in Ormskirk" });
   await expect(ormskirkRow).toContainText("Local signals: 1 source re-check required · 1 action.");
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=overview`);
+  await page.getByRole("button", { name: "Acknowledge updated source" }).click();
+  await page.getByRole("button", { name: /Drafts/ }).first().click();
+  await expect(page.getByRole("button", { name: "Mark ready for review" })).toBeEnabled();
 });
 
 test("operations workbench: all real campaign routes export source-specific local packs", async ({ page }) => {

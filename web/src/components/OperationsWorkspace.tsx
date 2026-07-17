@@ -2527,6 +2527,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const reviewerNote = activeWorkingDraft?.reviewerNote ?? state.reviewerNote;
   const status = statusCopy[communicationStatus];
   const canRequestReview = communicationSubject.trim().length > 8 && communicationBody.trim().length > 80;
+  const canRequestReviewWithCurrentSource = canRequestReview && !sourceBaselineChanged;
   const canApproveCommunication = communicationStatus === "review" && !sourceBaselineChanged;
   const canQueueCommunication = communicationStatus === "approved" && !sourceBaselineChanged;
   const canChangeLocalQueueSchedule = !sourceBaselineChanged;
@@ -2793,6 +2794,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const requestReview = () => {
+    if (!canRequestReviewWithCurrentSource) return;
     setState((current) => ({
       ...current,
       status: current.activeWorkingDraftId ? current.status : "review",
@@ -3642,9 +3644,21 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         )}
 
         <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-5">
-          <Button type="button" size="lg" onClick={requestReview} disabled={!activeDraftEditable || !canRequestReview || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}>
+          <Button
+            type="button"
+            size="lg"
+            onClick={requestReview}
+            disabled={!activeDraftEditable || !canRequestReviewWithCurrentSource || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}
+            aria-describedby={sourceBaselineChanged ? "operations-draft-source-pause" : undefined}
+            title={sourceBaselineChanged ? "Acknowledge the updated read-only source before marking this local draft ready for review." : undefined}
+          >
             Mark ready for review
           </Button>
+          {sourceBaselineChanged ? (
+            <p id="operations-draft-source-pause" className="basis-full rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/55 p-2 text-xs text-ops-ink">
+              Review requests are paused until the updated source is acknowledged, so local copy cannot move forward against stale campaign material.
+            </p>
+          ) : null}
           {goButton("reviews", "Open review gate")}
         </div>
       </Panel>
@@ -3744,7 +3758,14 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-5">
-          <Button type="button" size="lg" onClick={requestReview} disabled={!canRequestReview || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}>
+          <Button
+            type="button"
+            size="lg"
+            onClick={requestReview}
+            disabled={!canRequestReviewWithCurrentSource || communicationStatus === "review" || communicationStatus === "approved" || communicationStatus === "queued"}
+            aria-describedby={sourceBaselineChanged ? "operations-review-source-pause" : undefined}
+            title={sourceBaselineChanged ? "Acknowledge the updated read-only source before marking this local draft ready for review." : undefined}
+          >
             Mark ready for review
           </Button>
           <Button
