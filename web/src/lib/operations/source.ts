@@ -48,6 +48,10 @@ export function hasUnavailableOperationsRunHeaderProvenance(value: RunReadModel,
   return hasSyntheticUnavailableOperationsRunHeader(value) === sourceRunUnavailable;
 }
 
+export function isOperationsSourceRunUnavailableMarker(value: unknown): value is boolean | undefined {
+  return value === undefined || typeof value === "boolean";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }

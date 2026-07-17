@@ -16,6 +16,7 @@ import {
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
+  isOperationsSourceRunUnavailableMarker,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -1507,6 +1508,11 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   if (!sourceOrigin || !isOperationsRunReadModel(run, campaignId)) {
     const err = new Error("The public campaign source did not match the requested campaign.");
     if (sourceOrigin) (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
+    throw err;
+  }
+  if (!isOperationsSourceRunUnavailableMarker(sourceBody.sourceRunUnavailable)) {
+    const err = new Error("The public campaign source returned malformed unavailable run-header provenance.");
+    (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
   const sourceRunUnavailable = sourceBody.sourceRunUnavailable === true;

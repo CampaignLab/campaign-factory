@@ -2923,6 +2923,40 @@ test("operations workbench: unavailable run header must not carry hidden source 
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: unavailable run-header marker must be boolean provenance", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceRunUnavailable: "true",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: canonicalOperationsDocuments("String provenance marker Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "String unavailable marker should not hydrate", reason: "The unavailable provenance marker must be typed", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/malformed unavailable run-header provenance/i)).toBeVisible();
+  await expect(page.getByText("String provenance marker Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("String unavailable marker should not hydrate")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: synthetic run header must carry unavailable provenance", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
