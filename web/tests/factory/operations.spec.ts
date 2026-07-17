@@ -9086,7 +9086,10 @@ test("operations workbench: source updates preserve browser-local work and requi
   );
 
   await page.getByRole("button", { name: /Audiences/ }).first().click();
-  await expect(page.getByText("Audience selection is paused until the updated read-only source is acknowledged, so local drafts cannot be retargeted against stale campaign material.")).toBeVisible();
+  await expect(page.getByLabel("Audience source update pause")).toContainText("Audience selection is paused until the updated read-only source is acknowledged, so local drafts cannot be retargeted against stale campaign material.");
+  await expect(page.getByLabel("Audience source re-check progress")).toContainText("Checked 1/3 required source views for the current baseline.");
+  await expect(page.getByLabel("Audience source re-check progress")).toContainText("Re-check Strategy & tactics");
+  await expect(page.getByLabel("Audience source re-check progress")).toContainText("Re-check Drafts");
   await expect(page.getByRole("button", { name: /Residents directly affected by amenity/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: /Residents directly affected by amenity/ })).toHaveAttribute(
     "title",

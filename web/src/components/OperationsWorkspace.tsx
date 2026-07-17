@@ -3581,9 +3581,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           {source ? "Campaign-specific planning is read-only source plus browser-local selections; real import and consent matching are " : "Real import and consent matching are "}<span className="font-semibold">Coming soon</span>; this view does not contact people.
         </p>
         {sourceBaselineChanged ? (
-          <p id="operations-audience-source-pause" className="mt-4 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/55 px-4 py-3 text-sm text-ops-ink" role="status">
-            Audience selection is paused until the updated read-only source is acknowledged, so local drafts cannot be retargeted against stale campaign material.
-          </p>
+          <div id="operations-audience-source-pause" className="mt-4 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/55 px-4 py-3 text-sm text-ops-ink" role="status" aria-label="Audience source update pause">
+            <p>Audience selection is paused until the updated read-only source is acknowledged, so local drafts cannot be retargeted against stale campaign material.</p>
+            {renderSourceRecheckProgress("Audience source re-check progress")}
+          </div>
         ) : null}
         {sourceAudienceSignals.length ? (
           <div className="mt-5 space-y-3" aria-label="Source audience signals">
