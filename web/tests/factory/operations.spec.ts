@@ -349,6 +349,41 @@ test("operations source API: missing source runs fail closed before document hyd
   }
 });
 
+test("operations source API: empty upstream run failures stay source-unavailable before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response("", { status: 500 });
+    }
+
+    throw new Error("Documents must not hydrate when the source run returns an empty upstream failure.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(500);
+    expectPublicSourceJsonBoundary(response.headers, "empty source run failure");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source run unavailable");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} returned HTTP 500`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: rate-limited source runs preserve retry guidance and stop document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
@@ -654,6 +689,48 @@ test("operations source API: unavailable source documents preserve read-store st
     const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
     expect(body.error).toBe("Campaign source documents unavailable");
     expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned HTTP 503`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("operations source API: empty upstream document failures stay source-unavailable after a validated run header", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return Response.json({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response("", { status: 500 });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(500);
+    expectPublicSourceJsonBoundary(response.headers, "empty document source failure");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source documents unavailable");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned HTTP 500`);
     expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
     expect(body.documents).toBeUndefined();
     expect(body.sourceRunUnavailable).toBeUndefined();
