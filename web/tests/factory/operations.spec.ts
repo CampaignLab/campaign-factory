@@ -1673,6 +1673,37 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app/source",
+        run: { campaignId, status: "partial", stateVersion: 5, lastSequence: 5, events: [] },
+        documents: canonicalOperationsDocuments("Path-qualified source origin should not hydrate Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Path-qualified source origin regression", reason: "Read-only source origins must be exact origins, not source URLs", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign/i)).toBeVisible();
+  await expect(page.getByText("Checked read-only source:")).toHaveCount(0);
+  await expect(page.getByText("Path-qualified source origin should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Path-qualified source origin regression")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.unroute(`**/api/operations/sources/${campaignId}`);
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
         sourceOrigin: "https://campaign-factory.example/source",
         run: { campaignId, status: "partial", stateVersion: 5, lastSequence: 5, events: [] },
         documents: canonicalOperationsDocuments("Non-canonical source origin should not hydrate Ormskirk"),
