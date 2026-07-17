@@ -246,8 +246,8 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     value.name === canonicalDocument.name &&
     typeof value.status === "string" &&
     OPERATIONS_DOCUMENT_STATUSES.has(value.status) &&
-    typeof value.html === "string" &&
-    typeof value.plainText === "string" &&
+    isNonEmptyString(value.html) &&
+    isNonEmptyString(value.plainText) &&
     value.isPack === shouldBePack &&
     isJourneySectionKeyArray(value.sectionKeys) &&
     matchesCanonicalDocumentSections(value.key, value.isPack, value.sectionKeys) &&
