@@ -49,6 +49,7 @@ test("operations source API: invalid and non-curated ids are allow-list misses w
     const response = await request.get(`/api/operations/sources/${id}`);
     expect(response.status()).toBe(404);
     expect(response.headers()["cache-control"]).toBe("no-store");
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
 
     const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
     expect(body.error).toBe("Operations source not found");
@@ -71,6 +72,7 @@ test("operations source API: non-GET methods are blocked as read-only no-store r
     const response = await makeRequest();
     expect(response.status()).toBe(405);
     expect(response.headers()["cache-control"]).toBe("no-store");
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
     expect(response.headers().allow).toBe("GET");
 
     if (method === "HEAD") {
@@ -110,6 +112,7 @@ test("operations source API: upstream run redirects fail closed before document 
     const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
     expect(response.status).toBe(502);
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 
     const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
     expect(body.error).toBe("Campaign source contract mismatch");
