@@ -836,15 +836,18 @@ function portfolioLocalCounts(campaignId: string): PortfolioLocalCounts {
   };
 }
 
-function storedSourceBaselineChanged(campaignId: string, source: CampaignSource) {
-  if (typeof window === "undefined") return false;
+function storedSourceRecheckItemCount(campaignId: string, source: CampaignSource) {
+  if (typeof window === "undefined") return 0;
   const loaded = loadState(localStorageKeyFor(campaignId));
-  if (loaded.workspaceKey !== campaignId) return false;
+  if (loaded.workspaceKey !== campaignId) return 0;
   const state = sanitizeStateForWorkspace(loaded, campaignId);
-  return Boolean(
+  const baselineChanged = Boolean(
     state.sourceStateVersion !== null &&
       (state.sourceStateVersion !== source.stateVersion || state.sourceLastSequence !== source.lastSequence || state.sourceDocumentSignature !== sourceDocumentSignature(source)),
   );
+  if (!baselineChanged) return 0;
+  const sourceBoundPrimaryDraftCount = state.status !== "draft" || state.sourceWorkingCopy ? 1 : 0;
+  return state.localActions.length + sourceBoundPrimaryDraftCount + state.workingDrafts.length;
 }
 
 function initialCampaignSwitcherItems(): CampaignSwitcherItem[] {
@@ -1796,9 +1799,9 @@ function OperationsPortfolio() {
         <section className="mt-5 space-y-3" aria-label="Campaign operations portfolio">
           {items.map((item) => {
             const source = item.status === "ready" ? item.source : null;
-            const sourceRecheckNeeded = source ? storedSourceBaselineChanged(item.campaign.id, source) : false;
+            const sourceRecheckItemCount = source ? storedSourceRecheckItemCount(item.campaign.id, source) : 0;
             const localSignals = [
-              sourceRecheckNeeded ? "source re-check required" : null,
+              sourceRecheckItemCount ? `${sourceRecheckItemCount} source re-check${sourceRecheckItemCount === 1 ? "" : "s"} required` : null,
               item.local.actions ? `${item.local.actions} action${item.local.actions === 1 ? "" : "s"}` : null,
               item.local.drafts ? `${item.local.drafts} working draft${item.local.drafts === 1 ? "" : "s"}` : null,
               item.local.reviews ? `${item.local.reviews} review${item.local.reviews === 1 ? "" : "s"}` : null,

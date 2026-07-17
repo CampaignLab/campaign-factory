@@ -6100,7 +6100,7 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.goto("/operations");
   const portfolio = page.getByLabel("Campaign operations portfolio");
   const ormskirkRow = portfolio.locator("article", { hasText: "Keep KFC Out of Ormskirk" });
-  await expect(ormskirkRow).toContainText("Local signals: source re-check required · 1 action · 1 review.");
+  await expect(ormskirkRow).toContainText("Local signals: 2 source re-checks required · 1 action · 1 review.");
   await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
