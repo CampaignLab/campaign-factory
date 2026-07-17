@@ -991,6 +991,11 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   };
 }
 
+function topLevelDraftLooksFixtureBound(state: DemoState) {
+  const fixtureText = [state.subject, state.body, state.reviewerNote, ...state.activity.map((item) => item.label)].join("\n");
+  return /St John the Baptist|school street|school-run|school gates|Leicester City Council|Campaign Factory demo workspace|seeded campaign brief|local fixture contacts/i.test(fixtureText);
+}
+
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
@@ -1001,8 +1006,11 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
   const sourceWorkingCopy = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey ? state.sourceWorkingCopy : null;
+  const removedFixtureAudienceState = selectedSegment !== state.selectedSegment || contactFilter !== state.contactFilter;
   const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopy);
+  const removedFixtureTopLevelCopy = removedFixtureAudienceState && !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
+  const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureTopLevelCopy;
 
   if (
     localActions.length === state.localActions.length &&
@@ -1010,7 +1018,8 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     activeWorkingDraftId === state.activeWorkingDraftId &&
     sourceWorkingCopy === state.sourceWorkingCopy &&
     selectedSegment === state.selectedSegment &&
-    contactFilter === state.contactFilter
+    contactFilter === state.contactFilter &&
+    !removedFixtureTopLevelCopy
   ) {
     return state;
   }
@@ -1019,18 +1028,23 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ...state,
     selectedSegment,
     contactFilter,
-    subject: removedMismatchedTopLevelSourceCopy ? "Local source draft reset" : state.subject,
-    body: removedMismatchedTopLevelSourceCopy
-      ? "This browser-local draft was reset because its stored source provenance belonged to another campaign. Use a source resource from this campaign before review or local queueing."
+    subject: resetTopLevelDraft ? "Local source draft reset" : state.subject,
+    body: resetTopLevelDraft
+      ? removedMismatchedTopLevelSourceCopy
+        ? "This browser-local draft was reset because its stored source provenance belonged to another campaign. Use a source resource from this campaign before review or local queueing."
+        : "This browser-local draft was reset because it still contained fixture campaign copy. Use this real campaign's source material before review or local queueing."
       : state.body,
-    reviewerNote: removedMismatchedTopLevelSourceCopy ? "" : state.reviewerNote,
-    status: removedMismatchedTopLevelSourceCopy ? "draft" : state.status,
-    queuedAt: removedMismatchedTopLevelSourceCopy ? null : state.queuedAt,
+    reviewerNote: resetTopLevelDraft ? "" : state.reviewerNote,
+    status: resetTopLevelDraft ? "draft" : state.status,
+    queuedAt: resetTopLevelDraft ? null : state.queuedAt,
     localActions,
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
-    activity: removedMismatchedLocalWork || removedMismatchedTopLevelSourceCopy ? initialState.activity : state.activity,
+    activity:
+      removedMismatchedLocalWork || resetTopLevelDraft
+        ? [{ id: "workspace-sanitized", label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed." }]
+        : state.activity,
   };
 }
 

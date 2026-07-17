@@ -8974,6 +8974,72 @@ test("operations source adapter: rejects arbitrary proxy reads and non-GET write
   expect(postAttempt.status()).toBe(405);
 });
 
+test("operations workbench: legacy fixture top-level drafts are reset for real campaign state", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 51, lastSequence: 2040, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Keep KFC Out of Ormskirk",
+          place: "Ormskirk, Lancashire",
+          next: "Check Ormskirk appeal records",
+        }),
+        evidence: campaignEvidence([{ id: "appeal-check", description: "Check Ormskirk appeal records", reason: "Fixture top-level reset guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 51,
+        sourceLastSequence: 2040,
+        sourceDocumentSignature: "legacy-fixture-copy",
+        selectedSegment: "school_gates",
+        subject: "Make the St John the Baptist school street permanent",
+        body: "Hello, Leicester City Council should make the school street permanent. Campaign Factory demo workspace.",
+        reviewerNote: "Fixture reviewer note from the school-run demo",
+        status: "queued",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "ward_parents",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: "2026-07-17T20:00:00.000Z",
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: [{ id: "seed", label: "Demo workspace loaded with seeded campaign brief and local fixture contacts." }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("St John the Baptist");
+  await expect(page.locator("main")).not.toContainText("Leicester City Council");
+  await expect(page.locator("main")).not.toContainText("Fixture reviewer note");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).toContain('"selectedSegment":"source_primary"');
+  expect(storedState).toContain('"status":"draft"');
+  expect(storedState).not.toContain("school_gates");
+  expect(storedState).not.toContain("ward_parents");
+  expect(storedState).not.toContain("St John the Baptist");
+  expect(storedState).not.toContain("Leicester City Council");
+  expect(storedState).not.toContain("local fixture contacts");
+});
+
 test("operations workbench: source updates preserve browser-local work and require acknowledgement", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   let sourceVersion = 44;
