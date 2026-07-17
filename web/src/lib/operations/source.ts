@@ -48,9 +48,14 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isUniqueStringArray(value: unknown): value is string[] {
-  if (!isStringArray(value)) return false;
-  return new Set(value).size === value.length;
+function isUniqueNonEmptyStringArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isNonEmptyString(item) || seen.has(item)) return false;
+    seen.add(item);
+  }
+  return true;
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -102,12 +107,8 @@ function isIsoDateTimeString(value: unknown): value is string {
   return Number.isFinite(Date.parse(value));
 }
 
-function isOptionalStringArray(value: unknown): value is string[] | undefined {
-  return value === undefined || isStringArray(value);
-}
-
-function isOptionalUniqueStringArray(value: unknown): value is string[] | undefined {
-  return value === undefined || isUniqueStringArray(value);
+function isOptionalUniqueNonEmptyStringArray(value: unknown): value is string[] | undefined {
+  return value === undefined || isUniqueNonEmptyStringArray(value);
 }
 
 function isJourneySectionKeyArray(value: unknown): value is string[] {
@@ -169,8 +170,8 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     isOptionalString(payload.verb) &&
     isOptionalString(payload.agentKey) &&
     isOptionalString(payload.agentDisplayName) &&
-    isOptionalStringArray(payload.sourceIds) &&
-    isOptionalStringArray(payload.claimIds) &&
+    isOptionalUniqueNonEmptyStringArray(payload.sourceIds) &&
+    isOptionalUniqueNonEmptyStringArray(payload.claimIds) &&
     isOptionalString(payload.proposalId) &&
     isOptionalString(payload.judgementId) &&
     isOptionalString(payload.handoffToAgentRunId) &&
@@ -253,7 +254,7 @@ function isOperationsEvidenceClaimView(value: unknown) {
     isOptionalString(value.excerpt) &&
     isNonNegativeInteger(value.sourceCount) &&
     isOperationsAffectedOutputArray(value.affectedOutputs) &&
-    isOptionalStringArray(value.contradictsClaimIds)
+    isOptionalUniqueNonEmptyStringArray(value.contradictsClaimIds)
   );
 }
 
@@ -302,7 +303,7 @@ function isOperationsNextCheck(value: unknown) {
     isNonEmptyString(value.id) &&
     typeof value.description === "string" &&
     typeof value.reason === "string" &&
-    isOptionalUniqueStringArray(claimIds) &&
+    isOptionalUniqueNonEmptyStringArray(claimIds) &&
     isOperationsAffectedSectionArray(value.affectedSections)
   );
 }

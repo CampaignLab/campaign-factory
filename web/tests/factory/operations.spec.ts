@@ -2217,6 +2217,116 @@ test("operations workbench: source evidence ids must be non-empty before hydrati
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: source reference arrays must use non-empty unique ids", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: {
+          campaignId,
+          status: "partial",
+          stateVersion: 10,
+          lastSequence: 100,
+          events: [
+            {
+              eventId: "event-1",
+              sequence: 1,
+              campaignId,
+              type: "document.status",
+              at: "2026-07-16T20:40:00Z",
+              visibility: "public",
+              payload: {
+                summary: "Blank event source reference should not hydrate Ormskirk",
+                sourceIds: ["source-1", ""],
+                claimIds: ["claim-1", "claim-1"],
+              },
+            },
+          ],
+        },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Blank source references should not hydrate Ormskirk</p>",
+            plainText: "Blank source references should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Blank next-check claim reference should fail closed", reason: "Contract validation", claimIds: [""], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign|typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Blank source references should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Blank event source reference should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Blank next-check claim reference should fail closed")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.unroute(`**/api/operations/sources/${campaignId}`);
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Blank next-check claim references should not hydrate Ormskirk</p>",
+            plainText: "Blank next-check claim references should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Blank next-check claim reference should fail closed", reason: "Contract validation", claimIds: [""], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Blank next-check claim references should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Blank next-check claim reference should fail closed")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source timestamps do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
