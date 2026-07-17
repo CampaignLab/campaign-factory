@@ -146,6 +146,47 @@ test("operations source API: configured source origin must remain the canonical 
   }
 });
 
+test("operations source API: non-terminal source runs fail closed before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return Response.json({ campaignId: curatedId, status: "running", stateVersion: 1, lastSequence: 1, events: [] });
+    }
+
+    throw new Error("Documents must not hydrate while the source run is still non-terminal.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(409);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-security-policy")).toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+    expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    expect(response.headers.get("expires")).toBe("0");
+    expect(response.headers.get("pragma")).toBe("no-cache");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+
+    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; documents?: unknown[] };
+    expect(body.error).toBe("Campaign source not ready");
+    expect(body.detail).toContain("This campaign is running");
+    expect(body.runStatus).toBe("running");
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.documents).toBeUndefined();
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: upstream run redirects fail closed before document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
