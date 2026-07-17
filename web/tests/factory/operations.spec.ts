@@ -1829,6 +1829,70 @@ test("operations workbench: compiled source documents must keep canonical sectio
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: compiled source documents must include every canonical document in order", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documentSectionKeys: Record<string, string[]> = {
+    campaign_brief: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+    objective_theory_of_change: ["objective"],
+    power_stakeholder_map: ["power", "pressure"],
+    campaign_strategy: ["strategy"],
+    tactics_timeline: ["tactics"],
+    organising_plan: ["organising"],
+    lobbying_pack: [],
+    media_pack: [],
+    digital_pack: [],
+  };
+  const canonicalDocuments = [
+    ["campaign_brief", "Campaign Brief", "Missing Media Pack should not hydrate Ormskirk"],
+    ["objective_theory_of_change", "Objective and Theory of Change", "Objective shell"],
+    ["power_stakeholder_map", "Power and Stakeholder Map", "Power shell"],
+    ["campaign_strategy", "Campaign Strategy", "Strategy shell"],
+    ["tactics_timeline", "Tactics and Timeline", "Tactics shell"],
+    ["organising_plan", "Organising Plan", "Organising shell"],
+    ["lobbying_pack", "Lobbying Pack", "Lobbying shell"],
+    ["digital_pack", "Digital Campaign Pack", "Digital shell"],
+  ].map(([key, name, plainText], index) => ({
+    key,
+    num: index < 7 ? index + 1 : 9,
+    name,
+    status: "ready",
+    html: `<p>${plainText}</p>`,
+    plainText,
+    isPack: index >= 6,
+    sectionKeys: documentSectionKeys[key],
+    resourceCount: index >= 6 ? 1 : 0,
+    flags: [],
+  }));
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 9, lastSequence: 99, events: [] },
+        documents: canonicalDocuments,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Canonical document-list regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Missing Media Pack should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source evidence entries do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

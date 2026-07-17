@@ -259,9 +259,11 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
 
 export function isOperationsCompiledDocumentList(value: unknown): value is CompiledDocument[] {
   if (!Array.isArray(value)) return false;
+  if (value.length !== CANONICAL_DOCUMENTS.length) return false;
   const seen = new Set<string>();
-  for (const doc of value) {
-    if (!isOperationsCompiledDocument(doc) || seen.has(doc.key)) return false;
+  for (const [index, doc] of value.entries()) {
+    const canonicalDocument = CANONICAL_DOCUMENTS[index];
+    if (!isOperationsCompiledDocument(doc) || seen.has(doc.key) || doc.key !== canonicalDocument.key) return false;
     seen.add(doc.key);
   }
   return true;
