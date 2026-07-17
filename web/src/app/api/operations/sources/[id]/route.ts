@@ -177,7 +177,12 @@ function sanitizeSourceContentRange(value: string | null) {
   if (trimmed.length > 80) return "malformed";
 
   const unsatisfiedMatch = trimmed.match(/^bytes \*\/(\d{1,9}|\*)$/);
-  if (unsatisfiedMatch) return trimmed;
+  if (unsatisfiedMatch) {
+    const totalValue = unsatisfiedMatch[1];
+    if (totalValue === "*") return trimmed;
+    const total = Number(totalValue);
+    return Number.isSafeInteger(total) && total > 0 ? trimmed : "malformed";
+  }
 
   const rangeMatch = trimmed.match(/^bytes (\d{1,9})-(\d{1,9})\/(\d{1,9}|\*)$/);
   if (!rangeMatch) return trimmed ? "malformed" : undefined;
