@@ -1922,6 +1922,38 @@ test("operations workspace: source retry guidance is visible without fixture fal
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
 
+test("operations workspace: browser source loads omit local cookies", async ({ page, context }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  await context.addCookies([{ name: "cf_private_probe", value: "do-not-forward", url: "http://localhost:3000" }]);
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    expectOperationsSourceClientRequest(route.request());
+    expect(route.request().headers().cookie).toBeUndefined();
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 1, lastSequence: 1, events: [] },
+        documents: canonicalOperationsDocuments(),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "appeal-check", description: "Confirm official appeal status before the next phase", reason: "Source-specific next gate", claimIds: [], affectedSections: ["strategy"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: /Keep KFC Out of Ormskirk into operations/i })).toBeVisible();
+  await expect(page.getByText("Confirm official appeal status before the next phase").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
 test("operations workspace: non-JSON source responses stay as no-fixture-fallback failures", async ({ page }) => {
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
     await route.fulfill({

@@ -1495,6 +1495,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     sourceRes = await fetch(`/api/operations/sources/${encodeURIComponent(campaignId)}`, {
       headers: SOURCE_CLIENT_FETCH_HEADERS,
       cache: "no-store",
+      credentials: "omit",
       signal: controller.signal,
     });
   } catch (error) {
