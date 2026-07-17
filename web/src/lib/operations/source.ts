@@ -446,7 +446,7 @@ function hasConsistentOperationsEvidenceReferences(value: EvidenceAndNextChecks)
   const seenNextCheckIds = new Set<string>();
   for (const check of value.nextChecks) {
     if (seenNextCheckIds.has(check.id)) return false;
-    if (claimsById.size > 0 && check.claimIds?.some((claimId) => !claimsById.has(claimId))) return false;
+    if (check.claimIds?.some((claimId) => !claimsById.has(claimId))) return false;
     seenNextCheckIds.add(check.id);
   }
 

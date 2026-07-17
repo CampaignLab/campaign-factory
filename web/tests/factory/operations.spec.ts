@@ -2639,6 +2639,47 @@ test("operations workbench: source next checks must reference known claims when 
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: source next checks cannot reference claims when the ledger is empty", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: canonicalOperationsDocuments(),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [
+            {
+              id: "orphan-next-check",
+              description: "Orphan next-check claim should fail closed",
+              reason: "Contract validation",
+              claimIds: ["missing-claim"],
+              affectedSections: ["problem"],
+            },
+          ],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Orphan next-check claim should fail closed")).toHaveCount(0);
+  await expect(page.getByText("Canonical source document shell")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: source next checks and draft notes require public text", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
