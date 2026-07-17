@@ -234,7 +234,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-type SegmentId = "school_gates" | "ward_parents" | "local_allies";
+type FixtureSegmentId = "school_gates" | "ward_parents" | "local_allies";
+type SourceSegmentId = "source_primary" | "source_secondary" | "source_allies";
+type SegmentId = FixtureSegmentId | SourceSegmentId;
 type DraftId = "supporter_email" | "decision_maker_letter" | "press_pitch";
 type DraftStatus = "draft" | "review" | "approved" | "queued";
 type Mode = "compose" | "preview";
@@ -443,7 +445,7 @@ type CampaignSwitcherItem =
 type ContactFixture = {
   id: string;
   name: string;
-  segmentId: SegmentId;
+  segmentId: FixtureSegmentId;
   segment: string;
   role: string;
   readiness: "Ready fixture" | "Review first" | "Blocked";
@@ -452,6 +454,18 @@ type ContactFixture = {
   nextAction: string;
   owner: string;
 };
+
+const SOURCE_PRIMARY_SEGMENT_ID: SourceSegmentId = "source_primary";
+const fixtureSegmentIds = ["school_gates", "ward_parents", "local_allies"] satisfies FixtureSegmentId[];
+const sourceSegmentIds = [SOURCE_PRIMARY_SEGMENT_ID, "source_secondary", "source_allies"] satisfies SourceSegmentId[];
+
+function isSegmentId(value: unknown): value is SegmentId {
+  return typeof value === "string" && ([...fixtureSegmentIds, ...sourceSegmentIds] as string[]).includes(value);
+}
+
+function isSourceSegmentId(value: unknown): value is SourceSegmentId {
+  return typeof value === "string" && (sourceSegmentIds as readonly string[]).includes(value);
+}
 
 const segments: Segment[] = [
   {
@@ -941,9 +955,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   return {
     ...initialState,
     ...parsed,
-    selectedSegment: segments.some((segment) => segment.id === parsed.selectedSegment)
-      ? (parsed.selectedSegment as SegmentId)
-      : initialState.selectedSegment,
+    selectedSegment: isSegmentId(parsed.selectedSegment) ? parsed.selectedSegment : initialState.selectedSegment,
     status: ["draft", "review", "approved", "queued"].includes(parsed.status || "")
       ? (parsed.status as DraftStatus)
       : initialState.status,
@@ -963,10 +975,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
       : [],
     reviewerNote: typeof parsed.reviewerNote === "string" ? parsed.reviewerNote : "",
     activeView: viewIds.includes(parsed.activeView as ViewId) ? (parsed.activeView as ViewId) : "overview",
-    contactFilter:
-      parsed.contactFilter === "all" || segments.some((segment) => segment.id === parsed.contactFilter)
-        ? (parsed.contactFilter as SegmentId | "all")
-        : initialState.contactFilter,
+    contactFilter: parsed.contactFilter === "all" || isSegmentId(parsed.contactFilter) ? parsed.contactFilter : initialState.contactFilter,
     contactReadinessFilter: ["all", "ready", "review", "blocked"].includes(parsed.contactReadinessFilter || "")
       ? (parsed.contactReadinessFilter as DemoState["contactReadinessFilter"])
       : initialState.contactReadinessFilter,
@@ -984,6 +993,8 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
 
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
+  const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
+  const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey));
   const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey);
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
@@ -997,13 +1008,17 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     localActions.length === state.localActions.length &&
     workingDrafts.length === state.workingDrafts.length &&
     activeWorkingDraftId === state.activeWorkingDraftId &&
-    sourceWorkingCopy === state.sourceWorkingCopy
+    sourceWorkingCopy === state.sourceWorkingCopy &&
+    selectedSegment === state.selectedSegment &&
+    contactFilter === state.contactFilter
   ) {
     return state;
   }
 
   return {
     ...state,
+    selectedSegment,
+    contactFilter,
     subject: removedMismatchedTopLevelSourceCopy ? "Local source draft reset" : state.subject,
     body: removedMismatchedTopLevelSourceCopy
       ? "This browser-local draft was reset because its stored source provenance belonged to another campaign. Use a source resource from this campaign before review or local queueing."
@@ -1492,7 +1507,7 @@ function buildSourceAudienceSegments(source: CampaignSource): Segment[] {
   const place = source.place || "this place";
   return [
     {
-      id: "school_gates",
+      id: SOURCE_PRIMARY_SEGMENT_ID,
       name: audienceNames[0] ?? "Core campaign supporters",
       role: "Source audience · browser-local intent",
       contacts: 0,
@@ -1502,7 +1517,7 @@ function buildSourceAudienceSegments(source: CampaignSource): Segment[] {
       caveat: "No live consent source, CRM import, or provider list is connected for this real campaign.",
     },
     {
-      id: "ward_parents",
+      id: "source_secondary",
       name: audienceNames[1] ?? "Decision-route watchers",
       role: "Source audience · evidence/process reviewers",
       contacts: 0,
@@ -1512,7 +1527,7 @@ function buildSourceAudienceSegments(source: CampaignSource): Segment[] {
       caveat: "This local audience intent does not create, import, or message a real person.",
     },
     {
-      id: "local_allies",
+      id: "source_allies",
       name: audienceNames[2] ?? "Allies and validators",
       role: "Source audience · later escalation planning",
       contacts: 0,
@@ -1612,7 +1627,7 @@ function buildInitialStateForSource(source: CampaignSource): DemoState {
       "Campaign Factory operations workspace",
     ].join("\n"),
     activeDraft: "supporter_email",
-    selectedSegment: "school_gates",
+    selectedSegment: SOURCE_PRIMARY_SEGMENT_ID,
     contactFilter: "all",
     status: "draft",
     mode: "compose",

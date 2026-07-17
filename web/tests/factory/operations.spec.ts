@@ -9019,6 +9019,13 @@ test("operations workbench: source updates preserve browser-local work and requi
 
   await page.goto(`/operations?campaignId=${campaignId}`);
   await expect(page.getByRole("heading", { name: /Keep KFC Out of Ormskirk into operations/i })).toBeVisible();
+  await expect
+    .poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId))
+    .toContain('"selectedSegment":"source_primary"');
+  const realCampaignLocalState = await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId);
+  expect(realCampaignLocalState).not.toContain("school_gates");
+  expect(realCampaignLocalState).not.toContain("ward_parents");
+  expect(realCampaignLocalState).not.toContain("local_allies");
   await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
   await page.getByRole("button", { name: "Create appeal-status action" }).click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
