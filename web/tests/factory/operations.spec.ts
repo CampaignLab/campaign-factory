@@ -3895,7 +3895,7 @@ test("operations workbench: navigation focus and reduced motion remain accessibl
 test("operations portfolio: three curated public campaigns load independently", async ({ page }) => {
   const campaigns = {
     "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
-      title: "Keep KFC Out of Ormskirk",
+      title: "Stop the KFC being built in Ormskirk",
       place: "Ormskirk, Lancashire",
       status: "partial",
       mediaStatus: "assembling",
@@ -3956,7 +3956,7 @@ test("operations portfolio: three curated public campaigns load independently", 
   await page.goto("/operations");
 
   await expect(page.getByRole("heading", { name: /Three real campaigns, one operations portfolio/i })).toBeVisible();
-  await expect(page.getByText("Keep KFC Out of Ormskirk", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stop the KFC being built in Ormskirk", { exact: true })).toBeVisible();
   await expect(page.getByText("Build 5,000 affordable houses in Tower Hamlets in the next 3 years", { exact: true })).toBeVisible();
   await expect(page.getByText("Stop the leisure park redevelopment in Barnet", { exact: true })).toBeVisible();
   await expect(page.getByText("Conference deep dive", { exact: true })).toBeVisible();
