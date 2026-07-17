@@ -6105,6 +6105,7 @@ test("operations workbench: source updates preserve browser-local work and requi
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toContainText("Local queue changes are paused for source re-check.");
+  await expect(page.getByLabel("Reset local workspace scope")).toContainText("Reset clears this campaign's 2 browser-local items currently paused for source re-check");
   await expect(page.getByLabel("Export operations pack")).toContainText("Client-side download");
   const [changedJsonDownload] = await Promise.all([
     page.waitForEvent("download"),
@@ -6172,6 +6173,13 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeEnabled();
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toHaveCount(0);
+  await expect(page.getByLabel("Reset local workspace scope")).toContainText("Reset clears only this campaign's browser-local actions, drafts, review notes, local queue intent, and source acknowledgement.");
+  await page.getByLabel("Reset local workspace scope").getByRole("button", { name: "Reset local workspace" }).click();
+  await page.getByRole("button", { name: /Action plan/ }).first().click();
+  await expect(page.getByText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.")).toBeVisible();
+  await expect(page.getByText("Source re-check required before this local action informs approval or queueing.")).toHaveCount(0);
+  await page.goto("/operations");
+  await expect(page.getByLabel("Campaign operations portfolio").locator("article", { hasText: "Keep KFC Out of Ormskirk" })).toContainText("Local signals: no browser-local operations work yet for this campaign.");
 });
 
 test("operations workbench: all real campaign routes export source-specific local packs", async ({ page }) => {

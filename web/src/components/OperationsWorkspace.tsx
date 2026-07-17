@@ -2551,6 +2551,11 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   const resetLabel = source ? "Reset local workspace" : "Reset demo state";
+  const resetScopeCopy = source
+    ? sourceBaselineChanged && sourceRecheckItemCount
+      ? `Reset clears this campaign's ${sourceRecheckItemCount} browser-local item${sourceRecheckItemCount === 1 ? "" : "s"} currently paused for source re-check, then reloads the current read-only source baseline. Public campaign data is unchanged.`
+      : "Reset clears only this campaign's browser-local actions, drafts, review notes, local queue intent, and source acknowledgement. Public campaign data is unchanged."
+    : "Reset clears only the explicit demo fixture state stored in this browser; it does not affect any real campaign source.";
 
   const buildOperationsPack = () => {
     const queuedDrafts = [
@@ -3498,9 +3503,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             <Button type="button" variant="outline" onClick={() => exportOperationsPack("json")}>Download JSON</Button>
           </div>
         </div>
-        <Button type="button" variant="ghost" className="mt-5" onClick={reset}>
-          {resetLabel}
-        </Button>
+        <div className="mt-5 rounded-[var(--r-xl)] border border-border bg-background/70 p-3" aria-label="Reset local workspace scope">
+          <p className="text-sm text-muted-foreground">{resetScopeCopy}</p>
+          <Button type="button" variant="ghost" className="mt-3" onClick={reset}>
+            {resetLabel}
+          </Button>
+        </div>
       </Panel>
     </div>
   );
@@ -4286,9 +4294,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
 
       <footer className="border-t border-ops-line bg-ops-paper">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-2 px-4 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between lg:px-6">
-          <p>
-            {source ? `Source ${source.campaignId} read-only · Local demo storage · Provider/import/schedule write-back not connected.` : "Local demo storage · Email provider not connected · Human approval required before local queueing."}
-          </p>
+          <div>
+            <p>
+              {source ? `Source ${source.campaignId} read-only · Local demo storage · Provider/import/schedule write-back not connected.` : "Local demo storage · Email provider not connected · Human approval required before local queueing."}
+            </p>
+            <p className="mt-1 text-xs">{resetScopeCopy}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/how" className="hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full">How it works</Link>
             <Link href="/" className="hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full">New campaign</Link>
