@@ -4201,6 +4201,38 @@ test("operations workspace: malformed content-range diagnostics survive client s
 });
 
 
+test("operations workspace: malformed content-encoding diagnostics survive client sanitization without fixture fallback", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Campaign source contract mismatch",
+        detail: "Read-only source /api/factory/runs/69f257b6-9913-4395-94f7-5c25b4b5fe95/documents returned a content-encoded body despite the identity encoding requirement.",
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceStep: "documents",
+        sourceFailureKind: "encoded_body",
+        sourcePath: "/api/factory/runs/69f257b6-9913-4395-94f7-5c25b4b5fe95/documents",
+        sourceHttpStatus: 200,
+        sourceContentLength: 20,
+        sourceContentEncoding: "malformed",
+        sourceBodyTruncated: true,
+        sourceContentType: "application/json",
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/content-encoded body despite the identity encoding requirement/)).toBeVisible();
+  await expect(page.getByText(/source failure encoded body · upstream HTTP 200/)).toBeVisible();
+  await expect(page.getByText(/content length 20 bytes · content encoding malformed · upstream body truncated · upstream content type application\/json/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
+
 test("operations workspace: direct source configuration failures name the failed step without fixture fallback", async ({ page }) => {
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
     await route.fulfill({
