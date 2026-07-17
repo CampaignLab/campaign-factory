@@ -2855,6 +2855,72 @@ test("operations workbench: malformed source event references do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: internal source events do not hydrate a real workspace", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: {
+          campaignId,
+          status: "partial",
+          stateVersion: 10,
+          lastSequence: 100,
+          events: [
+            {
+              eventId: "internal-event-1",
+              sequence: 1,
+              campaignId,
+              type: "document.status",
+              at: "2026-07-16T20:45:00Z",
+              visibility: "internal",
+              payload: {
+                summary: "Internal event summary should not hydrate Ormskirk",
+                documentKey: "campaign_brief",
+                documentStatus: "ready",
+              },
+            },
+          ],
+        },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Public document shell should stay hidden behind internal events</p>",
+            plainText: "Public document shell should stay hidden behind internal events",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign/i)).toBeVisible();
+  await expect(page.getByText("Internal event summary should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Public document shell should stay hidden behind internal events")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: rejects inconsistent evidence totals before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

@@ -71,7 +71,7 @@ const OPERATIONS_DOCUMENT_BY_KEY = new Map<string, (typeof CANONICAL_DOCUMENTS)[
 const OPERATIONS_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const OPERATIONS_RUN_STATUSES = new Set<string>(["queued", "running", "partial", "completed", "failed", "cancelled"]);
 const OPERATIONS_EVENT_TYPES = new Set<string>(FACTORY_EVENT_TYPES);
-const OPERATIONS_EVENT_VISIBILITIES = new Set<string>(["public", "internal"]);
+const OPERATIONS_EVENT_VISIBILITIES = new Set<string>(["public"]);
 const OPERATIONS_SECTION_STATUSES = new Set<string>(["empty", "assembling", "under_review", "accepted", "needs_verification"]);
 const OPERATIONS_JOURNEY_SECTION_KEYS = new Set<string>(JOURNEY_STEPS.map((step) => step.key));
 const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
