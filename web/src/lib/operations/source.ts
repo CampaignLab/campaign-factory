@@ -51,8 +51,23 @@ function isNonEmptyString(value: unknown): value is string {
 function visibleRenderedText(value: string) {
   return value
     .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
-    .replace(/&[a-z0-9#]+;/gi, "x")
+    .replace(/&(?:nbsp|#160|#xA0);/gi, " ")
+    .replace(/&#(\d+);/g, (_entity, codePoint: string) => {
+      const parsed = Number.parseInt(codePoint, 10);
+      return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_entity, codePoint: string) => {
+      const parsed = Number.parseInt(codePoint, 16);
+      return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
+    })
+    .replace(/&mdash;/gi, "—")
+    .replace(/&ndash;/gi, "–")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&[a-z0-9#]+;/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 }

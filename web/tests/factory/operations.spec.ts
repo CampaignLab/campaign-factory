@@ -3836,6 +3836,41 @@ test("operations workbench: compiled documents must carry the shared safety disc
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: encoded compiled-document disclaimer hydrates as the same source boundary", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = canonicalOperationsDocuments("Encoded disclaimer Ormskirk").map((doc) => ({
+    ...doc,
+    html: `<p>${doc.plainText.replace(/AI-generated draft — please verify/g, "AI-generated draft &mdash; please verify")}</p>`,
+  }));
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 13, lastSequence: 103, events: [] },
+        documents,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Keep the encoded compiler boundary visible", reason: "HTML entities should not look like missing disclaimer text", claimIds: [], affectedSections: ["campaign_brief"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Encoded disclaimer Ormskirk" }).first()).toBeVisible();
+  await expect(page.getByText("Real campaign source", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: document verification flags must match rendered source notes before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documents = canonicalOperationsDocuments();
