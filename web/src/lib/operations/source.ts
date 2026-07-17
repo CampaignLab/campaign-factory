@@ -24,7 +24,8 @@ export function normaliseOperationsSourceOrigin(value: unknown) {
     const url = new URL(trimmed);
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;
     if (url.username || url.password) return null;
-    return url.origin.replace(/\/+$/, "");
+    const origin = url.origin.replace(/\/+$/, "");
+    return origin === OPERATIONS_DEFAULT_SOURCE_ORIGIN ? origin : null;
   } catch {
     return null;
   }

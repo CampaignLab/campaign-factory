@@ -36,8 +36,11 @@ export const PUT = sourceMethodNotAllowed;
 export const PATCH = sourceMethodNotAllowed;
 export const DELETE = sourceMethodNotAllowed;
 
-function sourceOrigin() {
-  return normaliseOperationsSourceOrigin(process.env.OPERATIONS_SOURCE_ORIGIN) ?? OPERATIONS_DEFAULT_SOURCE_ORIGIN;
+function sourceOrigin(): { ok: true; origin: string } | { ok: false } {
+  const configuredOrigin = process.env.OPERATIONS_SOURCE_ORIGIN;
+  if (configuredOrigin === undefined || configuredOrigin.trim() === "") return { ok: true, origin: OPERATIONS_DEFAULT_SOURCE_ORIGIN };
+  const origin = normaliseOperationsSourceOrigin(configuredOrigin);
+  return origin ? { ok: true, origin } : { ok: false };
 }
 
 async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string }> {
@@ -89,7 +92,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
-  const origin = sourceOrigin();
+  const originResult = sourceOrigin();
+  if (!originResult.ok) {
+    return sourceJson(
+      { error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed." },
+      502,
+    );
+  }
+
+  const origin = originResult.origin;
   const run = await fetchSourceJson<OperationsSourcePayload["run"]>(origin, `/api/factory/runs/${encodeURIComponent(id)}`);
   if (run.ok) {
     if (!isOperationsRunReadModel(run.value, id)) {
