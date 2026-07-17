@@ -6247,6 +6247,117 @@ test("operations workbench migrates fixture schedule intent ids in real campaign
   expect(stored).not.toContain("school_run");
 });
 
+test("operations workbench removes fixture identifier-only local work from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          status: "completed",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Fixture identifier guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const neutralFixtureCopy = {
+      id: "demo-fixture-local-note",
+      campaignId,
+      title: "Barnet local note",
+      channel: "Briefing note",
+      sourceDocument: "Digital Pack",
+      sourceDocumentKey: "fixture_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: ["Confirm the current public decision record before any external use."],
+      provenance: `Source campaign ${campaignId}; copied into this browser-local workspace.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: "legacy-fixture-identifier-only-local-work",
+        selectedSegment: "source_primary",
+        subject: "Barnet source update",
+        body: "Use the Barnet source pack before any local queue intent.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_next_check",
+        queuedAt: null,
+        localActions: [
+          {
+            id: "fixture:council-timing-check",
+            title: "Confirm next decision record",
+            source: "Browser-local action",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${campaignId}; browser-local action.`,
+          },
+        ],
+        workingDrafts: [
+          {
+            id: "demo-fixture-local-note",
+            title: "Barnet local note",
+            channel: "Briefing note",
+            subject: "Barnet source update",
+            body: "Use the Barnet source pack before any local queue intent.",
+            reviewerNote: "",
+            status: "queued",
+            queuedAt: "2026-07-16T17:54:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T17:54:30.000Z",
+            sourceWorkingCopy: neutralFixtureCopy,
+          },
+        ],
+        activeWorkingDraftId: "demo-fixture-local-note",
+        sourceWorkingCopy: neutralFixtureCopy,
+        activity: [{ id: "legacy", label: "Barnet local note queued locally." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const barnetRow = portfolio.locator("article").nth(2);
+  await expect(barnetRow).toContainText("Local signals: source update acknowledgement needed.");
+  await expect(barnetRow).not.toContainText("1 action");
+  await expect(barnetRow).not.toContainText("1 queued locally");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).not.toContain("fixture:council-timing-check");
+  expect(stored).not.toContain("demo-fixture-local-note");
+  expect(stored).not.toContain("fixture_pack");
+});
+
 test("operations workbench: failed or not-yet-usable real source loads do not fall back to the fixture", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {

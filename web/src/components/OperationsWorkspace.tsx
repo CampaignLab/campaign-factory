@@ -995,22 +995,27 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
 }
 
 const FIXTURE_LEAKAGE_RE = /St John the Baptist|school street|school-run|school gates|Leicester City Council|Campaign Factory demo workspace|seeded campaign brief|local fixture contacts|fixture evidence check|fixture timing check|fixture media boundary|fixture campaign copy/i;
+const FIXTURE_IDENTIFIER_RE = /\b(?:demo-)?fixture(?:[_:-][a-z0-9_-]+)+\b|\bfixture:[a-z0-9_-]+\b/i;
+
+function hasFixtureLeakage(value: string) {
+  return FIXTURE_LEAKAGE_RE.test(value) || FIXTURE_IDENTIFIER_RE.test(value);
+}
 
 function topLevelDraftLooksFixtureBound(state: DemoState) {
   const fixtureText = [state.subject, state.body, state.reviewerNote, ...state.activity.map((item) => item.label)].join("\n");
-  return FIXTURE_LEAKAGE_RE.test(fixtureText);
+  return hasFixtureLeakage(fixtureText);
 }
 
 function localActionLooksFixtureBound(action: LocalAction) {
-  return FIXTURE_LEAKAGE_RE.test([action.id, action.title, action.source, action.owner, action.timing, action.provenance].join("\n"));
+  return hasFixtureLeakage([action.id, action.title, action.source, action.owner, action.timing, action.provenance].join("\n"));
 }
 
 function sourceWorkingCopyLooksFixtureBound(copy: SourceWorkingCopy) {
-  return FIXTURE_LEAKAGE_RE.test([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings].join("\n"));
+  return hasFixtureLeakage([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings].join("\n"));
 }
 
 function workingDraftLooksFixtureBound(draft: WorkingDraft) {
-  return FIXTURE_LEAKAGE_RE.test([
+  return hasFixtureLeakage([
     draft.id,
     draft.title,
     draft.channel,
