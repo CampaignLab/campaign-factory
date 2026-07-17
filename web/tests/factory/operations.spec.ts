@@ -2306,6 +2306,12 @@ test("operations workbench: source problem and theory fields hydrate the full co
   await expect(page.getByText("if residents, tenants and planning-watch allies use verified housing evidence").first()).toBeVisible();
   await expect(page.getByText("Mayor and Cabinet housing route").first()).toBeVisible();
   await expect(page.getByText("published delivery milestones").first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Human approval gate" })).toBeVisible();
+  await expect(page.getByText("unresolved load-bearing source facts remain visible before approval")).toBeVisible();
+  await expect(page.getByText("next check: Verify the exact affordable housing delivery route in council papers")).toBeVisible();
+  await expect(page.getByText("Council timing, legal-order wording")).toHaveCount(0);
 });
 
 test("operations workbench: campaign switching isolates local actions and source working copies", async ({ page }) => {
