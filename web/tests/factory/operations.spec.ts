@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 const COMPILED_DOCUMENT_DISCLAIMER =
   "AI-generated draft — please verify all facts and figures before publishing or campaigning with this material.";
 const COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE = "Some facts in this section couldn't be fully checked in time";
-const SOURCE_FETCH_HEADERS = { accept: "application/json", "cache-control": "no-cache", pragma: "no-cache" };
+const SOURCE_FETCH_HEADERS = { accept: "application/json", "accept-encoding": "identity", "cache-control": "no-cache", pragma: "no-cache" };
 
 function expectOperationsSourceClientRequest(request: { headers: () => Record<string, string> }) {
   expect(request.headers().accept).toContain("application/json");

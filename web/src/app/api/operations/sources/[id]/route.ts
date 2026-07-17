@@ -27,6 +27,7 @@ const NO_STORE_HEADERS = {
 const READ_ONLY_ALLOW_HEADERS = { ...NO_STORE_HEADERS, Allow: "GET" };
 const SOURCE_FETCH_HEADERS = {
   accept: "application/json",
+  "accept-encoding": "identity",
   "cache-control": "no-cache",
   pragma: "no-cache",
 };
