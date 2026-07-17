@@ -134,6 +134,11 @@ function sanitizeSourceContentLength(value: string | null) {
   return Number.isSafeInteger(bytes) ? bytes : undefined;
 }
 
+function sourceElapsedMs(startedAt: number) {
+  const elapsed = Date.now() - startedAt;
+  return Number.isSafeInteger(elapsed) && elapsed >= 0 && elapsed <= SOURCE_FETCH_TIMEOUT_MS + 5_000 ? elapsed : undefined;
+}
+
 function sanitizeSourceServer(value: string | null) {
   if (!value) return undefined;
   const trimmed = value.trim();
@@ -153,10 +158,11 @@ async function safeReadResponseText(response: Response) {
   }
 }
 
-function upstreamResponseMetadata(response: Response, bodyText?: string) {
+function upstreamResponseMetadata(response: Response, elapsedMs: number | undefined, bodyText?: string) {
   const contentType = sanitizeSourceContentType(response.headers.get("content-type"));
   return {
     sourceHttpStatus: response.status,
+    ...(elapsedMs !== undefined ? { sourceElapsedMs: elapsedMs } : {}),
     sourceRequestId: sanitizeSourceRequestId(response.headers.get("x-vercel-id")),
     sourceMatchedPath: sanitizeSourceMatchedPath(response.headers.get("x-matched-path")),
     sourceCacheStatus: sanitizeSourceCacheStatus(response.headers.get("x-vercel-cache")),
@@ -185,9 +191,10 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
     ...(result.sourceHttpStatus ? { sourceHttpStatus: result.sourceHttpStatus } : {}),
+    ...(result.sourceElapsedMs !== undefined ? { sourceElapsedMs: result.sourceElapsedMs } : {}),
     ...(result.sourceRequestId ? { sourceRequestId: result.sourceRequestId } : {}),
     ...(result.sourceMatchedPath ? { sourceMatchedPath: result.sourceMatchedPath } : {}),
     ...(result.sourceCacheStatus ? { sourceCacheStatus: result.sourceCacheStatus } : {}),
@@ -207,9 +214,10 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T }
-  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
+  const startedAt = Date.now();
   let timedOut = false;
   const timeout = setTimeout(() => {
     timedOut = true;
@@ -234,7 +242,7 @@ async function fetchSourceJson<T>(
         path,
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
-        ...upstreamResponseMetadata(response, await safeReadResponseText(response)),
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response)),
       };
     }
     if (!hasJsonContentType(response)) {
@@ -244,7 +252,7 @@ async function fetchSourceJson<T>(
         path,
         contractMismatch: true,
         message: `Read-only source ${path} returned a non-JSON content type.`,
-        ...upstreamResponseMetadata(response, await safeReadResponseText(response)),
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response)),
       };
     }
     const responseText = await safeReadResponseText(response);
@@ -257,7 +265,7 @@ async function fetchSourceJson<T>(
         path,
         contractMismatch: true,
         message: `Read-only source ${path} returned malformed JSON.`,
-        ...upstreamResponseMetadata(response, responseText),
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), responseText),
       };
     }
   } catch {
@@ -268,6 +276,7 @@ async function fetchSourceJson<T>(
       message: timedOut
         ? `Read-only source ${path} timed out after ${SOURCE_FETCH_TIMEOUT_MS / 1000} seconds.`
         : `Read-only source ${path} could not be reached.`,
+      sourceElapsedMs: sourceElapsedMs(startedAt),
     };
   } finally {
     clearTimeout(timeout);
