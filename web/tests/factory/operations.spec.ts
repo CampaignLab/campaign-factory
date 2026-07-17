@@ -2003,6 +2003,46 @@ test("operations workbench: compiled source documents must keep canonical sectio
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: compiled source documents must include every canonical source section", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = canonicalOperationsDocuments();
+  documents[0] = {
+    ...documents[0],
+    html: "<p>Reduced Campaign Brief sections should not hydrate Ormskirk</p>",
+    plainText: "Reduced Campaign Brief sections should not hydrate Ormskirk",
+    sectionKeys: ["problem", "evidence"],
+  };
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 9, lastSequence: 99, events: [] },
+        documents,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Reduced canonical source-section regression", reason: "Contract validation", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Reduced Campaign Brief sections should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Reduced canonical source-section regression")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: compiled source documents must include every canonical document in order", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const documentSectionKeys: Record<string, string[]> = {

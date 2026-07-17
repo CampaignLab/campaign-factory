@@ -190,14 +190,8 @@ function isOperationsAffectedSectionArray(value: unknown): value is string[] {
 function matchesCanonicalDocumentSections(key: string, isPack: boolean, sectionKeys: string[]) {
   if (isPack) return sectionKeys.length === 0;
   const expected = DOC_SECTIONS[key as keyof typeof DOC_SECTIONS];
-  if (!expected || sectionKeys.length === 0) return false;
-  let previousIndex = -1;
-  for (const sectionKey of sectionKeys) {
-    const index = expected.indexOf(sectionKey as never);
-    if (index <= previousIndex) return false;
-    previousIndex = index;
-  }
-  return true;
+  if (!expected || sectionKeys.length !== expected.length) return false;
+  return expected.every((sectionKey, index) => sectionKeys[index] === sectionKey);
 }
 
 function isOperationsFactoryEvent(value: unknown, campaignId: string): value is FactoryEvent {
