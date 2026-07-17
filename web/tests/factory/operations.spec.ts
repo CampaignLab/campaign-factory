@@ -527,9 +527,14 @@ test("operations source API: upstream run redirects fail closed before document 
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 
-    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
+    expect(response.headers.get("location")).toBeNull();
+
+    const bodyText = await response.text();
+    expect(bodyText).not.toContain("example.invalid");
+    const body = JSON.parse(bodyText) as { error?: string; detail?: string; sourceOrigin?: string };
     expect(body.error).toBe("Campaign source contract mismatch");
     expect(body.detail).toContain("redirected");
+    expect(body.detail).not.toContain("example.invalid");
     expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
     expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
   } finally {
@@ -567,9 +572,14 @@ test("operations source API: upstream document redirects fail closed after the v
     expect(response.status).toBe(502);
     expect(response.headers.get("cache-control")).toBe("no-store");
 
-    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
+    expect(response.headers.get("location")).toBeNull();
+
+    const bodyText = await response.text();
+    expect(bodyText).not.toContain("example.invalid");
+    const body = JSON.parse(bodyText) as { error?: string; detail?: string; sourceOrigin?: string };
     expect(body.error).toBe("Campaign source contract mismatch");
     expect(body.detail).toContain("documents redirected");
+    expect(body.detail).not.toContain("example.invalid");
     expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
     expect(requestedUrls).toEqual([
       `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
