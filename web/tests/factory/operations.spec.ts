@@ -6026,27 +6026,33 @@ test("operations workbench: source updates preserve browser-local work and requi
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   let sourceVersion = 44;
   let lastSequence = 1909;
-  const sourcePayload = () => {
+  const campaignTitles: Record<string, { title: string; place: string }> = {
+    [campaignId]: { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire" },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London" },
+    "6b54225d-afa3-41d1-b053-89741094f153": { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London" },
+  };
+  const sourcePayload = (requestedCampaignId = campaignId) => {
+    const campaign = campaignTitles[requestedCampaignId] ?? campaignTitles[campaignId];
     const documents = campaignOperationsDocuments(
-      { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", next: "P0 Official status verification" },
+      { ...campaign, next: requestedCampaignId === campaignId ? "P0 Official status verification" : "Check this campaign source baseline before local work resumes" },
       {
         campaign_strategy: "CAMPAIGN STRATEGY\n\nPriority audiences\n\n- Residents directly affected by amenity",
       },
     );
     documents[7] = {
       ...documents[7],
-      status: sourceVersion === 44 ? "assembling" : "ready",
-      resourceCount: sourceVersion === 44 ? 0 : 1,
+      status: requestedCampaignId === campaignId && sourceVersion === 44 ? "assembling" : "ready",
+      resourceCount: requestedCampaignId === campaignId && sourceVersion === 44 ? 0 : 1,
     };
 
     return {
       sourceOrigin: "https://campaign-factory.vercel.app",
-      run: { campaignId, status: "partial", stateVersion: sourceVersion, lastSequence, events: [] },
+      run: { campaignId: requestedCampaignId, status: "partial", stateVersion: requestedCampaignId === campaignId ? sourceVersion : 12, lastSequence: requestedCampaignId === campaignId ? lastSequence : 44, events: [] },
       documents,
       evidence: campaignEvidence([
         {
           id: "appeal-check",
-          description: sourceVersion === 44 ? "Check the Planning Inspectorate appeals database" : "Check the updated Planning Inspectorate and council appeal records",
+          description: requestedCampaignId === campaignId && sourceVersion === 44 ? "Check the Planning Inspectorate appeals database" : "Check the updated Planning Inspectorate and council appeal records",
           reason: "Source version changed",
           affectedSections: ["strategy"],
         },
@@ -6054,8 +6060,9 @@ test("operations workbench: source updates preserve browser-local work and requi
     };
   };
 
-  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
-    await route.fulfill({ contentType: "application/json", body: JSON.stringify(sourcePayload()) });
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1];
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(sourcePayload(requestedCampaignId)) });
   });
 
   await page.goto(`/operations?campaignId=${campaignId}`);
@@ -6088,6 +6095,12 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("Action plan source update pause")).toContainText("Action statuses need source re-check.");
   await expect(page.getByText("Source re-check required before this local action informs approval or queueing.")).toBeVisible();
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const ormskirkRow = portfolio.locator("article", { hasText: "Keep KFC Out of Ormskirk" });
+  await expect(ormskirkRow).toContainText("Local signals: source re-check required · 1 action · 1 review.");
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toContainText("Local queue changes are paused for source re-check.");

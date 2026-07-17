@@ -836,6 +836,17 @@ function portfolioLocalCounts(campaignId: string): PortfolioLocalCounts {
   };
 }
 
+function storedSourceBaselineChanged(campaignId: string, source: CampaignSource) {
+  if (typeof window === "undefined") return false;
+  const loaded = loadState(localStorageKeyFor(campaignId));
+  if (loaded.workspaceKey !== campaignId) return false;
+  const state = sanitizeStateForWorkspace(loaded, campaignId);
+  return Boolean(
+    state.sourceStateVersion !== null &&
+      (state.sourceStateVersion !== source.stateVersion || state.sourceLastSequence !== source.lastSequence || state.sourceDocumentSignature !== sourceDocumentSignature(source)),
+  );
+}
+
 function initialCampaignSwitcherItems(): CampaignSwitcherItem[] {
   return PORTFOLIO_CAMPAIGNS.map((campaign) => ({ campaign, status: "loading" }));
 }
@@ -1785,7 +1796,9 @@ function OperationsPortfolio() {
         <section className="mt-5 space-y-3" aria-label="Campaign operations portfolio">
           {items.map((item) => {
             const source = item.status === "ready" ? item.source : null;
+            const sourceRecheckNeeded = source ? storedSourceBaselineChanged(item.campaign.id, source) : false;
             const localSignals = [
+              sourceRecheckNeeded ? "source re-check required" : null,
               item.local.actions ? `${item.local.actions} action${item.local.actions === 1 ? "" : "s"}` : null,
               item.local.drafts ? `${item.local.drafts} working draft${item.local.drafts === 1 ? "" : "s"}` : null,
               item.local.reviews ? `${item.local.reviews} review${item.local.reviews === 1 ? "" : "s"}` : null,
