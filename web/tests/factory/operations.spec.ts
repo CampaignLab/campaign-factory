@@ -6573,6 +6573,127 @@ test("operations workbench removes legacy fixture contact and school-run variant
   expect(stored).not.toContain("Barnet supporter note queued locally.");
 });
 
+test("operations workbench removes activity tied only to removed local work identifiers from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          status: "completed",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Removed local-work activity guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ campaignId, staleCampaignId }) => {
+      const staleCopy = {
+        id: `source:${staleCampaignId}:resource:digital_pack:audience-variant`,
+        campaignId: staleCampaignId,
+        title: "Audience variant",
+        channel: "Email",
+        sourceDocument: "Digital Campaign Pack",
+        sourceDocumentKey: "digital_pack",
+        createdAt: "2026-07-16T17:52:30.000Z",
+        warnings: ["Confirm source boundaries before local use."],
+        provenance: `Source campaign ${staleCampaignId}; copied into this browser-local workspace.`,
+      };
+      localStorage.setItem(
+        `cf_operations_demo_v3:${campaignId}`,
+        JSON.stringify({
+          workspaceKey: campaignId,
+          sourceStateVersion: 14,
+          sourceLastSequence: 25,
+          sourceDocumentSignature: "real-barnet-source-baseline",
+          selectedSegment: "source_primary",
+          subject: "Barnet source update",
+          body: "Use the Barnet source pack before any local queue intent.",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "overview",
+          contactFilter: "source_primary",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_next_check",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${staleCampaignId}:action:verify-decision-route`,
+              title: "Verify decision route",
+              source: "Browser-local action",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${staleCampaignId}; browser-local action.`,
+            },
+          ],
+          workingDrafts: [
+            {
+              id: staleCopy.id,
+              title: "Audience variant",
+              channel: "Email",
+              subject: "Audience variant",
+              body: "Campaign-neutral body from a different source campaign.",
+              reviewerNote: "",
+              status: "queued",
+              queuedAt: "2026-07-16T18:02:30.000Z",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              updatedAt: "2026-07-16T18:02:30.000Z",
+              sourceWorkingCopy: staleCopy,
+            },
+          ],
+          activeWorkingDraftId: staleCopy.id,
+          sourceWorkingCopy: null,
+          activity: [
+            { id: `activity:${staleCopy.id}`, label: "Queued source resource digital_pack locally." },
+            { id: `activity:source:${staleCampaignId}:action:verify-decision-route`, label: "Updated removed local action status." },
+          ],
+        }),
+      );
+    },
+    { campaignId: barnetId, staleCampaignId: ormskirkId },
+  );
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const barnetRow = portfolio.locator("article").nth(2);
+  await expect(barnetRow).not.toContainText("1 working draft");
+  await expect(barnetRow).not.toContainText("1 queued locally");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=overview`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.locator("main")).toContainText("Browser-local state was sanitized for this real campaign workspace");
+  await expect(page.locator("main")).not.toContainText("Queued source resource digital_pack locally");
+  await expect(page.locator("main")).not.toContainText("Updated removed local action status");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Queued source resource digital_pack locally");
+  expect(stored).not.toContain("Updated removed local action status");
+  expect(stored).not.toContain(`source:${ormskirkId}:resource:digital_pack:audience-variant`);
+  expect(stored).not.toContain(`source:${ormskirkId}:action:verify-decision-route`);
+});
+
 test("operations workbench removes unprovenanced top-level review state from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

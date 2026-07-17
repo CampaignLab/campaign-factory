@@ -1036,11 +1036,12 @@ function activityLooksFixtureBound(activity: Activity) {
   return hasFixtureLeakage([activity.id, activity.label].join("\n"));
 }
 
-function activityLooksTiedToRemovedLocalWork(activity: Activity, removedLocalWorkLabels: string[]) {
+function activityLooksTiedToRemovedLocalWork(activity: Activity, removedLocalWorkReferences: string[]) {
   const label = activity.label.toLocaleLowerCase();
-  return removedLocalWorkLabels.some((removedLabel) => {
-    const normalized = removedLabel.trim().toLocaleLowerCase();
-    return normalized.length >= 8 && label.includes(normalized);
+  const id = activity.id.toLocaleLowerCase();
+  return removedLocalWorkReferences.some((removedReference) => {
+    const normalized = removedReference.trim().toLocaleLowerCase();
+    return normalized.length >= 8 && (label.includes(normalized) || id.includes(normalized));
   });
 }
 
@@ -1050,11 +1051,24 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksFixtureBound(action));
   const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksFixtureBound(draft));
-  const removedLocalWorkLabels = [
-    ...state.localActions.filter((action) => !localActions.some((keptAction) => keptAction.id === action.id)).flatMap((action) => [action.title, action.source]),
-    ...state.workingDrafts.filter((draft) => !workingDrafts.some((keptDraft) => keptDraft.id === draft.id)).flatMap((draft) => [draft.title, draft.subject, draft.sourceWorkingCopy.title]),
+  const removedLocalWorkReferences = [
+    ...state.localActions
+      .filter((action) => !localActions.some((keptAction) => keptAction.id === action.id))
+      .flatMap((action) => [action.id, action.title, action.source, action.owner, action.provenance]),
+    ...state.workingDrafts
+      .filter((draft) => !workingDrafts.some((keptDraft) => keptDraft.id === draft.id))
+      .flatMap((draft) => [
+        draft.id,
+        draft.title,
+        draft.subject,
+        draft.sourceWorkingCopy.id,
+        draft.sourceWorkingCopy.title,
+        draft.sourceWorkingCopy.sourceDocument,
+        draft.sourceWorkingCopy.sourceDocumentKey,
+        draft.sourceWorkingCopy.provenance,
+      ]),
   ];
-  const activity = state.activity.filter((item) => !activityLooksFixtureBound(item) && !activityLooksTiedToRemovedLocalWork(item, removedLocalWorkLabels));
+  const activity = state.activity.filter((item) => !activityLooksFixtureBound(item) && !activityLooksTiedToRemovedLocalWork(item, removedLocalWorkReferences));
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
