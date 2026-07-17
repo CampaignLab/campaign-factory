@@ -240,7 +240,7 @@ type SourceState =
   | { status: "fixture" }
   | { status: "invalid"; campaignId: string }
   | { status: "loading"; campaignId: string }
-  | { status: "error"; campaignId: string; title: string; message: string; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string }
+  | { status: "error"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string }
   | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string }
   | { status: "ready"; source: CampaignSource };
 
@@ -260,7 +260,7 @@ type PortfolioLocalCounts = {
 type PortfolioItem =
   | { campaign: PortfolioCampaign; status: "loading"; local: PortfolioLocalCounts }
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource; local: PortfolioLocalCounts }
-  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string; local: PortfolioLocalCounts };
+  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; retryAfter?: string; checkedAt?: string; local: PortfolioLocalCounts };
 
 type CampaignSwitcherItem =
   | { campaign: PortfolioCampaign; status: "loading" }
@@ -1663,6 +1663,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   if (run.status !== "completed" && run.status !== "partial") {
     const err = new Error(`This campaign is ${statusPhrase(run.status).toLowerCase()}, so compiled operations source material is not available yet.`);
     (err as Error & { runStatus?: RunReadModel["status"] }).runStatus = run.status;
+    (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
 
@@ -1767,10 +1768,11 @@ function OperationsPortfolio() {
         const sourceOrigin = (error as { sourceOrigin?: string } | null)?.sourceOrigin;
         const sourceStep = (error as { sourceStep?: SourceFailureStep } | null)?.sourceStep;
         const retryAfter = (error as { retryAfter?: string } | null)?.retryAfter;
+        const runStatus = (error as { runStatus?: RunReadModel["status"] } | null)?.runStatus;
         setItems((current) =>
           current.map((item) =>
             item.campaign.id === campaign.id
-              ? { campaign, status: "error", title: "Campaign source unavailable", message, sourceOrigin, sourceStep, retryAfter, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
+              ? { campaign, status: "error", title: runStatus ? "Campaign not usable yet" : "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, retryAfter, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
               : item,
           ),
         );
@@ -1858,6 +1860,11 @@ function OperationsPortfolio() {
                         Checked read-only source: <span className="font-medium text-foreground">{item.sourceOrigin}</span>
                       </p>
                     ) : null}
+                    {item.status === "error" && item.runStatus ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Source run status: <span className="font-medium text-foreground">{statusPhrase(item.runStatus)}</span>
+                      </p>
+                    ) : null}
                     {item.status === "error" && sourceFailureStepLabel(item.sourceStep) ? (
                       <p className="mt-2 text-xs text-muted-foreground">
                         Failed source step: <span className="font-medium text-foreground">{sourceFailureStepLabel(item.sourceStep)}</span>
@@ -1921,6 +1928,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
         ? "Operations accepts a Campaign Factory UUID in the campaignId query parameter. No fixture campaign has been substituted."
         : state.message;
   const sourceOrigin = "sourceOrigin" in state ? state.sourceOrigin : undefined;
+  const runStatus = "runStatus" in state ? state.runStatus : undefined;
   const sourceStep = "sourceStep" in state ? sourceFailureStepLabel(state.sourceStep) : null;
   const retryMessage = "retryAfter" in state ? retryAfterMessage(state.retryAfter) : null;
   const checkedAt = "checkedAt" in state ? state.checkedAt : undefined;
@@ -1952,7 +1960,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
           <p className="mt-4 max-w-3xl text-muted-foreground">{detail}</p>
           {sourceOrigin ? (
             <p className="mt-3 max-w-3xl rounded-[var(--r-xl)] border border-ops-line bg-background/80 px-3 py-2 text-sm text-muted-foreground">
-              Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>{sourceStep ? ` · failed source step: ${sourceStep}` : ""}{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
+              Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>{runStatus ? ` · source run status: ${statusPhrase(runStatus)}` : ""}{sourceStep ? ` · failed source step: ${sourceStep}` : ""}{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
             </p>
           ) : null}
           {showSourceStepWithoutOrigin ? (

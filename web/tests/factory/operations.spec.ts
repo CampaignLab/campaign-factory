@@ -1953,6 +1953,46 @@ test("operations portfolio: one failed source does not blank usable campaigns", 
   );
 });
 
+test("operations portfolio: not-yet-usable source rows show run status without fixture fallback", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? "";
+    if (id === "57678ae0-29fd-4b4b-8a53-5c711cdb21cf") {
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "Campaign source not ready",
+          detail: "This campaign is queued, so compiled operations source material is not available yet.",
+          runStatus: "queued",
+          sourceOrigin: "https://campaign-factory.vercel.app",
+          sourceStep: "run",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "partial", stateVersion: 1, lastSequence: 1, events: [] },
+        documents: canonicalOperationsDocuments(),
+        evidence: campaignEvidence([{ id: `check-${id}`, description: "Confirm source-specific next check", reason: "Portfolio not-ready row regression", affectedSections: ["strategy"] }], 1),
+      }),
+    });
+  });
+
+  await page.goto("/operations");
+
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const towerHamletsRow = portfolio.locator("article", { hasText: "Campaign not usable yet" });
+  await expect(towerHamletsRow).toContainText("This campaign is queued");
+  await expect(towerHamletsRow).toContainText("Source run status: Queued");
+  await expect(towerHamletsRow).toContainText("Failed source step: run header");
+  await expect(towerHamletsRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
 test("operations workspace: failed direct source load keeps canonical source brief links", async ({ page }) => {
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
     await route.fulfill({
@@ -3148,6 +3188,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
         detail: "This campaign is queued, so compiled operations source material is not available yet.",
         runStatus: "queued",
         sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceStep: "run",
       }),
     });
   });
@@ -3156,6 +3197,8 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
 
   await expect(page.getByRole("heading", { name: "Campaign not usable yet" })).toBeVisible();
   await expect(page.getByText(/campaign is queued/i)).toBeVisible();
+  await expect(page.getByText(/source run status: Queued/)).toBeVisible();
+  await expect(page.getByText(/failed source step: run header/)).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
@@ -3186,6 +3229,7 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
 
   await expect(page.getByRole("heading", { name: "Campaign not usable yet" })).toBeVisible();
   await expect(page.getByText(/campaign is still running/i)).toBeVisible();
+  await expect(page.getByText(/source run status: Still running/)).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
