@@ -102,6 +102,14 @@ function sanitizeSourceCacheStatus(value: string | null) {
   return /^[A-Z0-9_-]{1,32}$/.test(trimmed) ? trimmed : undefined;
 }
 
+function sanitizeSourceAgeSeconds(value: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!/^\d{1,8}$/.test(trimmed)) return undefined;
+  const seconds = Number(trimmed);
+  return Number.isSafeInteger(seconds) ? seconds : undefined;
+}
+
 function upstreamResponseMetadata(response: Response) {
   const contentType = sanitizeSourceContentType(response.headers.get("content-type"));
   return {
@@ -109,6 +117,7 @@ function upstreamResponseMetadata(response: Response) {
     sourceRequestId: sanitizeSourceRequestId(response.headers.get("x-vercel-id")),
     sourceMatchedPath: sanitizeSourceMatchedPath(response.headers.get("x-matched-path")),
     sourceCacheStatus: sanitizeSourceCacheStatus(response.headers.get("x-vercel-cache")),
+    sourceAgeSeconds: sanitizeSourceAgeSeconds(response.headers.get("age")),
     sourceBodyEmpty: hasExplicitEmptyBody(response),
     ...("value" in contentType ? { sourceContentType: contentType.value } : {}),
     ...("missing" in contentType ? { sourceContentTypeMissing: true } : {}),
@@ -129,12 +138,13 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceAgeSeconds?: number; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
     ...(result.sourceHttpStatus ? { sourceHttpStatus: result.sourceHttpStatus } : {}),
     ...(result.sourceRequestId ? { sourceRequestId: result.sourceRequestId } : {}),
     ...(result.sourceMatchedPath ? { sourceMatchedPath: result.sourceMatchedPath } : {}),
     ...(result.sourceCacheStatus ? { sourceCacheStatus: result.sourceCacheStatus } : {}),
+    ...(result.sourceAgeSeconds !== undefined ? { sourceAgeSeconds: result.sourceAgeSeconds } : {}),
     ...(result.sourceBodyEmpty ? { sourceBodyEmpty: true } : {}),
     ...(result.sourceContentType ? { sourceContentType: result.sourceContentType } : {}),
     ...(result.sourceContentTypeMissing ? { sourceContentTypeMissing: true } : {}),
@@ -146,7 +156,7 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T }
-  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceAgeSeconds?: number; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
   let timedOut = false;
