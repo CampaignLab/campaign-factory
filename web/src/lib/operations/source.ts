@@ -86,6 +86,11 @@ const OPERATIONS_SECTION_STATUSES = new Set<string>(["empty", "assembling", "und
 const OPERATIONS_JOURNEY_SECTION_KEYS = new Set<string>(JOURNEY_STEPS.map((step) => step.key));
 const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const OPERATIONS_CLAIM_CONFIDENCES = new Set<string>(["high", "medium", "low"]);
+const OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM = "Unresolved load-bearing claim: ";
+const OPERATIONS_DOCUMENT_FLAGS = new Set<string>([
+  "A source section is flagged needs verification.",
+  "Contains explicit verification placeholders.",
+]);
 const OPERATIONS_CLAIM_TYPES = new Set<string>([
   "authority",
   "process",
@@ -130,6 +135,23 @@ function isIsoDateTimeString(value: unknown): value is string {
 
 function isOptionalUniqueNonEmptyStringArray(value: unknown): value is string[] | undefined {
   return value === undefined || isUniqueNonEmptyStringArray(value);
+}
+
+function isOperationsDocumentFlag(value: unknown): value is string {
+  if (!isNonEmptyString(value)) return false;
+  if (OPERATIONS_DOCUMENT_FLAGS.has(value)) return true;
+  if (!value.startsWith(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM)) return false;
+  return value.slice(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim().length > 0;
+}
+
+function isOperationsDocumentFlagArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isOperationsDocumentFlag(item) || seen.has(item)) return false;
+    seen.add(item);
+  }
+  return true;
 }
 
 function isJourneySectionKeyArray(value: unknown): value is string[] {
@@ -263,7 +285,7 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     matchesCanonicalDocumentSections(value.key, value.isPack, value.sectionKeys) &&
     isNonNegativeInteger(value.resourceCount) &&
     (shouldBePack || value.resourceCount === 0) &&
-    isUniqueNonEmptyStringArray(value.flags)
+    isOperationsDocumentFlagArray(value.flags)
   );
 }
 
