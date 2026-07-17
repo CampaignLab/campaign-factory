@@ -62,6 +62,10 @@ function isRedirectStatus(status: number) {
   return status >= 300 && status < 400;
 }
 
+function unavailableSourceStatus(status: number) {
+  return status >= 400 && status < 600 ? status : 502;
+}
+
 function hasJsonContentType(response: Response) {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   const mediaType = contentType.split(";", 1)[0]?.trim() ?? "";
@@ -196,7 +200,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
     return sourceJson(
       { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin },
-      docs.status === 404 ? 404 : docs.status === 429 ? 429 : docs.status === 503 ? 503 : docs.status === 504 ? 504 : 502,
+      unavailableSourceStatus(docs.status),
     );
   }
 

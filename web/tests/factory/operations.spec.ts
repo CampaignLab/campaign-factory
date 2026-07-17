@@ -633,6 +633,48 @@ test("operations source API: rate-limited source documents preserve retry status
   }
 });
 
+test("operations source API: denied source documents preserve upstream status after a validated run header", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return Response.json({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return Response.json({ error: "Source access denied", detail: "The public source rejected this preview read." }, { status: 403 });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(403);
+    expectPublicSourceJsonBoundary(response.headers, "denied document source");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source documents unavailable");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned HTTP 403`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: upstream run network failures fail closed before document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
