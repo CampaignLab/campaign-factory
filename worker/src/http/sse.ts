@@ -16,7 +16,14 @@ import type { FactoryEvent } from "@web/lib/factory/contracts/core.js";
 
 export function handleSse(
   res: ServerResponse,
-  opts: { sql: Sql; campaignId: string; afterSequence: number },
+  opts: {
+    sql: Sql;
+    campaignId: string;
+    afterSequence: number;
+    // CORS headers computed per-request by server.ts. Absent → wildcard "*"
+    // (prior behavior), so cross-origin EventSource keeps working by default.
+    corsHeaders?: Record<string, string>;
+  },
 ): void {
   const { sql, campaignId } = opts;
 
@@ -25,7 +32,7 @@ export function handleSse(
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
     "X-Accel-Buffering": "no",
-    "Access-Control-Allow-Origin": "*",
+    ...(opts.corsHeaders ?? { "Access-Control-Allow-Origin": "*" }),
   });
   // Kick the stream open + advise reconnect backoff.
   res.write(`retry: 3000\n`);

@@ -71,6 +71,15 @@ export const config = {
   workerUrl: str("FACTORY_WORKER_URL") ?? `http://localhost:${port}`,
   // Browser-facing base URL for SSE (may equal workerUrl).
   publicWorkerUrl,
+  // Browser origins allowed to open the cross-origin SSE stream (site on
+  // vercel.app → worker on railway.app). Comma-separated allowlist. UNSET →
+  // wildcard "*" (prior behavior: any origin may open a stream, which is still
+  // gated by the run-scoped stream token). When set, only listed origins are
+  // reflected back.
+  corsOrigins: (str("FACTORY_CORS_ORIGINS") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
   databaseUrl: resolveDbUrl(),
   // Declared environment identity; fail-closed check (ADR 0014).
   environmentId: str("FACTORY_ENV_ID") ?? "factory-dev",

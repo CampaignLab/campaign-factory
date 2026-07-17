@@ -69,6 +69,22 @@ function header(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
+// CORS for the browser SSE client. The browser connects cross-origin (site on
+// vercel.app → worker on railway.app). FACTORY_CORS_ORIGINS UNSET → wildcard
+// "*" (prior behavior; the SSE stream is still gated by the run-scoped token).
+// When set, reflect only allowlisted origins so nothing else may open a stream.
+// EventSource sends no custom headers (the token rides the query string), so a
+// simple GET needs no preflight; OPTIONS is answered anyway for robustness.
+function corsHeaders(req: IncomingMessage): Record<string, string> {
+  const allow = config.corsOrigins;
+  if (allow.length === 0) return { "Access-Control-Allow-Origin": "*" };
+  const origin = header(req, "origin");
+  if (origin && allow.includes(origin)) {
+    return { "Access-Control-Allow-Origin": origin, Vary: "Origin" };
+  }
+  return {};
+}
+
 function parseJson(raw: string): unknown {
   if (!raw) return {};
   try {
@@ -85,7 +101,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method === "OPTIONS") {
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
+      ...corsHeaders(req),
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "content-type, x-factory-signature, x-factory-timestamp",
     });
@@ -106,7 +122,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const check = verifyStreamToken(config.signingSecret, token, campaignId);
     if (!check.ok) return sendJson(res, 401, { error: `unauthorized: ${check.reason}` });
     const after = resolveAfter(url.searchParams.get("after"), header(req, "last-event-id"));
-    handleSse(res, { sql: sql(), campaignId, afterSequence: after });
+    handleSse(res, { sql: sql(), campaignId, afterSequence: after, corsHeaders: corsHeaders(req) });
     return;
   }
 
