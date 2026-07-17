@@ -1109,6 +1109,12 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
       (state.sourceRecheckDocumentSignature && (state.sourceRecheckStateVersion === null || state.sourceRecheckLastSequence === null)),
   );
   const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy || removedUnprovenancedTopLevelReviewState || removedDuplicatedTopLevelSourceCopy;
+  const hasQueuedWorkingDraft = workingDrafts.some((draft) => draft.status === "queued");
+  const resetScheduleIntent = resetTopLevelDraft && !hasQueuedWorkingDraft;
+  const resetSourceBaseline =
+    removedFixtureSourceBaseline ||
+    removedIncompleteSourceBaseline ||
+    (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
 
   if (
     localActions.length === state.localActions.length &&
@@ -1120,8 +1126,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     !removedFixtureTopLevelCopy &&
     !removedUnprovenancedTopLevelReviewState &&
     !removedDuplicatedTopLevelSourceCopy &&
-    !removedFixtureSourceBaseline &&
-    !removedIncompleteSourceBaseline &&
+    !resetSourceBaseline &&
     !removedFixtureActivity
   ) {
     return state;
@@ -1131,14 +1136,14 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ...state,
     selectedSegment,
     contactFilter,
-    sourceStateVersion: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceStateVersion,
-    sourceLastSequence: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceLastSequence,
-    sourceDocumentSignature: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceDocumentSignature,
-    sourceAcknowledgedAt: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceAcknowledgedAt,
-    sourceRecheckStateVersion: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceRecheckStateVersion,
-    sourceRecheckLastSequence: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceRecheckLastSequence,
-    sourceRecheckDocumentSignature: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? null : state.sourceRecheckDocumentSignature,
-    sourceRecheckVisitedViews: removedFixtureSourceBaseline || removedIncompleteSourceBaseline ? [] : state.sourceRecheckVisitedViews,
+    sourceStateVersion: resetSourceBaseline ? null : state.sourceStateVersion,
+    sourceLastSequence: resetSourceBaseline ? null : state.sourceLastSequence,
+    sourceDocumentSignature: resetSourceBaseline ? null : state.sourceDocumentSignature,
+    sourceAcknowledgedAt: resetSourceBaseline ? null : state.sourceAcknowledgedAt,
+    sourceRecheckStateVersion: resetSourceBaseline ? null : state.sourceRecheckStateVersion,
+    sourceRecheckLastSequence: resetSourceBaseline ? null : state.sourceRecheckLastSequence,
+    sourceRecheckDocumentSignature: resetSourceBaseline ? null : state.sourceRecheckDocumentSignature,
+    sourceRecheckVisitedViews: resetSourceBaseline ? [] : state.sourceRecheckVisitedViews,
     subject: resetTopLevelDraft ? "Local source draft reset" : state.subject,
     body: resetTopLevelDraft
       ? removedMismatchedTopLevelSourceCopy
@@ -1152,12 +1157,13 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     reviewerNote: resetTopLevelDraft ? "" : state.reviewerNote,
     status: resetTopLevelDraft ? "draft" : state.status,
     queuedAt: resetTopLevelDraft ? null : state.queuedAt,
+    scheduleIntent: resetScheduleIntent ? initialState.scheduleIntent : state.scheduleIntent,
     localActions,
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
     activity:
-      removedMismatchedLocalWork || resetTopLevelDraft || removedFixtureSourceBaseline || removedIncompleteSourceBaseline || removedFixtureActivity
+      removedMismatchedLocalWork || resetTopLevelDraft || resetSourceBaseline || removedFixtureActivity
         ? [{ id: "workspace-sanitized", label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed." }, ...activity].slice(0, 7)
         : state.activity,
   };
