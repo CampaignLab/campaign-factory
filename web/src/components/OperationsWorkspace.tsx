@@ -130,8 +130,17 @@ function sanitizeSourceServer(value: unknown) {
 
 function sanitizeSourceContentEncoding(value: unknown) {
   if (typeof value !== "string") return undefined;
-  const trimmed = value.trim().toLowerCase();
-  return /^[a-z0-9!#$&^_.+-]{1,40}$/.test(trimmed) ? trimmed : undefined;
+  const tokens = value
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+  return tokens.length > 0 && tokens.every((token) => /^[a-z0-9!#$&^_.+-]{1,40}$/.test(token)) ? tokens.join(", ") : undefined;
+}
+
+function sanitizeSourceContentRange(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim().toLowerCase().replace(/\s+/g, " ");
+  return /^bytes (?:\d{1,9}-\d{1,9}|\*)\/(?:\d{1,9}|\*)$/.test(trimmed) && trimmed.length <= 80 ? trimmed : undefined;
 }
 
 function sanitizeSourceElapsedMs(value: unknown) {
@@ -169,7 +178,7 @@ function sanitizeSourceFailureKind(value: unknown): SourceFailureKind | undefine
     : undefined;
 }
 
-function upstreamDiagnosticPhrase(sourceFailureKind?: SourceFailureKind, sourceHttpStatus?: number, sourceElapsedMs?: number, sourceRequestId?: string, sourcePath?: string, sourceMatchedPath?: string, sourceCacheStatus?: string, sourceCacheControl?: string, sourceAgeSeconds?: number, sourceResponseDate?: string, sourceContentLength?: number, sourceServer?: string, sourceContentEncoding?: string, sourceBodyEmpty?: boolean, sourceBodyTruncated?: boolean, sourceContentType?: string, sourceContentTypeMissing?: boolean) {
+function upstreamDiagnosticPhrase(sourceFailureKind?: SourceFailureKind, sourceHttpStatus?: number, sourceElapsedMs?: number, sourceRequestId?: string, sourcePath?: string, sourceMatchedPath?: string, sourceCacheStatus?: string, sourceCacheControl?: string, sourceAgeSeconds?: number, sourceResponseDate?: string, sourceContentLength?: number, sourceContentRange?: string, sourceServer?: string, sourceContentEncoding?: string, sourceBodyEmpty?: boolean, sourceBodyTruncated?: boolean, sourceContentType?: string, sourceContentTypeMissing?: boolean) {
   const kindPart = sourceFailureKindLabel(sourceFailureKind);
   const elapsedPart = sourceElapsedMs !== undefined ? `source fetch ${sourceElapsedMs}ms` : null;
   const contentTypePart = sourceContentType ? `upstream content type ${sourceContentType}` : sourceContentTypeMissing ? "no upstream content type" : null;
@@ -180,9 +189,10 @@ function upstreamDiagnosticPhrase(sourceFailureKind?: SourceFailureKind, sourceH
   const agePart = sourceAgeSeconds !== undefined ? `age ${sourceAgeSeconds}s` : null;
   const responseDatePart = sourceResponseDate ? `source date ${sourceResponseDate}` : null;
   const lengthPart = sourceContentLength !== undefined ? `content length ${sourceContentLength} bytes` : null;
+  const rangePart = sourceContentRange ? `content range ${sourceContentRange}` : null;
   const serverPart = sourceServer ? `server ${sourceServer}` : null;
   const encodingPart = sourceContentEncoding ? `content encoding ${sourceContentEncoding}` : null;
-  const parts = [kindPart, sourceHttpStatus ? `upstream HTTP ${sourceHttpStatus}` : null, elapsedPart, sourceRequestId ? `request ${sourceRequestId}` : null, sourcePathPart, matchedPathPart, cachePart, cachePolicyPart, agePart, responseDatePart, lengthPart, serverPart, encodingPart, sourceBodyEmpty ? "empty upstream body" : null, sourceBodyTruncated ? "upstream body truncated" : null, contentTypePart].filter(Boolean);
+  const parts = [kindPart, sourceHttpStatus ? `upstream HTTP ${sourceHttpStatus}` : null, elapsedPart, sourceRequestId ? `request ${sourceRequestId}` : null, sourcePathPart, matchedPathPart, cachePart, cachePolicyPart, agePart, responseDatePart, lengthPart, rangePart, serverPart, encodingPart, sourceBodyEmpty ? "empty upstream body" : null, sourceBodyTruncated ? "upstream body truncated" : null, contentTypePart].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 }
 
@@ -379,8 +389,8 @@ type SourceState =
   | { status: "fixture" }
   | { status: "invalid"; campaignId: string }
   | { status: "loading"; campaignId: string }
-  | { status: "error"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string }
-  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string }
+  | { status: "error"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string }
+  | { status: "unavailable"; campaignId: string; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string }
   | { status: "ready"; source: CampaignSource };
 
 type PortfolioCampaign = {
@@ -399,12 +409,12 @@ type PortfolioLocalCounts = {
 type PortfolioItem =
   | { campaign: PortfolioCampaign; status: "loading"; local: PortfolioLocalCounts }
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource; local: PortfolioLocalCounts }
-  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string; local: PortfolioLocalCounts };
+  | { campaign: PortfolioCampaign; status: "error"; title: string; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string; local: PortfolioLocalCounts };
 
 type CampaignSwitcherItem =
   | { campaign: PortfolioCampaign; status: "loading" }
   | { campaign: PortfolioCampaign; status: "ready"; source: CampaignSource }
-  | { campaign: PortfolioCampaign; status: "error"; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string };
+  | { campaign: PortfolioCampaign; status: "error"; message: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: SourceFailureStep; sourceFailureKind?: SourceFailureKind; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean; checkedAt?: string };
 
 type ContactFixture = {
   id: string;
@@ -1745,10 +1755,10 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
     throw err;
   }
-  let sourceBody: Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } & Record<string, unknown>) | null = null;
+  let sourceBody: Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceContentRange?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } & Record<string, unknown>) | null = null;
   let malformedJson = false;
   try {
-    sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } & Record<string, unknown>);
+    sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceContentRange?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } & Record<string, unknown>);
   } catch {
     malformedJson = true;
   }
@@ -1759,7 +1769,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
       if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
       throw err;
     }
-    const errorBody = sourceBody as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } | null;
+    const errorBody = sourceBody as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string; sourceStep?: unknown; sourceFailureKind?: unknown; sourcePath?: unknown; sourceHttpStatus?: unknown; sourceElapsedMs?: unknown; sourceRequestId?: unknown; sourceMatchedPath?: unknown; sourceCacheStatus?: unknown; sourceCacheControl?: unknown; sourceAgeSeconds?: unknown; sourceResponseDate?: unknown; sourceContentLength?: unknown; sourceContentRange?: unknown; sourceServer?: unknown; sourceContentEncoding?: unknown; sourceBodyEmpty?: unknown; sourceBodyTruncated?: unknown; sourceContentType?: unknown; sourceContentTypeMissing?: unknown } | null;
     const sourceOrigin = normaliseOperationsSourceOrigin(errorBody?.sourceOrigin);
     const sourceStep = sanitizeSourceFailureStep(errorBody?.sourceStep);
     const sourceFailureKind = sanitizeSourceFailureKind(errorBody?.sourceFailureKind);
@@ -1773,6 +1783,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     const sourceAgeSeconds = sanitizeSourceAgeSeconds(errorBody?.sourceAgeSeconds);
     const sourceResponseDate = sanitizeSourceResponseDate(errorBody?.sourceResponseDate);
     const sourceContentLength = sanitizeSourceContentLength(errorBody?.sourceContentLength);
+    const sourceContentRange = sanitizeSourceContentRange(errorBody?.sourceContentRange);
     const sourceServer = sanitizeSourceServer(errorBody?.sourceServer);
     const sourceContentEncoding = sanitizeSourceContentEncoding(errorBody?.sourceContentEncoding);
     const sourceBodyEmpty = sanitizeSourceBodyEmpty(errorBody?.sourceBodyEmpty);
@@ -1802,6 +1813,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (sourceAgeSeconds !== undefined) (err as Error & { sourceAgeSeconds?: number }).sourceAgeSeconds = sourceAgeSeconds;
     if (sourceResponseDate) (err as Error & { sourceResponseDate?: string }).sourceResponseDate = sourceResponseDate;
     if (sourceContentLength !== undefined) (err as Error & { sourceContentLength?: number }).sourceContentLength = sourceContentLength;
+    if (sourceContentRange) (err as Error & { sourceContentRange?: string }).sourceContentRange = sourceContentRange;
     if (sourceServer) (err as Error & { sourceServer?: string }).sourceServer = sourceServer;
     if (sourceContentEncoding) (err as Error & { sourceContentEncoding?: string }).sourceContentEncoding = sourceContentEncoding;
     if (sourceBodyEmpty) (err as Error & { sourceBodyEmpty?: boolean }).sourceBodyEmpty = sourceBodyEmpty;
@@ -1956,6 +1968,7 @@ function OperationsPortfolio() {
         const sourceAgeSeconds = (error as { sourceAgeSeconds?: number } | null)?.sourceAgeSeconds;
         const sourceResponseDate = (error as { sourceResponseDate?: string } | null)?.sourceResponseDate;
         const sourceContentLength = (error as { sourceContentLength?: number } | null)?.sourceContentLength;
+        const sourceContentRange = (error as { sourceContentRange?: string } | null)?.sourceContentRange;
         const sourceServer = (error as { sourceServer?: string } | null)?.sourceServer;
         const sourceContentEncoding = (error as { sourceContentEncoding?: string } | null)?.sourceContentEncoding;
         const sourceBodyEmpty = (error as { sourceBodyEmpty?: boolean } | null)?.sourceBodyEmpty;
@@ -1966,7 +1979,7 @@ function OperationsPortfolio() {
         setItems((current) =>
           current.map((item) =>
             item.campaign.id === campaign.id
-              ? { campaign, status: "error", title: isSourceRunNotReadyStatus(runStatus) ? "Campaign not usable yet" : "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
+              ? { campaign, status: "error", title: isSourceRunNotReadyStatus(runStatus) ? "Campaign not usable yet" : "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentRange, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
               : item,
           ),
         );
@@ -2064,9 +2077,9 @@ function OperationsPortfolio() {
                         Failed source step: <span className="font-medium text-foreground">{sourceFailureStepLabel(item.sourceStep)}</span>
                       </p>
                     ) : null}
-                    {item.status === "error" && upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing) ? (
+                    {item.status === "error" && upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceContentRange, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing) ? (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Source response: <span className="font-medium text-foreground">{upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing)}</span>
+                        Source response: <span className="font-medium text-foreground">{upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceContentRange, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing)}</span>
                       </p>
                     ) : null}
                     {item.status === "error" && item.checkedAt ? (
@@ -2130,7 +2143,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
   const runStatus = "runStatus" in state ? state.runStatus : undefined;
   const sourceStep = "sourceStep" in state ? sourceFailureStepLabel(state.sourceStep) : null;
   const retryMessage = "retryAfter" in state ? retryAfterMessage(state.retryAfter) : null;
-  const sourceDiagnostic = "sourceHttpStatus" in state ? upstreamDiagnosticPhrase(state.sourceFailureKind, state.sourceHttpStatus, state.sourceElapsedMs, state.sourceRequestId, state.sourcePath, state.sourceMatchedPath, state.sourceCacheStatus, state.sourceCacheControl, state.sourceAgeSeconds, state.sourceResponseDate, state.sourceContentLength, state.sourceServer, state.sourceContentEncoding, state.sourceBodyEmpty, state.sourceBodyTruncated, state.sourceContentType, state.sourceContentTypeMissing) : null;
+  const sourceDiagnostic = "sourceHttpStatus" in state ? upstreamDiagnosticPhrase(state.sourceFailureKind, state.sourceHttpStatus, state.sourceElapsedMs, state.sourceRequestId, state.sourcePath, state.sourceMatchedPath, state.sourceCacheStatus, state.sourceCacheControl, state.sourceAgeSeconds, state.sourceResponseDate, state.sourceContentLength, state.sourceContentRange, state.sourceServer, state.sourceContentEncoding, state.sourceBodyEmpty, state.sourceBodyTruncated, state.sourceContentType, state.sourceContentTypeMissing) : null;
   const checkedAt = "checkedAt" in state ? state.checkedAt : undefined;
   const showSourceStepWithoutOrigin = canLinkSource && !sourceOrigin && Boolean(sourceStep) && state.status !== "loading";
   const noFallbackInstruction =
@@ -2286,6 +2299,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         const sourceAgeSeconds = (error as { sourceAgeSeconds?: number } | null)?.sourceAgeSeconds;
         const sourceResponseDate = (error as { sourceResponseDate?: string } | null)?.sourceResponseDate;
         const sourceContentLength = (error as { sourceContentLength?: number } | null)?.sourceContentLength;
+        const sourceContentRange = (error as { sourceContentRange?: string } | null)?.sourceContentRange;
         const sourceServer = (error as { sourceServer?: string } | null)?.sourceServer;
         const sourceContentEncoding = (error as { sourceContentEncoding?: string } | null)?.sourceContentEncoding;
         const sourceBodyEmpty = (error as { sourceBodyEmpty?: boolean } | null)?.sourceBodyEmpty;
@@ -2293,10 +2307,10 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         const sourceContentType = (error as { sourceContentType?: string } | null)?.sourceContentType;
         const sourceContentTypeMissing = (error as { sourceContentTypeMissing?: boolean } | null)?.sourceContentTypeMissing;
         if (runStatus && runStatus !== "completed" && runStatus !== "partial") {
-          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() });
+          setSourceState({ status: "unavailable", campaignId, title: "Campaign not usable yet", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentRange, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() });
           return;
         }
-        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() });
+        setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentRange, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() });
       });
     return () => controller.abort();
   }, [campaignId, sourceRetryCount]);
@@ -2379,6 +2393,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           const sourceAgeSeconds = (error as { sourceAgeSeconds?: number } | null)?.sourceAgeSeconds;
           const sourceResponseDate = (error as { sourceResponseDate?: string } | null)?.sourceResponseDate;
           const sourceContentLength = (error as { sourceContentLength?: number } | null)?.sourceContentLength;
+          const sourceContentRange = (error as { sourceContentRange?: string } | null)?.sourceContentRange;
           const sourceServer = (error as { sourceServer?: string } | null)?.sourceServer;
           const sourceContentEncoding = (error as { sourceContentEncoding?: string } | null)?.sourceContentEncoding;
           const sourceBodyEmpty = (error as { sourceBodyEmpty?: boolean } | null)?.sourceBodyEmpty;
@@ -2388,7 +2403,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           setSwitcherItems((current) =>
             current.map((item) =>
               item.campaign.id === campaign.id
-                ? { campaign, status: "error", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() }
+                ? { campaign, status: "error", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentRange, sourceServer, sourceContentEncoding, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, checkedAt: new Date().toISOString() }
                 : item,
             ),
           );
@@ -4579,7 +4594,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                         item.message,
                         item.runStatus ? `source run status: ${statusPhrase(item.runStatus)}` : null,
                         failureStep ? `failed source step: ${failureStep}` : null,
-                        upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing),
+                        upstreamDiagnosticPhrase(item.sourceFailureKind, item.sourceHttpStatus, item.sourceElapsedMs, item.sourceRequestId, item.sourcePath, item.sourceMatchedPath, item.sourceCacheStatus, item.sourceCacheControl, item.sourceAgeSeconds, item.sourceResponseDate, item.sourceContentLength, item.sourceContentRange, item.sourceServer, item.sourceContentEncoding, item.sourceBodyEmpty, item.sourceBodyTruncated, item.sourceContentType, item.sourceContentTypeMissing),
                         item.sourceOrigin ? `checked source: ${item.sourceOrigin}` : null,
                         item.checkedAt ? `last attempt ${formatQueuedTime(item.checkedAt)}` : null,
                         retryMessage,

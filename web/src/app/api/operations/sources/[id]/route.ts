@@ -170,6 +170,16 @@ function sanitizeSourceContentLength(value: string | null) {
   return Number.isSafeInteger(bytes) ? bytes : undefined;
 }
 
+function sanitizeSourceContentRange(value: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim().toLowerCase().replace(/\s+/g, " ");
+  return /^bytes (?:\d{1,9}-\d{1,9}|\*)\/(?:\d{1,9}|\*)$/.test(trimmed) && trimmed.length <= 80 ? trimmed : undefined;
+}
+
+function hasSourceContentRange(response: Response) {
+  return response.headers.has("content-range");
+}
+
 function declaredSourceContentLength(response: Response) {
   return sanitizeSourceContentLength(response.headers.get("content-length"));
 }
@@ -247,6 +257,7 @@ function upstreamResponseMetadata(response: Response, elapsedMs: number | undefi
     sourceAgeSeconds: sanitizeSourceAgeSeconds(response.headers.get("age")),
     sourceResponseDate: sanitizeSourceResponseDate(response.headers.get("date")),
     sourceContentLength: sanitizeSourceContentLength(response.headers.get("content-length")),
+    sourceContentRange: sanitizeSourceContentRange(response.headers.get("content-range")),
     sourceServer: sanitizeSourceServer(response.headers.get("server")),
     sourceContentEncoding: sanitizeSourceContentEncoding(response.headers.get("content-encoding")),
     sourceBodyEmpty: !bodyTruncated && hasEmptyObservedBody(response, bodyText),
@@ -273,7 +284,7 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
     ...(result.sourceFailureKind ? { sourceFailureKind: result.sourceFailureKind } : {}),
     ...(result.sourcePath ? { sourcePath: result.sourcePath } : {}),
@@ -286,6 +297,7 @@ function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind
     ...(result.sourceAgeSeconds !== undefined ? { sourceAgeSeconds: result.sourceAgeSeconds } : {}),
     ...(result.sourceResponseDate ? { sourceResponseDate: result.sourceResponseDate } : {}),
     ...(result.sourceContentLength !== undefined ? { sourceContentLength: result.sourceContentLength } : {}),
+    ...(result.sourceContentRange ? { sourceContentRange: result.sourceContentRange } : {}),
     ...(result.sourceServer ? { sourceServer: result.sourceServer } : {}),
     ...(result.sourceContentEncoding ? { sourceContentEncoding: result.sourceContentEncoding } : {}),
     ...(result.sourceBodyEmpty ? { sourceBodyEmpty: true } : {}),
@@ -300,7 +312,7 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T; metadata: UpstreamMetadata }
-  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
   const startedAt = Date.now();
@@ -343,6 +355,18 @@ async function fetchSourceJson<T>(
         contractMismatch: true,
         message: `Read-only source ${path} returned HTTP ${response.status} instead of the expected 200 JSON contract.`,
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), undefined, path),
+      };
+    }
+    if (hasSourceContentRange(response)) {
+      response.body?.cancel().catch(() => undefined);
+      return {
+        ok: false,
+        status: 502,
+        path,
+        sourceFailureKind: "contract_mismatch",
+        contractMismatch: true,
+        message: `Read-only source ${path} returned a Content-Range header despite the complete-response JSON contract.`,
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), undefined, path, true),
       };
     }
     if (hasNonIdentitySourceContentEncoding(response)) {
