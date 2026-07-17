@@ -1572,17 +1572,20 @@ test("operations portfolio: manual refresh ignores stale source responses", asyn
   const payloadFor = (id: string, campaign: { title: string; place: string; status: string; unresolved: number; next: string }, sequence = 1) => ({
     sourceOrigin: "https://campaign-factory.vercel.app",
     run: { campaignId: id, status: campaign.status, stateVersion: sequence, lastSequence: sequence, events: [] },
-    documents: [
-      { key: "campaign_brief", num: 1, name: "Campaign Brief", status: "ready", html: "", plainText: `${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nPortfolio refresh race fixture.`, isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"], resourceCount: 0, flags: [] },
-      { key: "media_pack", num: 8, name: "Media Pack", status: "ready", html: "", plainText: "MEDIA PACK", isPack: true, sectionKeys: [], resourceCount: 0, flags: [] },
-    ],
+    documents: canonicalOperationsDocuments(campaign.title).map((document) => {
+      if (document.key === "campaign_brief") {
+        const plainText = withCompiledDocumentDisclaimer(`${campaign.title}\n\nPlace: ${campaign.place}\n\nTHE PROBLEM\nPortfolio refresh race fixture.`);
+        return { ...document, html: `<p>${plainText}</p>`, plainText };
+      }
+      return document.key === "media_pack" ? { ...document, status: "ready" } : document;
+    }),
     evidence: {
       groups: [],
       conflicts: [],
       nextChecks: [{ id: "next", description: campaign.next, reason: "Portfolio refresh race", claimIds: [], affectedSections: [] }],
       terminalGaps: [],
       draftNotes: [],
-      totals: { claims: 90, loadBearing: 70, verifiedLoadBearing: 70 - campaign.unresolved, unresolvedLoadBearing: campaign.unresolved },
+      totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
     },
   });
 
@@ -1953,6 +1956,46 @@ test("operations workspace: non-JSON rate limits preserve retry guidance", async
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText(/Operations source adapter returned a non-JSON content type \(HTTP 429\)/)).toBeVisible();
   await expect(page.getByText("Source retry guidance: try again after 75 seconds.")).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
+test("operations workspace: malformed JSON source responses stay as no-fixture-fallback failures", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{not valid json",
+    });
+  });
+
+  await page.goto("/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/Operations source adapter returned malformed JSON \(HTTP 200\)/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "View source brief" })).toHaveAttribute(
+    "href",
+    "https://campaign-factory.vercel.app/factory/c/6b54225d-afa3-41d1-b053-89741094f153",
+  );
+});
+
+test("operations workspace: malformed JSON rate limits preserve retry guidance", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 429,
+      headers: { "Retry-After": "45" },
+      contentType: "application/json",
+      body: "{not valid json",
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/Operations source adapter returned malformed JSON \(HTTP 429\)/)).toBeVisible();
+  await expect(page.getByText("Source retry guidance: try again after 45 seconds.")).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });

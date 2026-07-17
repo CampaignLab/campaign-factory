@@ -1512,8 +1512,20 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
     throw err;
   }
-  const sourceBody = (await sourceRes.json().catch(() => null)) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>) | null;
+  let sourceBody: Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>) | null = null;
+  let malformedJson = false;
+  try {
+    sourceBody = (await sourceRes.json()) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>);
+  } catch {
+    malformedJson = true;
+  }
   if (!sourceRes.ok) {
+    if (malformedJson) {
+      const retryAfter = sanitizeSourceRetryAfter(sourceRes.headers.get("retry-after"));
+      const err = new Error(`The Operations source adapter returned malformed JSON (HTTP ${sourceRes.status}). No fixture fallback was used.`);
+      if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
+      throw err;
+    }
     const errorBody = sourceBody as { error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } | null;
     const sourceOrigin = normaliseOperationsSourceOrigin(errorBody?.sourceOrigin);
     const hasSourceOriginField = isRecord(errorBody) && Object.prototype.hasOwnProperty.call(errorBody, "sourceOrigin");
@@ -1529,7 +1541,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     throw err;
   }
   if (!sourceBody) {
-    throw new Error(`The Operations source adapter returned a non-JSON response (HTTP ${sourceRes.status}). No fixture fallback was used.`);
+    throw new Error(`The Operations source adapter returned malformed JSON (HTTP ${sourceRes.status}). No fixture fallback was used.`);
   }
   const sourceOrigin = normaliseOperationsSourceOrigin(sourceBody.sourceOrigin);
   const run = sourceBody.run;
