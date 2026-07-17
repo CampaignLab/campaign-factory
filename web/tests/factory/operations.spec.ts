@@ -2120,9 +2120,15 @@ test("operations workspace: retry action reloads the read-only source without fi
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
 
+  await page.evaluate(() => {
+    (window as Window & { __operationsRetryMarker?: string }).__operationsRetryMarker = "retry-without-page-reload";
+  });
   await page.getByRole("button", { name: "Try source load again" }).click();
 
   await expect(page.getByRole("heading", { name: /Keep KFC Out of Ormskirk/ })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => (window as Window & { __operationsRetryMarker?: string }).__operationsRetryMarker))
+    .toBe("retry-without-page-reload");
   await expect(page.getByText("Confirm official appeal status before the next phase").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   expect(requestCount).toBeGreaterThanOrEqual(2);

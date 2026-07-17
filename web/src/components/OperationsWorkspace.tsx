@@ -1878,7 +1878,7 @@ function OperationsPortfolio() {
   );
 }
 
-function SourceStateShell({ state }: { state: Exclude<SourceState, { status: "fixture" } | { status: "ready" }> }) {
+function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { status: "fixture" } | { status: "ready" }>; onRetry?: () => void }) {
   const campaignId = state.campaignId;
   const curatedCampaign = PORTFOLIO_CAMPAIGNS.find((campaign) => campaign.id === campaignId);
   const sourceHref = curatedCampaign?.sourceHref ?? "/factory";
@@ -1950,8 +1950,8 @@ function SourceStateShell({ state }: { state: Exclude<SourceState, { status: "fi
             </div>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            {canLinkSource && state.status !== "loading" ? (
-              <Button type="button" onClick={() => window.location.reload()} className="rounded-full bg-ops-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            {canLinkSource && state.status !== "loading" && onRetry ? (
+              <Button type="button" onClick={onRetry} className="rounded-full bg-ops-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                 Try source load again
               </Button>
             ) : null}
@@ -1985,6 +1985,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   );
   const [switcherItems, setSwitcherItems] = useState<CampaignSwitcherItem[]>(initialCampaignSwitcherItems);
   const [hasStoredLocalState, setHasStoredLocalState] = useState(false);
+  const [sourceRetryCount, setSourceRetryCount] = useState(0);
   const storageKey = useMemo(() => localStorageKeyFor(campaignId), [campaignId]);
   const source = sourceState.status === "ready" ? sourceState.source : null;
 
@@ -2030,7 +2031,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         setSourceState({ status: "error", campaignId, title: "Campaign source unavailable", message, sourceOrigin, retryAfter });
       });
     return () => controller.abort();
-  }, [campaignId]);
+  }, [campaignId, sourceRetryCount]);
 
   useEffect(() => {
     if (!hydrated || !source || hasStoredLocalState) return;
@@ -4241,7 +4242,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   };
 
   if (sourceState.status !== "fixture" && sourceState.status !== "ready") {
-    return <SourceStateShell state={sourceState} />;
+    return <SourceStateShell state={sourceState} onRetry={() => setSourceRetryCount((count) => count + 1)} />;
   }
 
   return (
