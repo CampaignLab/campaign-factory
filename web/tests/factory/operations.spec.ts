@@ -2191,7 +2191,14 @@ test("operations portfolio: source labels carry through workspace switching with
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId: id, status: campaign.status, stateVersion: 1, lastSequence: 1, events: [] },
         documents: campaignOperationsDocuments(campaign, {
-          power_stakeholder_map: `POWER MAP\n\n${campaign.title} stakeholder clues.`,
+          power_stakeholder_map: [
+            "POWER MAP",
+            "",
+            "Decides",
+            `${campaign.title} planning lead — source power-map mention only.`,
+            "Power: formal decision-route influence",
+            "Position: must be researched before any contact claim exists",
+          ].join("\n"),
           digital_pack: `DIGITAL PACK\n\nAudience notes for ${campaign.title}.`,
         }),
         evidence: {
@@ -2210,6 +2217,9 @@ test("operations portfolio: source labels carry through workspace switching with
 
   await expect(page.getByRole("heading", { name: "Contact import boundary for this campaign" })).toBeVisible();
   await expect(page.getByText("No imported contacts for Keep KFC Out of Ormskirk")).toBeVisible();
+  await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Named stakeholders from the source power map");
+  await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("Keep KFC Out of Ormskirk planning lead");
+  await expect(page.getByLabel("Source audience and stakeholder contact boundary")).toContainText("source mention only; no contact record or consent state exists");
   await expect(page.getByRole("button", { name: "Reset local workspace" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reset demo state" })).toHaveCount(0);
   await expect(page.getByLabel("Campaign switcher")).toContainText("Current: KFC Out of Ormskirk");

@@ -3679,7 +3679,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         </div>
 
         {source ? (
-          <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border bg-background">
+          <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border bg-background" aria-label="Source audience and stakeholder contact boundary">
             <div className="hidden grid-cols-[0.8fr_minmax(0,1.2fr)_0.9fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground md:grid">
               <span>Source clue</span><span>Planning use</span><span>Boundary</span>
             </div>
@@ -3694,6 +3694,26 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                 No source audience clues were exposed by the typed documents. Keep contacts disconnected rather than substituting fixture people.
               </div>
             )}
+            {sourceStakeholders.length ? (
+              <div className="border-t border-border bg-ops-blue/35 px-4 py-4">
+                <p className="text-sm font-semibold">Named stakeholders from the source power map</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  These names help plan who might need research or consent checks; they are not imported contacts, provider recipients, or approval to approach anyone.
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {sourceStakeholders.slice(0, 4).map((stakeholder) => (
+                    <div key={`${stakeholder.group}-${stakeholder.name}`} className="rounded-[var(--r-xl)] border border-border bg-background/75 p-3 text-sm">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{stakeholder.name}</p>
+                        <span className="rounded-full bg-ops-yellow px-2 py-0.5 text-xs text-ops-ink">{stakeholder.group}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{stakeholder.power}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Boundary: source mention only; no contact record or consent state exists.</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <>
