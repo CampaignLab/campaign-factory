@@ -230,11 +230,22 @@ function hasEmptyObservedBody(response: Response, bodyText?: string) {
 
 async function safeReadBoundedResponseText(response: Response, limitBytes: number) {
   const reader = response.body?.getReader();
-  if (!reader) return { text: undefined, truncated: false, bytes: 0 };
-  const decoder = new TextDecoder();
+  if (!reader) return { text: undefined, truncated: false, bytes: 0, invalidTextEncoding: false };
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   let text = "";
   let bytes = 0;
   let truncated = false;
+  let invalidTextEncoding = false;
+
+  function appendDecoded(chunk?: Uint8Array, options?: TextDecodeOptions) {
+    try {
+      text += decoder.decode(chunk, options);
+      return true;
+    } catch {
+      invalidTextEncoding = true;
+      return false;
+    }
+  }
 
   try {
     while (true) {
@@ -248,20 +259,24 @@ async function safeReadBoundedResponseText(response: Response, limitBytes: numbe
         break;
       }
       if (value.byteLength > remaining) {
-        text += decoder.decode(value.slice(0, remaining), { stream: true });
+        appendDecoded(value.slice(0, remaining), { stream: true });
         bytes += remaining;
         truncated = true;
         await reader.cancel();
         break;
       }
-      text += decoder.decode(value, { stream: true });
       bytes += value.byteLength;
+      if (!appendDecoded(value, { stream: true })) {
+        await reader.cancel();
+        break;
+      }
     }
   } catch {
-    return { text: undefined, truncated, bytes };
+    return { text: undefined, truncated, bytes, invalidTextEncoding };
   }
 
-  return { text: text + decoder.decode(), truncated, bytes };
+  if (!truncated && !invalidTextEncoding) appendDecoded();
+  return { text: invalidTextEncoding ? undefined : text, truncated, bytes, invalidTextEncoding };
 }
 
 async function safeReadDiagnosticResponseText(response: Response) {
@@ -457,6 +472,17 @@ async function fetchSourceJson<T>(
         sourceFailureKind: "oversized_json",
         contractMismatch: true,
         message: `Read-only source ${path} returned a JSON body larger than the preview-safe limit.`,
+        ...metadata,
+      };
+    }
+    if (responseBody.invalidTextEncoding) {
+      return {
+        ok: false,
+        status: 502,
+        path,
+        sourceFailureKind: "malformed_json",
+        contractMismatch: true,
+        message: `Read-only source ${path} returned JSON that was not valid UTF-8.`,
         ...metadata,
       };
     }

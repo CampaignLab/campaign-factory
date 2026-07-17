@@ -1573,6 +1573,59 @@ test("operations source API: malformed JSON source runs fail closed before docum
   }
 });
 
+test("operations source API: invalid UTF-8 source runs fail closed before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const encoder = new TextEncoder();
+  const prefix = `{"campaignId":"${curatedId}","status":"partial","stateVersion":1,"lastSequence":0,"events":[],"sourceNote":"`;
+  const suffix = `"}`;
+  const invalidUtf8Body = new Uint8Array(prefix.length + 1 + suffix.length);
+  invalidUtf8Body.set(encoder.encode(prefix), 0);
+  invalidUtf8Body.set([0xff], prefix.length);
+  invalidUtf8Body.set(encoder.encode(suffix), prefix.length + 1);
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(invalidUtf8Body, {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-length": String(invalidUtf8Body.byteLength),
+          "x-matched-path": "/api/factory/runs/[id]",
+          "x-vercel-id": "lhr1::iad1::ops-invalid-utf8-json",
+        },
+      });
+    }
+
+    throw new Error("Documents must not hydrate after an invalid UTF-8 source run response.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expectPublicSourceJsonBoundary(response.headers, "invalid UTF-8 source run");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; sourceFailureKind?: string; sourceContentLength?: number; sourceBodyEmpty?: boolean; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} returned JSON that was not valid UTF-8.`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.sourceFailureKind).toBe("malformed_json");
+    expect(body.sourceContentLength).toBe(invalidUtf8Body.byteLength);
+    expect(body.sourceBodyEmpty).toBeUndefined();
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: malformed JSON source documents fail closed after the validated run header", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
