@@ -12,7 +12,7 @@ import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/docu
 import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
   hasConsistentOperationsDocumentEvidence,
-  hasSyntheticUnavailableOperationsRunHeader,
+  hasUnavailableOperationsRunHeaderProvenance,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
@@ -1510,7 +1510,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     throw err;
   }
   const sourceRunUnavailable = sourceBody.sourceRunUnavailable === true;
-  if (sourceRunUnavailable && !hasSyntheticUnavailableOperationsRunHeader(run)) {
+  if (!hasUnavailableOperationsRunHeaderProvenance(run, sourceRunUnavailable)) {
     const err = new Error("The public campaign source returned inconsistent unavailable run-header provenance.");
     (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;

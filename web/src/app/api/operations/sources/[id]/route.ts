@@ -3,6 +3,7 @@ import {
   OPERATIONS_DEFAULT_SOURCE_ORIGIN,
   hasConsistentOperationsDocumentEvidence,
   hasSyntheticUnavailableOperationsRunHeader,
+  hasUnavailableOperationsRunHeaderProvenance,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsPublicCampaignId,
@@ -121,6 +122,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           sourceOrigin: origin,
         },
         409,
+      );
+    }
+
+    if (!hasUnavailableOperationsRunHeaderProvenance(run.value, false)) {
+      return sourceJson(
+        { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin },
+        502,
       );
     }
   } else if (run.status === 404) {

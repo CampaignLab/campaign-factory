@@ -44,6 +44,10 @@ export function hasSyntheticUnavailableOperationsRunHeader(value: RunReadModel) 
   return value.status === "partial" && value.stateVersion === 0 && value.lastSequence === 0 && value.events.length === 0;
 }
 
+export function hasUnavailableOperationsRunHeaderProvenance(value: RunReadModel, sourceRunUnavailable: boolean) {
+  return hasSyntheticUnavailableOperationsRunHeader(value) === sourceRunUnavailable;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
