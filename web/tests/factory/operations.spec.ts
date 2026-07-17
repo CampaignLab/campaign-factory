@@ -3175,6 +3175,72 @@ test("operations workbench: internal source events do not hydrate a real workspa
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: blank source event summaries do not hydrate a real workspace", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = [
+    { key: "campaign_brief", num: 1, name: "Campaign Brief", isPack: false, sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"] },
+    { key: "objective_theory_of_change", num: 2, name: "Objective and Theory of Change", isPack: false, sectionKeys: ["objective"] },
+    { key: "power_stakeholder_map", num: 3, name: "Power and Stakeholder Map", isPack: false, sectionKeys: ["power", "pressure"] },
+    { key: "campaign_strategy", num: 4, name: "Campaign Strategy", isPack: false, sectionKeys: ["strategy"] },
+    { key: "tactics_timeline", num: 5, name: "Tactics and Timeline", isPack: false, sectionKeys: ["tactics"] },
+    { key: "organising_plan", num: 6, name: "Organising Plan", isPack: false, sectionKeys: ["organising"] },
+    { key: "lobbying_pack", num: 7, name: "Lobbying Pack", isPack: true, sectionKeys: [] },
+    { key: "media_pack", num: 8, name: "Media Pack", isPack: true, sectionKeys: [] },
+    { key: "digital_pack", num: 9, name: "Digital Campaign Pack", isPack: true, sectionKeys: [] },
+  ].map((doc) => ({
+    ...doc,
+    status: "ready",
+    html: `<p>Blank source event summary should not hydrate ${doc.name}</p>`,
+    plainText: `Blank source event summary should not hydrate ${doc.name}`,
+    resourceCount: 0,
+    flags: [],
+  }));
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: {
+          campaignId,
+          status: "partial",
+          stateVersion: 10,
+          lastSequence: 1,
+          events: [
+            {
+              eventId: "blank-summary-event-1",
+              sequence: 1,
+              campaignId,
+              type: "document.status",
+              at: "2026-07-16T20:50:00Z",
+              visibility: "public",
+              payload: { summary: "", documentKey: "campaign_brief", documentStatus: "ready" },
+            },
+          ],
+        },
+        documents,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign/i)).toBeVisible();
+  await expect(page.getByText("Blank source event summary should not hydrate Campaign Brief")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: rejects inconsistent evidence totals before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
