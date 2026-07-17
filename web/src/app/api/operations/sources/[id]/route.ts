@@ -103,15 +103,27 @@ function sanitizeSourceContentType(value: string | null) {
   return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(mediaType) && mediaType.length <= 80 ? { value: mediaType } : {};
 }
 
-function sanitizeSourceContentEncoding(value: string | null) {
+function sourceContentEncodingTokens(value: string | null) {
   if (!value) return undefined;
-  const trimmed = value.trim().toLowerCase();
-  return /^[a-z0-9!#$&^_.+-]{1,40}$/.test(trimmed) ? trimmed : undefined;
+  const tokens = value
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+  if (tokens.length === 0) return undefined;
+  if (!tokens.every((token) => /^[a-z0-9!#$&^_.+-]{1,40}$/.test(token))) return null;
+  return tokens;
+}
+
+function sanitizeSourceContentEncoding(value: string | null) {
+  const tokens = sourceContentEncodingTokens(value);
+  return tokens?.join(", ") || undefined;
 }
 
 function hasNonIdentitySourceContentEncoding(response: Response) {
-  const encoding = sanitizeSourceContentEncoding(response.headers.get("content-encoding"));
-  return encoding !== undefined && encoding !== "identity";
+  const tokens = sourceContentEncodingTokens(response.headers.get("content-encoding"));
+  if (tokens === undefined) return false;
+  if (tokens === null) return true;
+  return tokens.some((token) => token !== "identity");
 }
 
 function sanitizeSourceMatchedPath(value: string | null) {
