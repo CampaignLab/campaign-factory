@@ -79,6 +79,33 @@ function hasJsonContentType(response: Response) {
   return mediaType === "application/json" || mediaType.endsWith("+json");
 }
 
+function sourceJsonCharset(value: string | null) {
+  if (!value) return undefined;
+  const charsets = value
+    .split(";")
+    .slice(1)
+    .map((part) => {
+      const [name, ...rest] = part.split("=");
+      if (name?.trim().toLowerCase() !== "charset" || rest.length === 0) return undefined;
+      const raw = rest.join("=").trim().toLowerCase();
+      const unquoted = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1).trim() : raw;
+      return /^[a-z0-9._-]{1,40}$/.test(unquoted) ? unquoted : "malformed";
+    })
+    .filter((charset): charset is string => Boolean(charset));
+  if (charsets.length === 0) return undefined;
+  if (charsets.length > 1) return "malformed";
+  return charsets[0];
+}
+
+function sanitizeSourceJsonCharset(value: string | null) {
+  return sourceJsonCharset(value);
+}
+
+function hasUnsupportedSourceJsonCharset(response: Response) {
+  const charset = sourceJsonCharset(response.headers.get("content-type"));
+  return charset !== undefined && charset !== "utf-8";
+}
+
 const RETRY_AFTER_HTTP_DATE_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 
 function sanitizeRetryAfter(value: string | null) {
@@ -303,6 +330,7 @@ function upstreamResponseMetadata(response: Response, elapsedMs: number | undefi
     sourceContentRange: sanitizeSourceContentRange(response.headers.get("content-range")),
     sourceServer: sanitizeSourceServer(response.headers.get("server")),
     sourceContentEncoding: sanitizeSourceContentEncoding(response.headers.get("content-encoding")),
+    sourceContentCharset: sanitizeSourceJsonCharset(response.headers.get("content-type")),
     sourceBodyEmpty: !bodyTruncated && hasEmptyObservedBody(response, bodyText),
     ...(bodyTruncated ? { sourceBodyTruncated: true } : {}),
     ...("value" in contentType ? { sourceContentType: contentType.value } : {}),
@@ -327,7 +355,7 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceContentCharset?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
     ...(result.sourceFailureKind ? { sourceFailureKind: result.sourceFailureKind } : {}),
     ...(result.sourcePath ? { sourcePath: result.sourcePath } : {}),
@@ -343,6 +371,7 @@ function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind
     ...(result.sourceContentRange ? { sourceContentRange: result.sourceContentRange } : {}),
     ...(result.sourceServer ? { sourceServer: result.sourceServer } : {}),
     ...(result.sourceContentEncoding ? { sourceContentEncoding: result.sourceContentEncoding } : {}),
+    ...(result.sourceContentCharset ? { sourceContentCharset: result.sourceContentCharset } : {}),
     ...(result.sourceBodyEmpty ? { sourceBodyEmpty: true } : {}),
     ...(result.sourceBodyTruncated ? { sourceBodyTruncated: true } : {}),
     ...(result.sourceContentType ? { sourceContentType: result.sourceContentType } : {}),
@@ -355,7 +384,7 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T; metadata: UpstreamMetadata }
-  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceContentRange?: string; sourceServer?: string; sourceContentEncoding?: string; sourceContentCharset?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
   const startedAt = Date.now();
@@ -446,6 +475,18 @@ async function fetchSourceJson<T>(
         contractMismatch: true,
         message: `Read-only source ${path} returned a non-JSON content type.`,
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), diagnosticBody.text, path, diagnosticBody.truncated),
+      };
+    }
+    if (hasUnsupportedSourceJsonCharset(response)) {
+      response.body?.cancel().catch(() => undefined);
+      return {
+        ok: false,
+        status: 502,
+        path,
+        sourceFailureKind: "contract_mismatch",
+        contractMismatch: true,
+        message: `Read-only source ${path} declared an unsupported JSON charset despite the UTF-8 source contract.`,
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), undefined, path, true),
       };
     }
     const declaredContentLength = declaredSourceContentLength(response);
