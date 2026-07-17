@@ -1706,7 +1706,7 @@ test("operations source API: duplicate JSON charset source runs fail closed as m
 
     const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; sourceFailureKind?: string; sourceContentLength?: number; sourceContentCharset?: string; sourceBodyTruncated?: boolean; documents?: unknown[]; sourceRunUnavailable?: boolean };
     expect(body.error).toBe("Campaign source contract mismatch");
-    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} declared an unsupported JSON charset despite the UTF-8 source contract.`);
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} declared a malformed JSON charset despite the UTF-8 source contract.`);
     expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
     expect(body.sourceFailureKind).toBe("contract_mismatch");
     expect(body.sourceContentLength).toBe(20);

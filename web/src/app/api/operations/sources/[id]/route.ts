@@ -101,9 +101,10 @@ function sanitizeSourceJsonCharset(value: string | null) {
   return sourceJsonCharset(value);
 }
 
-function hasUnsupportedSourceJsonCharset(response: Response) {
+function sourceJsonCharsetContractMismatch(response: Response) {
   const charset = sourceJsonCharset(response.headers.get("content-type"));
-  return charset !== undefined && charset !== "utf-8";
+  if (charset === undefined || charset === "utf-8") return undefined;
+  return charset === "malformed" ? "malformed" : "unsupported";
 }
 
 const RETRY_AFTER_HTTP_DATE_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
@@ -477,7 +478,8 @@ async function fetchSourceJson<T>(
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), diagnosticBody.text, path, diagnosticBody.truncated),
       };
     }
-    if (hasUnsupportedSourceJsonCharset(response)) {
+    const charsetMismatch = sourceJsonCharsetContractMismatch(response);
+    if (charsetMismatch) {
       response.body?.cancel().catch(() => undefined);
       return {
         ok: false,
@@ -485,7 +487,10 @@ async function fetchSourceJson<T>(
         path,
         sourceFailureKind: "contract_mismatch",
         contractMismatch: true,
-        message: `Read-only source ${path} declared an unsupported JSON charset despite the UTF-8 source contract.`,
+        message:
+          charsetMismatch === "malformed"
+            ? `Read-only source ${path} declared a malformed JSON charset despite the UTF-8 source contract.`
+            : `Read-only source ${path} declared an unsupported JSON charset despite the UTF-8 source contract.`,
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), undefined, path, true),
       };
     }
