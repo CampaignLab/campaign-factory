@@ -493,6 +493,54 @@ test("operations source API: empty upstream run failures are detected without co
   }
 });
 
+test("operations source API: large upstream failure bodies are bounded before diagnostics", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response("x".repeat(70_000), {
+        status: 500,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "70000",
+          "x-matched-path": "/api/factory/runs/[id]",
+          "x-vercel-id": "lhr1::iad1::ops-large-body",
+        },
+      });
+    }
+
+    throw new Error("Documents must not hydrate when the source run failure body is oversized.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(500);
+    expectPublicSourceJsonBoundary(response.headers, "large source run failure body");
+
+    const bodyText = await response.text();
+    expect(bodyText).not.toContain("x".repeat(512));
+    const body = JSON.parse(bodyText) as { error?: string; detail?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceContentLength?: number; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[] };
+    expect(body.error).toBe("Campaign source run unavailable");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} returned HTTP 500`);
+    expect(body.sourceStep).toBe("run");
+    expect(body.sourceFailureKind).toBe("http_error");
+    expect(body.sourcePath).toBe(`/api/factory/runs/${curatedId}`);
+    expect(body.sourceHttpStatus).toBe(500);
+    expect(body.sourceContentLength).toBe(70000);
+    expect(body.sourceBodyEmpty).toBeUndefined();
+    expect(body.sourceBodyTruncated).toBe(true);
+    expect(body.sourceContentType).toBe("text/html");
+    expect(body.documents).toBeUndefined();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: rate-limited source runs preserve retry guidance and stop document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
@@ -2255,6 +2303,36 @@ test("operations workspace: failed direct source load keeps canonical source bri
     "href",
     "https://campaign-factory.vercel.app/factory/c/57678ae0-29fd-4b4b-8a53-5c711cdb21cf",
   );
+});
+
+test("operations workspace: oversized upstream source bodies show bounded diagnostics without fixture fallback", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Campaign source run unavailable",
+        detail: "Preview source returned HTTP 500 with an oversized body.",
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceStep: "run",
+        sourceFailureKind: "http_error",
+        sourcePath: "/api/factory/runs/69f257b6-9913-4395-94f7-5c25b4b5fe95",
+        sourceHttpStatus: 500,
+        sourceContentLength: 70000,
+        sourceBodyTruncated: true,
+        sourceContentType: "text/html",
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/Preview source returned HTTP 500 with an oversized body/)).toBeVisible();
+  await expect(page.getByText(/source failure HTTP error · upstream HTTP 500/)).toBeVisible();
+  await expect(page.getByText(/content length 70000 bytes · upstream body truncated · upstream content type text\/html/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
 
 

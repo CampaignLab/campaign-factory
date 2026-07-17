@@ -31,6 +31,7 @@ const SOURCE_FETCH_HEADERS = {
   pragma: "no-cache",
 };
 const SOURCE_FETCH_TIMEOUT_MS = 10_000;
+const SOURCE_DIAGNOSTIC_BODY_LIMIT_BYTES = 64 * 1024;
 
 function sourceJson<T>(body: T, status = 200, headers: Record<string, string> = NO_STORE_HEADERS) {
   return NextResponse.json(body, { status, headers });
@@ -156,7 +157,7 @@ function hasEmptyObservedBody(response: Response, bodyText?: string) {
   return bodyText !== undefined && bodyText.trim().length === 0;
 }
 
-async function safeReadResponseText(response: Response) {
+async function safeReadFullResponseText(response: Response) {
   try {
     return await response.text();
   } catch {
@@ -164,7 +165,43 @@ async function safeReadResponseText(response: Response) {
   }
 }
 
-function upstreamResponseMetadata(response: Response, elapsedMs: number | undefined, bodyText?: string, sourcePath?: string) {
+async function safeReadDiagnosticResponseText(response: Response) {
+  const reader = response.body?.getReader();
+  if (!reader) return { text: undefined, truncated: false };
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  let truncated = false;
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      const remaining = SOURCE_DIAGNOSTIC_BODY_LIMIT_BYTES - bytes;
+      if (remaining <= 0) {
+        truncated = true;
+        await reader.cancel();
+        break;
+      }
+      if (value.byteLength > remaining) {
+        text += decoder.decode(value.slice(0, remaining), { stream: true });
+        bytes += remaining;
+        truncated = true;
+        await reader.cancel();
+        break;
+      }
+      text += decoder.decode(value, { stream: true });
+      bytes += value.byteLength;
+    }
+  } catch {
+    return { text: undefined, truncated };
+  }
+
+  return { text: text + decoder.decode(), truncated };
+}
+
+function upstreamResponseMetadata(response: Response, elapsedMs: number | undefined, bodyText?: string, sourcePath?: string, bodyTruncated = false) {
   const contentType = sanitizeSourceContentType(response.headers.get("content-type"));
   return {
     sourcePath: sanitizeSourcePath(sourcePath),
@@ -179,6 +216,7 @@ function upstreamResponseMetadata(response: Response, elapsedMs: number | undefi
     sourceContentLength: sanitizeSourceContentLength(response.headers.get("content-length")),
     sourceServer: sanitizeSourceServer(response.headers.get("server")),
     sourceBodyEmpty: hasEmptyObservedBody(response, bodyText),
+    ...(bodyTruncated ? { sourceBodyTruncated: true } : {}),
     ...("value" in contentType ? { sourceContentType: contentType.value } : {}),
     ...("missing" in contentType ? { sourceContentTypeMissing: true } : {}),
   };
@@ -201,7 +239,7 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
     ...(result.sourceFailureKind ? { sourceFailureKind: result.sourceFailureKind } : {}),
     ...(result.sourcePath ? { sourcePath: result.sourcePath } : {}),
@@ -216,6 +254,7 @@ function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind
     ...(result.sourceContentLength !== undefined ? { sourceContentLength: result.sourceContentLength } : {}),
     ...(result.sourceServer ? { sourceServer: result.sourceServer } : {}),
     ...(result.sourceBodyEmpty ? { sourceBodyEmpty: true } : {}),
+    ...(result.sourceBodyTruncated ? { sourceBodyTruncated: true } : {}),
     ...(result.sourceContentType ? { sourceContentType: result.sourceContentType } : {}),
     ...(result.sourceContentTypeMissing ? { sourceContentTypeMissing: true } : {}),
   };
@@ -226,7 +265,7 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T; metadata: UpstreamMetadata }
-  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
   const startedAt = Date.now();
@@ -248,6 +287,7 @@ async function fetchSourceJson<T>(
     });
     if (!response.ok) {
       const redirectDetail = isRedirectStatus(response.status) ? " Redirects are not followed for preview-safe source reads." : "";
+      const diagnosticBody = await safeReadDiagnosticResponseText(response);
       return {
         ok: false,
         status: response.status,
@@ -255,10 +295,11 @@ async function fetchSourceJson<T>(
         sourceFailureKind: isRedirectStatus(response.status) ? "redirect" : "http_error",
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
-        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response), path),
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), diagnosticBody.text, path, diagnosticBody.truncated),
       };
     }
     if (!hasJsonContentType(response)) {
+      const diagnosticBody = await safeReadDiagnosticResponseText(response);
       return {
         ok: false,
         status: 502,
@@ -266,10 +307,10 @@ async function fetchSourceJson<T>(
         sourceFailureKind: "non_json",
         contractMismatch: true,
         message: `Read-only source ${path} returned a non-JSON content type.`,
-        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response), path),
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), diagnosticBody.text, path, diagnosticBody.truncated),
       };
     }
-    const responseText = await safeReadResponseText(response);
+    const responseText = await safeReadFullResponseText(response);
     const metadata = upstreamResponseMetadata(response, sourceElapsedMs(startedAt), responseText, path);
     try {
       return { ok: true, value: JSON.parse(responseText ?? "") as T, metadata };
