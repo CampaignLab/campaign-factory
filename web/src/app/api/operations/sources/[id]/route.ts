@@ -148,6 +148,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const docs = await fetchSourceJson<Pick<OperationsSourcePayload, "documents" | "evidence">>(origin, `/api/factory/runs/${encodeURIComponent(id)}/documents`);
   if (!docs.ok) {
+    if (isRedirectStatus(docs.status)) {
+      return sourceJson(
+        { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin },
+        502,
+      );
+    }
+
     return sourceJson(
       { error: "Campaign source documents unavailable", detail: upstreamFailureDetail(docs, run.ok ? undefined : run), sourceOrigin: origin },
       docs.status === 404 ? 404 : docs.status === 504 ? 504 : 502,
