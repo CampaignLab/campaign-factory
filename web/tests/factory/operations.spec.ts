@@ -9038,6 +9038,9 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededEvidence & checks");
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededStrategy & tactics");
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededDrafts");
+  await expect(page.getByLabel("Overview source re-check shortcuts")).toContainText("Re-check Evidence & checks");
+  await expect(page.getByLabel("Overview source re-check shortcuts")).toContainText("Re-check Strategy & tactics");
+  await expect(page.getByLabel("Overview source re-check shortcuts")).toContainText("Re-check Drafts");
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toHaveAttribute(
     "title",
@@ -9296,10 +9299,15 @@ test("operations workbench: direct links count required source re-check views", 
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("CheckedEvidence & checks");
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededStrategy & tactics");
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededDrafts");
+  await page.getByLabel("Overview source re-check shortcuts").getByRole("button", { name: "Re-check Strategy & tactics" }).click();
+  await expect(page.getByRole("heading", { name: /Strategy & tactics/i })).toBeVisible();
+  await page.getByRole("button", { name: /Overview/ }).first().click();
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("CheckedStrategy & tactics");
+  await expect(page.getByLabel("Overview source re-check shortcuts")).toContainText("Re-check Drafts");
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toHaveAttribute(
     "title",
-    "Reopen Strategy & tactics, Drafts before acknowledging this source update.",
+    "Reopen Drafts before acknowledging this source update.",
   );
 });
 

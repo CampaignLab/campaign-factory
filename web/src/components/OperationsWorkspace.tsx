@@ -4338,7 +4338,22 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                       })}
                     </ul>
                     {missingSourceRecheckViews.length ? (
-                      <p className="mt-2">Still inspect {missingSourceRecheckViews.map((view) => sourceRecheckViewLabels[view]).join(", ")} before acknowledging the new source baseline.</p>
+                      <>
+                        <p className="mt-2">Still inspect {missingSourceRecheckViews.map((view) => sourceRecheckViewLabels[view]).join(", ")} before acknowledging the new source baseline.</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Overview source re-check shortcuts">
+                          <span className="font-medium">Reopen from Overview:</span>
+                          {missingSourceRecheckViews.map((view) => (
+                            <button
+                              key={view}
+                              type="button"
+                              onClick={() => setView(view)}
+                              className="rounded-full border border-ops-ink/20 bg-background/70 px-2.5 py-1 text-xs font-medium hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            >
+                              Re-check {sourceRecheckViewLabels[view]}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     ) : (
                       <p className="mt-2">Required source views have been reopened in this browser; acknowledgement can now unlock local approval and queue controls.</p>
                     )}
