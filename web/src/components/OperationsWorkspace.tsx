@@ -1924,6 +1924,7 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
   const sourceStep = "sourceStep" in state ? sourceFailureStepLabel(state.sourceStep) : null;
   const retryMessage = "retryAfter" in state ? retryAfterMessage(state.retryAfter) : null;
   const checkedAt = "checkedAt" in state ? state.checkedAt : undefined;
+  const showSourceStepWithoutOrigin = canLinkSource && !sourceOrigin && Boolean(sourceStep) && state.status !== "loading";
   const localCounts = canLinkSource && state.status !== "loading" ? portfolioLocalCounts(campaignId) : emptyPortfolioLocalCounts();
   const localSignals = localSignalPhrases(localCounts);
 
@@ -1952,6 +1953,11 @@ function SourceStateShell({ state, onRetry }: { state: Exclude<SourceState, { st
           {sourceOrigin ? (
             <p className="mt-3 max-w-3xl rounded-[var(--r-xl)] border border-ops-line bg-background/80 px-3 py-2 text-sm text-muted-foreground">
               Checked read-only source: <span className="font-medium text-foreground">{sourceOrigin}</span>{sourceStep ? ` · failed source step: ${sourceStep}` : ""}{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
+            </p>
+          ) : null}
+          {showSourceStepWithoutOrigin ? (
+            <p className="mt-3 max-w-3xl rounded-[var(--r-xl)] border border-ops-line bg-background/80 px-3 py-2 text-sm text-muted-foreground">
+              Failed source step: <span className="font-medium text-foreground">{sourceStep}</span>{checkedAt ? ` · last attempt ${formatQueuedTime(checkedAt)}` : ""}
             </p>
           ) : null}
           {retryMessage ? (

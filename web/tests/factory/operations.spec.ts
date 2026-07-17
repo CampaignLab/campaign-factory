@@ -1985,6 +1985,26 @@ test("operations workspace: failed direct source load keeps canonical source bri
 });
 
 
+test("operations workspace: direct source configuration failures name the failed step without fixture fallback", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed.", sourceStep: "configuration" }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("The configured read-only operations source origin is not allow-listed.")).toBeVisible();
+  await expect(page.getByText(/Failed source step: source configuration/)).toBeVisible();
+  await expect(page.getByText(/last attempt/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
+
 test("operations workspace: failed direct source load reports preserved local work without fixture fallback", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
