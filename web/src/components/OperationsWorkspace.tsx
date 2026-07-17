@@ -193,6 +193,7 @@ type CampaignSource = {
   nextGate?: string;
   sourceHref: string;
   sourceOrigin: string;
+  sourceRunUnavailable?: boolean;
 };
 
 type SourceState =
@@ -1122,6 +1123,19 @@ function statusPhrase(status: RunReadModel["status"]) {
   return "Cancelled";
 }
 
+function sourceStatusPhrase(source: CampaignSource) {
+  return source.sourceRunUnavailable ? "Source header unavailable" : statusPhrase(source.runStatus);
+}
+
+function sourceStatusDetail(source: CampaignSource) {
+  const documentSummary = `${source.readyCount}/${source.documents.length} documents ready`;
+  const incompleteSummary = source.incompleteDocuments.map((doc) => `${doc.name} ${doc.status}`).join(", ") || "no incomplete documents";
+  if (source.sourceRunUnavailable) {
+    return `Source header unavailable · compiled documents loaded read-only; ${documentSummary}; ${incompleteSummary}.`;
+  }
+  return `${statusPhrase(source.runStatus)} · ${documentSummary}; ${incompleteSummary}.`;
+}
+
 function shortText(value: string, max = 88) {
   return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
 }
@@ -1255,7 +1269,7 @@ function buildInitialStateForSource(source: CampaignSource): DemoState {
       "",
       `This is a browser-local working draft for ${source.title}${source.place ? ` in ${source.place}` : ""}. No provider action, scheduling, contact import, or public source write-back has happened.`,
       "",
-      `Current source status: ${statusPhrase(source.runStatus)}; ${source.readyCount}/${source.documents.length} compiled documents are ready.`,
+      `Current source status: ${sourceStatusPhrase(source)}; ${source.readyCount}/${source.documents.length} compiled documents are ready${source.sourceRunUnavailable ? " from the read-only documents endpoint while the run header was unavailable" : ""}.`,
       "",
       `Next source check: ${nextCheck}`,
       "",
@@ -1274,7 +1288,7 @@ function buildInitialStateForSource(source: CampaignSource): DemoState {
     workingDrafts: [],
     activeWorkingDraftId: null,
     sourceWorkingCopy: null,
-    activity: [{ id: `source-${source.campaignId}`, label: `Real campaign source loaded read-only for ${source.title}; local operations state is separate.` }],
+    activity: [{ id: `source-${source.campaignId}`, label: `${source.sourceRunUnavailable ? "Compiled campaign documents loaded read-only while the run header was unavailable" : "Real campaign source loaded read-only"} for ${source.title}; local operations state is separate.` }],
   };
 }
 
@@ -1320,8 +1334,10 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
         },
         {
           label: "Source status",
-          detail: `${statusPhrase(source.runStatus)} · ${source.readyCount}/${source.documents.length} documents ready; ${source.incompleteDocuments.map((doc) => `${doc.name} ${doc.status}`).join(", ") || "no incomplete documents"}.`,
-          use: "Partial is usable, but incomplete documents remain visible rather than silently filled.",
+          detail: sourceStatusDetail(source),
+          use: source.sourceRunUnavailable
+            ? "Compiled documents can still populate the workspace, but the missing run header remains visible instead of pretending the source status is known."
+            : "Partial is usable, but incomplete documents remain visible rather than silently filled.",
           owner: "Workbench",
         },
         {
@@ -1527,6 +1543,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     nextGate: priorityGate?.description ?? body.evidence.nextChecks[0]?.description,
     sourceHref: `${sourceOrigin}/factory/c/${campaignId}`,
     sourceOrigin,
+    sourceRunUnavailable: sourceBody.sourceRunUnavailable === true,
   };
 }
 
@@ -1666,7 +1683,7 @@ function OperationsPortfolio() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       {item.campaign.conferenceHero ? <span className="rounded-full bg-ops-ink px-2.5 py-1 text-xs font-medium text-white">Conference deep dive</span> : null}
-                      <span className="rounded-full bg-ops-blue px-2.5 py-1 text-xs text-ops-ink">{source ? statusPhrase(source.runStatus) : item.status === "loading" ? "Loading source" : "Source issue"}</span>
+                      <span className="rounded-full bg-ops-blue px-2.5 py-1 text-xs text-ops-ink">{source ? sourceStatusPhrase(source) : item.status === "loading" ? "Loading source" : "Source issue"}</span>
                       <span className="rounded-full border border-ops-line bg-background/80 px-2.5 py-1 text-xs text-muted-foreground">Browser-local state separate</span>
                     </div>
                     <h2 className="mt-3 text-2xl font-medium tracking-tight">{item.status === "ready" ? item.source.title : item.status === "loading" ? "Loading campaign…" : item.title}</h2>
@@ -1979,7 +1996,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       label: "Brief",
       view: "brief",
       status: "complete",
-      statusLabel: source ? `${statusPhrase(source.runStatus)} source loaded` : "Fixture brief loaded",
+      statusLabel: source ? `${sourceStatusPhrase(source)} source loaded` : "Fixture brief loaded",
       detail: source
         ? `${source.readyCount}/${source.documents.length} public campaign documents ready; source stays read-only.`
         : "Outcome, place, and provenance are visible before any communication work starts.",
@@ -3253,7 +3270,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div>
               <SmallLabel>Source identity & provenance</SmallLabel>
-              <h2 className="mt-2 text-2xl font-medium">{statusPhrase(source.runStatus)} · loaded from public Campaign Factory data</h2>
+              <h2 className="mt-2 text-2xl font-medium">{sourceStatusPhrase(source)} · loaded from public Campaign Factory data</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Campaign ID <span className="font-mono text-xs text-foreground">{source.campaignId}</span> · state v{source.stateVersion} · event #{source.lastSequence} · loaded {formatQueuedTime(source.loadedAt)}.
               </p>
@@ -3767,7 +3784,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             <span className="text-muted-foreground">{source ? `${source.title}${source.place ? ` · ${source.place}` : ""}` : "St John the Baptist school street · Leicester"}</span>
             {source ? (
               <span className="rounded-full bg-ops-blue px-3 py-1 text-xs text-ops-ink">
-                {statusPhrase(source.runStatus)} · {source.readyCount}/{source.documents.length} docs ready
+                {sourceStatusPhrase(source)} · {source.readyCount}/{source.documents.length} docs ready
               </span>
             ) : null}
             <span className="rounded-full bg-ops-mint px-3 py-1 text-xs text-ops-ink">

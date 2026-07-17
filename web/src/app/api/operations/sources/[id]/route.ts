@@ -147,6 +147,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       documents: docs.value.documents,
       evidence: docs.value.evidence,
       sourceRunUnavailable: run.ok ? undefined : true,
-    } as OperationsSourcePayload & { sourceRunUnavailable?: boolean },
+    } as OperationsSourcePayload,
   );
 }

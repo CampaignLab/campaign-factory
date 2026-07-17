@@ -2697,6 +2697,38 @@ test("operations workbench: source next checks and draft notes require public te
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: unavailable run header stays visible when documents load", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceRunUnavailable: true,
+        run: { campaignId, status: "partial", stateVersion: 0, lastSequence: 0, events: [] },
+        documents: canonicalOperationsDocuments("Run header unavailable Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Confirm the public source run header once the endpoint recovers", reason: "The compiled documents loaded but the run header was unavailable", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Run header unavailable Ormskirk" }).first()).toBeVisible();
+  await expect(page.getByText("Source header unavailable").first()).toBeVisible();
+  await expect(page.getByText(/compiled campaign documents loaded read-only/i).first()).toBeVisible();
+  await expect(page.getByText("Partial but usable")).toHaveCount(0);
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toHaveCount(0);
+});
+
 test("operations workbench: source terminal gaps require public text and journey steps", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

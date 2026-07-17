@@ -36,6 +36,7 @@ export type OperationsSourcePayload = {
   run: RunReadModel;
   documents: CompiledDocument[];
   evidence: EvidenceAndNextChecks;
+  sourceRunUnavailable?: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
