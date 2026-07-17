@@ -69,6 +69,10 @@ function unavailableSourceStatus(status: number) {
   return status >= 400 && status < 600 ? status : 502;
 }
 
+function hasExpectedSourceStatus(response: Response) {
+  return response.status === 200;
+}
+
 function hasJsonContentType(response: Response) {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   const mediaType = contentType.split(";", 1)[0]?.trim() ?? "";
@@ -327,6 +331,18 @@ async function fetchSourceJson<T>(
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), diagnosticBody.text, path, diagnosticBody.truncated),
+      };
+    }
+    if (!hasExpectedSourceStatus(response)) {
+      response.body?.cancel().catch(() => undefined);
+      return {
+        ok: false,
+        status: 502,
+        path,
+        sourceFailureKind: "contract_mismatch",
+        contractMismatch: true,
+        message: `Read-only source ${path} returned HTTP ${response.status} instead of the expected 200 JSON contract.`,
+        ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), undefined, path),
       };
     }
     if (hasNonIdentitySourceContentEncoding(response)) {
