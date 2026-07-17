@@ -1673,6 +1673,53 @@ test("operations source API: unsupported JSON charset source runs fail closed be
   }
 });
 
+test("operations source API: duplicate JSON charset source runs fail closed as malformed", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response('{"status":"partial"}', {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8; charset=utf-16",
+          "content-length": "20",
+          "x-matched-path": "/api/factory/runs/[id]",
+          "x-vercel-id": "lhr1::iad1::ops-duplicate-json-charset",
+        },
+      });
+    }
+
+    throw new Error("Documents must not hydrate when the source run declares duplicate JSON charsets.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expectPublicSourceJsonBoundary(response.headers, "duplicate JSON charset source run");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; sourceFailureKind?: string; sourceContentLength?: number; sourceContentCharset?: string; sourceBodyTruncated?: boolean; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} declared an unsupported JSON charset despite the UTF-8 source contract.`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.sourceFailureKind).toBe("contract_mismatch");
+    expect(body.sourceContentLength).toBe(20);
+    expect(body.sourceContentCharset).toBe("malformed");
+    expect(body.sourceBodyTruncated).toBe(true);
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: malformed JSON source documents fail closed after the validated run header", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
