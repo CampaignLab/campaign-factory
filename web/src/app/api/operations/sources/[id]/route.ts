@@ -191,6 +191,7 @@ function sourceFailureHeaders(result: { retryAfter?: string }) {
 }
 
 type SourceStep = "run" | "documents" | "configuration";
+type SourceFailureKind = "configuration" | "http_error" | "redirect" | "non_json" | "malformed_json" | "contract_mismatch" | "not_ready" | "timeout" | "network";
 
 function sourceFailureBody(step: SourceStep, body: Record<string, unknown>) {
   return { ...body, sourceStep: step };
@@ -200,8 +201,9 @@ function hasExplicitEmptyBody(response: Response) {
   return response.headers.get("content-length")?.trim() === "0";
 }
 
-function upstreamFailureMetadata(result: { sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
+function upstreamFailureMetadata(result: { sourceFailureKind?: SourceFailureKind; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }) {
   return {
+    ...(result.sourceFailureKind ? { sourceFailureKind: result.sourceFailureKind } : {}),
     ...(result.sourcePath ? { sourcePath: result.sourcePath } : {}),
     ...(result.sourceHttpStatus ? { sourceHttpStatus: result.sourceHttpStatus } : {}),
     ...(result.sourceElapsedMs !== undefined ? { sourceElapsedMs: result.sourceElapsedMs } : {}),
@@ -224,7 +226,7 @@ async function fetchSourceJson<T>(
   path: string,
 ): Promise<
   | { ok: true; value: T; metadata: UpstreamMetadata }
-  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
+  | { ok: false; status: number; message: string; path: string; sourceFailureKind: SourceFailureKind; contractMismatch?: boolean; retryAfter?: string; sourcePath?: string; sourceHttpStatus?: number; sourceElapsedMs?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceCacheStatus?: string; sourceCacheControl?: string; sourceAgeSeconds?: number; sourceResponseDate?: string; sourceContentLength?: number; sourceServer?: string; sourceBodyEmpty?: boolean; sourceContentType?: string; sourceContentTypeMissing?: boolean }
 > {
   const controller = new AbortController();
   const startedAt = Date.now();
@@ -250,6 +252,7 @@ async function fetchSourceJson<T>(
         ok: false,
         status: response.status,
         path,
+        sourceFailureKind: isRedirectStatus(response.status) ? "redirect" : "http_error",
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response), path),
@@ -260,6 +263,7 @@ async function fetchSourceJson<T>(
         ok: false,
         status: 502,
         path,
+        sourceFailureKind: "non_json",
         contractMismatch: true,
         message: `Read-only source ${path} returned a non-JSON content type.`,
         ...upstreamResponseMetadata(response, sourceElapsedMs(startedAt), await safeReadResponseText(response), path),
@@ -274,6 +278,7 @@ async function fetchSourceJson<T>(
         ok: false,
         status: 502,
         path,
+        sourceFailureKind: "malformed_json",
         contractMismatch: true,
         message: `Read-only source ${path} returned malformed JSON.`,
         ...metadata,
@@ -284,6 +289,7 @@ async function fetchSourceJson<T>(
       ok: false,
       status: timedOut ? 504 : 502,
       path,
+      sourceFailureKind: timedOut ? "timeout" : "network",
       message: timedOut
         ? `Read-only source ${path} timed out after ${SOURCE_FETCH_TIMEOUT_MS / 1000} seconds.`
         : `Read-only source ${path} could not be reached.`,
@@ -299,7 +305,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   if (!UUID_RE.test(id) || !isOperationsPublicCampaignId(id)) {
     return sourceJson(
-      sourceFailureBody("configuration", { error: "Operations source not found", detail: "This read-only preview source path only exposes the curated public operations campaigns." }),
+      sourceFailureBody("configuration", { error: "Operations source not found", detail: "This read-only preview source path only exposes the curated public operations campaigns.", sourceFailureKind: "configuration" }),
       404,
     );
   }
@@ -307,7 +313,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const originResult = sourceOrigin();
   if (!originResult.ok) {
     return sourceJson(
-      sourceFailureBody("configuration", { error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed." }),
+      sourceFailureBody("configuration", { error: "Operations source origin unavailable", detail: "The configured read-only operations source origin is not allow-listed.", sourceFailureKind: "configuration" }),
       502,
     );
   }
@@ -317,7 +323,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (run.ok) {
     if (!isOperationsRunReadModel(run.value, id)) {
       return sourceJson(
-        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin, ...upstreamFailureMetadata(run.metadata) }),
+        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source did not return a run in the expected shape.", sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...run.metadata }) }),
         502,
       );
     }
@@ -329,7 +335,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           detail: `This campaign is ${run.value.status}, so compiled operations source material is not available yet.`,
           runStatus: run.value.status,
           sourceOrigin: origin,
-          ...upstreamFailureMetadata(run.metadata),
+          ...upstreamFailureMetadata({ sourceFailureKind: "not_ready", ...run.metadata }),
         }),
         409,
       );
@@ -337,7 +343,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
     if (!hasUnavailableOperationsRunHeaderProvenance(run.value, false)) {
       return sourceJson(
-        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin, ...upstreamFailureMetadata(run.metadata) }),
+        sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source returned an unavailable run header without unavailable provenance.", sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...run.metadata }) }),
         502,
       );
     }
@@ -400,7 +406,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     !hasConsistentOperationsDocumentEvidence(docs.value.documents, docs.value.evidence)
   ) {
     return sourceJson(
-      sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", runStatus: run.value.status, sourceOrigin: origin, ...upstreamFailureMetadata(docs.metadata) }),
+        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", runStatus: run.value.status, sourceOrigin: origin, ...upstreamFailureMetadata({ sourceFailureKind: "contract_mismatch", ...docs.metadata }) }),
       502,
     );
   }
