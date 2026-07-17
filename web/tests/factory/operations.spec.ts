@@ -51,6 +51,8 @@ test("operations source API: invalid and non-curated ids are allow-list misses w
     expect(response.headers()["cache-control"]).toBe("no-store");
     expect(response.headers()["content-security-policy"]).toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     expect(response.headers()["cross-origin-resource-policy"]).toBe("same-origin");
+    expect(response.headers().expires).toBe("0");
+    expect(response.headers().pragma).toBe("no-cache");
     expect(response.headers()["referrer-policy"]).toBe("no-referrer");
     expect(response.headers()["x-content-type-options"]).toBe("nosniff");
 
@@ -77,6 +79,8 @@ test("operations source API: non-GET methods are blocked as read-only no-store r
     expect(response.headers()["cache-control"]).toBe("no-store");
     expect(response.headers()["content-security-policy"]).toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     expect(response.headers()["cross-origin-resource-policy"]).toBe("same-origin");
+    expect(response.headers().expires).toBe("0");
+    expect(response.headers().pragma).toBe("no-cache");
     expect(response.headers()["referrer-policy"]).toBe("no-referrer");
     expect(response.headers()["x-content-type-options"]).toBe("nosniff");
     expect(response.headers().allow).toBe("GET");
@@ -272,6 +276,8 @@ test("operations source API: network failures do not leak thrown upstream detail
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-security-policy")).toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    expect(response.headers.get("expires")).toBe("0");
+    expect(response.headers.get("pragma")).toBe("no-cache");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 
@@ -323,6 +329,8 @@ test("operations source API: successful source responses keep same-origin resour
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-security-policy")).toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    expect(response.headers.get("expires")).toBe("0");
+    expect(response.headers.get("pragma")).toBe("no-cache");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 
