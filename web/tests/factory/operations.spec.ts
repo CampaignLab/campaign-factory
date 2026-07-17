@@ -3142,6 +3142,73 @@ test("operations source API: successful source responses keep same-origin resour
   }
 });
 
+test("operations source API: explicit identity content-encoding hydrates complete source responses", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] });
+  const documentsBody = JSON.stringify({
+    documents: canonicalOperationsDocuments(),
+    evidence: campaignEvidence([{ id: "appeal-status", description: "Confirm the public appeal status before changing phase.", reason: "The real workspace must keep evidence gates visible.", affectedSections: ["evidence"] }], 1),
+  });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(runBody, {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-encoding": "Identity",
+          "content-length": String(Buffer.byteLength(runBody)),
+          "x-matched-path": "/api/factory/runs/[id]",
+          "x-vercel-id": "lhr1::iad1::ops-run-identity-encoding",
+        },
+      });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(documentsBody, {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-encoding": " identity ",
+          "content-length": String(Buffer.byteLength(documentsBody)),
+          "x-matched-path": "/api/factory/runs/[id]/documents",
+          "x-vercel-id": "lhr1::iad1::ops-documents-identity-encoding",
+        },
+      });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(200);
+    expectPublicSourceJsonBoundary(response.headers, "explicit identity content-encoding source responses");
+
+    const body = (await response.json()) as { sourceOrigin?: string; run?: { campaignId?: string; status?: string }; documents?: unknown[]; evidence?: { totals?: { unresolvedLoadBearing?: number }; nextChecks?: unknown[] }; sourceRunUnavailable?: boolean };
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.run?.campaignId).toBe(curatedId);
+    expect(body.run?.status).toBe("partial");
+    expect(body.documents).toHaveLength(9);
+    expect(body.evidence?.totals?.unresolvedLoadBearing).toBe(1);
+    expect(body.evidence?.nextChecks).toHaveLength(1);
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations workbench: cross-view local review and demo queue flow", async ({ page }) => {
   await page.goto("/operations?demo=fixture");
 
