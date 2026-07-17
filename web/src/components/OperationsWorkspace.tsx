@@ -2864,6 +2864,14 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         <p className="mt-3 max-w-3xl text-muted-foreground">
           Actions created here are browser-local operations work. They preserve source provenance and never write back to Campaign Factory, import contacts, or trigger provider scheduling.
         </p>
+        {sourceBaselineChanged ? (
+          <div className="mt-4 rounded-[var(--r-xl)] border border-ops-coral bg-ops-coral/55 p-3 text-sm text-ops-ink" role="status" aria-label="Action plan source update pause">
+            <p className="font-medium">Action statuses need source re-check.</p>
+            <p className="mt-1">
+              The read-only campaign source changed after these browser-local actions were created. Keep the actions visible, then re-check their evidence and tactic provenance before approval or local queueing resumes.
+            </p>
+          </div>
+        ) : null}
         <div className="mt-6 grid gap-3 md:grid-cols-2" aria-label="Recommended source actions">
           {recommendedActions.map((action) => (
             <div key={action.id} className="rounded-[var(--r-2xl)] border border-ops-line bg-background p-4">
@@ -2891,6 +2899,11 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
                 <span className="font-medium lg:hidden">Action: </span><span className="font-medium">{action.title}</span>
                 <p className="mt-1 text-xs text-muted-foreground">{action.source}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{action.provenance}</p>
+                {sourceBaselineChanged ? (
+                  <p className="mt-2 rounded-[var(--r-lg)] border border-ops-coral bg-ops-coral/35 px-2 py-1 text-xs text-ops-ink">
+                    Source re-check required before this local action informs approval or queueing.
+                  </p>
+                ) : null}
               </div>
               <div><span className="font-medium lg:hidden">Owner: </span>{action.owner}</div>
               <div className="text-muted-foreground"><span className="font-medium text-foreground lg:hidden">Timing: </span>{action.timing}</div>

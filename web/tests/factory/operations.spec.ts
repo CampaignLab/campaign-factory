@@ -6086,6 +6086,8 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByRole("button", { name: "Queue locally for demo" })).toBeDisabled();
   await page.getByRole("button", { name: /Action plan/ }).first().click();
   await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
+  await expect(page.getByLabel("Action plan source update pause")).toContainText("Action statuses need source re-check.");
+  await expect(page.getByText("Source re-check required before this local action informs approval or queueing.")).toBeVisible();
 
   await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
   await expect(page.getByLabel("Outbox source update pause")).toContainText("Local queue changes are paused for source re-check.");
