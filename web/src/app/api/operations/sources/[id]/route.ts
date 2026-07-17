@@ -50,7 +50,16 @@ function isRedirectStatus(status: number) {
   return status >= 300 && status < 400;
 }
 
-async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string }> {
+function hasJsonContentType(response: Response) {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  const mediaType = contentType.split(";", 1)[0]?.trim() ?? "";
+  return mediaType === "application/json" || mediaType.endsWith("+json");
+}
+
+async function fetchSourceJson<T>(
+  origin: string,
+  path: string,
+): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean }> {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -69,10 +78,13 @@ async function fetchSourceJson<T>(origin: string, path: string): Promise<{ ok: t
       const redirectDetail = isRedirectStatus(response.status) ? " Redirects are not followed for preview-safe source reads." : "";
       return { ok: false, status: response.status, path, message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}` };
     }
+    if (!hasJsonContentType(response)) {
+      return { ok: false, status: 502, path, contractMismatch: true, message: `Read-only source ${path} returned a non-JSON content type.` };
+    }
     try {
       return { ok: true, value: (await response.json()) as T };
     } catch {
-      return { ok: false, status: 502, path, message: `Read-only source ${path} returned a non-JSON response.` };
+      return { ok: false, status: 502, path, contractMismatch: true, message: `Read-only source ${path} returned a non-JSON response.` };
     }
   } catch (error) {
     return {
@@ -144,6 +156,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin },
       502,
     );
+  } else if (run.contractMismatch) {
+    return sourceJson(
+      { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin },
+      502,
+    );
   }
 
   const docs = await fetchSourceJson<Pick<OperationsSourcePayload, "documents" | "evidence">>(origin, `/api/factory/runs/${encodeURIComponent(id)}/documents`);
@@ -151,6 +168,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (isRedirectStatus(docs.status)) {
       return sourceJson(
         { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin },
+        502,
+      );
+    }
+
+    if (docs.contractMismatch) {
+      return sourceJson(
+        { error: "Campaign source contract mismatch", detail: docs.message, sourceOrigin: origin },
         502,
       );
     }

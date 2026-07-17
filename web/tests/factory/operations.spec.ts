@@ -164,6 +164,85 @@ test("operations source API: upstream document redirects fail closed after the v
   }
 });
 
+test("operations source API: upstream run responses require JSON content type before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual({ accept: "application/json" });
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(JSON.stringify({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] }), {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
+    throw new Error("Documents should not be requested after a non-JSON source run response.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain("non-JSON content type");
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("operations source API: upstream document responses require JSON content type after the validated run header", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual({ accept: "application/json" });
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return Response.json({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(JSON.stringify({ documents: canonicalOperationsDocuments(), evidence: { groups: [], conflicts: [], nextChecks: [], terminalGaps: [], draftNotes: [], totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 } } }), {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain("non-JSON content type");
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations workbench: cross-view local review and demo queue flow", async ({ page }) => {
   await page.goto("/operations?demo=fixture");
 
