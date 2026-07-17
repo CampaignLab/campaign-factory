@@ -342,12 +342,13 @@ export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocum
   }
 
   for (const doc of documents) {
-    const text = `${doc.plainText}\n${doc.html}`;
+    const plainText = doc.plainText;
+    const renderedText = visibleRenderedText(doc.html);
     for (const flag of doc.flags) {
       const claimText = operationsDocumentFlagClaimText(flag);
       if (claimText !== null && !unresolvedLoadBearingClaimTexts.has(claimText)) return false;
-      if (flag === OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION && !text.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE)) return false;
-      if (flag === OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS && (!doc.isPack || !text.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING))) return false;
+      if (flag === OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION && (!plainText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || !renderedText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE))) return false;
+      if (flag === OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS && (!doc.isPack || !plainText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || !renderedText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING))) return false;
     }
   }
 

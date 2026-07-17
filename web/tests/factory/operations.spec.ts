@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 const COMPILED_DOCUMENT_DISCLAIMER =
   "AI-generated draft — please verify all facts and figures before publishing or campaigning with this material.";
+const COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE = "Some facts in this section couldn't be fully checked in time";
 
 function withCompiledDocumentDisclaimer(plainText: string) {
   return `${plainText}\n\n${COMPILED_DOCUMENT_DISCLAIMER}`;
@@ -3907,6 +3908,46 @@ test("operations workbench: document verification flags must match rendered sour
   await expect(page.getByText(/typed public document contract/i)).toBeVisible();
   await expect(page.getByText("Phantom needs-verification document flag should not hydrate Ormskirk")).toHaveCount(0);
   await expect(page.getByText("A source section is flagged needs verification.")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
+test("operations workbench: document verification notes must remain visible in rendered source before hydration", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = canonicalOperationsDocuments();
+  documents[0] = {
+    ...documents[0],
+    html: `<p>Rendered verification note stripped from document shell.</p><p>${COMPILED_DOCUMENT_DISCLAIMER}</p>`,
+    plainText: `Plain-text verification note alone should not hydrate Ormskirk\n\n${COMPILED_DOCUMENT_NEEDS_VERIFICATION_NOTE}\n\n${COMPILED_DOCUMENT_DISCLAIMER}`,
+    flags: ["A source section is flagged needs verification."],
+  };
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 13, lastSequence: 103, events: [] },
+        documents,
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Rendered verification note stripped from document shell.")).toHaveCount(0);
+  await expect(page.getByText("Plain-text verification note alone should not hydrate Ormskirk")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
