@@ -543,6 +543,17 @@ async function fetchSourceJson<T>(
         ...metadata,
       };
     }
+    if ((responseBody.text ?? "").trim().length === 0) {
+      return {
+        ok: false,
+        status: 502,
+        path,
+        sourceFailureKind: "malformed_json",
+        contractMismatch: true,
+        message: `Read-only source ${path} returned an empty JSON body.`,
+        ...metadata,
+      };
+    }
     try {
       return { ok: true, value: JSON.parse(responseBody.text ?? "") as T, metadata };
     } catch {

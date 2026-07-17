@@ -1535,6 +1535,48 @@ test("operations source API: upstream document responses require JSON content ty
   }
 });
 
+test("operations source API: empty successful JSON source runs fail closed before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "content-length": "0", "x-vercel-id": "lhr1::iad1::ops-empty-json-200" },
+      });
+    }
+
+    throw new Error("Documents must not hydrate after an empty successful JSON source run response.");
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expectPublicSourceJsonBoundary(response.headers, "empty successful JSON source run");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; sourceFailureKind?: string; sourceContentLength?: number; sourceBodyEmpty?: boolean; sourceRequestId?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId} returned an empty JSON body.`);
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.sourceFailureKind).toBe("malformed_json");
+    expect(body.sourceContentLength).toBe(0);
+    expect(body.sourceBodyEmpty).toBe(true);
+    expect(body.sourceRequestId).toBe("lhr1::iad1::ops-empty-json-200");
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: malformed JSON source runs fail closed before document hydration", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
