@@ -191,7 +191,14 @@ function hasConsistentOperationsRunEvents(value: RunReadModel) {
   const seenEventIds = new Set<string>();
   const seenSequences = new Set<number>();
   for (const event of value.events) {
-    if (seenEventIds.has(event.eventId) || seenSequences.has(event.sequence) || event.sequence > value.lastSequence) return false;
+    if (
+      seenEventIds.has(event.eventId) ||
+      seenSequences.has(event.sequence) ||
+      event.sequence > value.lastSequence ||
+      (event.stateVersion !== undefined && event.stateVersion > value.stateVersion)
+    ) {
+      return false;
+    }
     seenEventIds.add(event.eventId);
     seenSequences.add(event.sequence);
   }
