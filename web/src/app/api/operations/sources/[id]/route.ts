@@ -196,7 +196,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
     return sourceJson(
       { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin },
-      docs.status === 404 ? 404 : docs.status === 503 ? 503 : docs.status === 504 ? 504 : 502,
+      docs.status === 404 ? 404 : docs.status === 429 ? 429 : docs.status === 503 ? 503 : docs.status === 504 ? 504 : 502,
     );
   }
 
