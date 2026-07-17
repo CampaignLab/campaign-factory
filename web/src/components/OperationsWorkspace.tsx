@@ -12,6 +12,7 @@ import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/docu
 import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
   hasConsistentOperationsDocumentEvidence,
+  hasSyntheticUnavailableOperationsRunHeader,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
@@ -1508,6 +1509,13 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (sourceOrigin) (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
+  const sourceRunUnavailable = sourceBody.sourceRunUnavailable === true;
+  if (sourceRunUnavailable && !hasSyntheticUnavailableOperationsRunHeader(run)) {
+    const err = new Error("The public campaign source returned inconsistent unavailable run-header provenance.");
+    (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
+    throw err;
+  }
+
   const folded = foldEvents(campaignId, run.events);
   if (run.status !== "completed" && run.status !== "partial") {
     const err = new Error(`This campaign is ${statusPhrase(run.status).toLowerCase()}, so compiled operations source material is not available yet.`);
@@ -1548,7 +1556,7 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     nextGate: priorityGate?.description ?? body.evidence.nextChecks[0]?.description,
     sourceHref: `${sourceOrigin}/factory/c/${campaignId}`,
     sourceOrigin,
-    sourceRunUnavailable: sourceBody.sourceRunUnavailable === true,
+    sourceRunUnavailable,
   };
 }
 

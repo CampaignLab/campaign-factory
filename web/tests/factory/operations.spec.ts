@@ -2889,6 +2889,40 @@ test("operations workbench: source next checks and draft notes require public te
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: unavailable run header must not carry hidden source event state", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceRunUnavailable: true,
+        run: { campaignId, status: "completed", stateVersion: 8, lastSequence: 12, events: [] },
+        documents: canonicalOperationsDocuments("Hidden event-state Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Hidden run state should not hydrate", reason: "The unavailable marker must only wrap the synthetic empty run header", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/inconsistent unavailable run-header provenance/i)).toBeVisible();
+  await expect(page.getByText("Hidden event-state Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Hidden run state should not hydrate")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: unavailable run header stays visible when documents load", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

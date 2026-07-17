@@ -40,6 +40,10 @@ export type OperationsSourcePayload = {
   sourceRunUnavailable?: boolean;
 };
 
+export function hasSyntheticUnavailableOperationsRunHeader(value: RunReadModel) {
+  return value.status === "partial" && value.stateVersion === 0 && value.lastSequence === 0 && value.events.length === 0;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
