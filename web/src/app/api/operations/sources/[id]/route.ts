@@ -72,10 +72,14 @@ function hasJsonContentType(response: Response) {
   return mediaType === "application/json" || mediaType.endsWith("+json");
 }
 
+const RETRY_AFTER_HTTP_DATE_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+
 function sanitizeRetryAfter(value: string | null) {
   if (!value) return undefined;
   const trimmed = value.trim();
-  return /^\d{1,5}$/.test(trimmed) ? trimmed : undefined;
+  if (/^\d{1,5}$/.test(trimmed)) return trimmed;
+  if (trimmed.length <= 64 && RETRY_AFTER_HTTP_DATE_RE.test(trimmed) && Number.isFinite(Date.parse(trimmed))) return trimmed;
+  return undefined;
 }
 
 function sanitizeSourceRequestId(value: string | null) {

@@ -38,10 +38,14 @@ function hasJsonResponseContentType(response: Response) {
   return mediaType === "application/json" || mediaType.endsWith("+json");
 }
 
+const RETRY_AFTER_HTTP_DATE_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+
 function sanitizeSourceRetryAfter(value: string | null) {
   if (!value) return undefined;
   const trimmed = value.trim();
-  return /^\d{1,5}$/.test(trimmed) ? trimmed : undefined;
+  if (/^\d{1,5}$/.test(trimmed)) return trimmed;
+  if (trimmed.length <= 64 && RETRY_AFTER_HTTP_DATE_RE.test(trimmed) && Number.isFinite(Date.parse(trimmed))) return trimmed;
+  return undefined;
 }
 
 function sanitizeSourceHttpStatus(value: unknown) {
@@ -55,7 +59,9 @@ function sanitizeSourceRequestId(value: unknown) {
 }
 
 function retryAfterMessage(retryAfter?: string) {
-  return retryAfter ? `Source retry guidance: try again after ${retryAfter} second${retryAfter === "1" ? "" : "s"}.` : null;
+  if (!retryAfter) return null;
+  if (/^\d+$/.test(retryAfter)) return `Source retry guidance: try again after ${retryAfter} second${retryAfter === "1" ? "" : "s"}.`;
+  return `Source retry guidance: try again after ${retryAfter}.`;
 }
 
 function sanitizeSourceBodyEmpty(value: unknown) {

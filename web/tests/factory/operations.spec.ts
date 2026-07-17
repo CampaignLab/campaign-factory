@@ -521,7 +521,7 @@ test("operations source API: rate-limited source runs preserve retry guidance an
   }
 });
 
-test("operations source API: source run retry guidance rejects non-numeric upstream headers", async () => {
+test("operations source API: source run retry guidance accepts HTTP-date upstream headers", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
   const requestedUrls: string[] = [];
@@ -539,14 +539,14 @@ test("operations source API: source run retry guidance rejects non-numeric upstr
       );
     }
 
-    throw new Error("Documents must not hydrate while unsafe retry guidance is rejected.");
+    throw new Error("Documents must not hydrate while source-run retry guidance is active.");
   }) as typeof fetch;
 
   try {
     const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
     expect(response.status).toBe(429);
-    expectPublicSourceJsonBoundary(response.headers, "rate-limited source run with unsafe retry guidance");
-    expect(response.headers.get("retry-after")).toBeNull();
+    expectPublicSourceJsonBoundary(response.headers, "rate-limited source run with HTTP-date retry guidance");
+    expect(response.headers.get("retry-after")).toBe("Fri, 17 Jul 2026 06:30:00 GMT");
 
     const body = (await response.json()) as { error?: string; detail?: string; sourceOrigin?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
     expect(body.error).toBe("Campaign source run unavailable");
@@ -2163,6 +2163,25 @@ test("operations workspace: source retry guidance is visible without fixture fal
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText("Read-only source is rate-limited.")).toBeVisible();
   await expect(page.getByText("Source retry guidance: try again after 120 seconds.")).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
+test("operations workspace: HTTP-date source retry guidance is visible without fixture fallback", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 429,
+      headers: { "Retry-After": "Fri, 17 Jul 2026 06:30:00 GMT" },
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Campaign source run unavailable", detail: "Read-only source returned date-based retry guidance.", sourceOrigin: "https://campaign-factory.vercel.app" }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("Read-only source returned date-based retry guidance.")).toBeVisible();
+  await expect(page.getByText("Source retry guidance: try again after Fri, 17 Jul 2026 06:30:00 GMT.")).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
