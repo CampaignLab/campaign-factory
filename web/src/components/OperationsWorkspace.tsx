@@ -28,6 +28,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const PORTFOLIO_CAMPAIGNS: PortfolioCampaign[] = [...OPERATIONS_PUBLIC_CAMPAIGNS];
 const SOURCE_CLIENT_TIMEOUT_MS = 15_000;
 
+function hasJsonResponseContentType(response: Response) {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  const mediaType = contentType.split(";", 1)[0]?.trim() ?? "";
+  return mediaType === "application/json" || mediaType.endsWith("+json");
+}
+
 type SegmentId = "school_gates" | "ward_parents" | "local_allies";
 type DraftId = "supporter_email" | "decision_maker_letter" | "press_pitch";
 type DraftStatus = "draft" | "review" | "approved" | "queued";
@@ -1487,6 +1493,9 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   } finally {
     window.clearTimeout(timeout);
     signal.removeEventListener("abort", abortSource);
+  }
+  if (!hasJsonResponseContentType(sourceRes)) {
+    throw new Error(`The Operations source adapter returned a non-JSON content type (HTTP ${sourceRes.status}). No fixture fallback was used.`);
   }
   const sourceBody = (await sourceRes.json().catch(() => null)) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>) | null;
   if (!sourceRes.ok) {

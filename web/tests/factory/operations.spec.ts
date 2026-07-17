@@ -1988,6 +1988,40 @@ test("operations workbench: failed or not-yet-usable real source loads do not fa
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: same-origin source responses require JSON content type before hydration", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 6, lastSequence: 6, events: [] },
+        documents: canonicalOperationsDocuments("Text/plain source should not hydrate Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Text/plain source content type regression", reason: "Browser hydration must require JSON media types", claimIds: [], affectedSections: [] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/non-JSON content type/i)).toBeVisible();
+  await expect(page.getByText("Text/plain source should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Text/plain source content type regression")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: malformed source document entries do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
