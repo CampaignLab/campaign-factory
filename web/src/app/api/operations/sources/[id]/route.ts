@@ -106,7 +106,7 @@ async function fetchSourceJson<T>(
       path,
       message: timedOut
         ? `Read-only source ${path} timed out after ${SOURCE_FETCH_TIMEOUT_MS / 1000} seconds.`
-        : "The read-only source could not be reached.",
+        : `Read-only source ${path} could not be reached.`,
     };
   } finally {
     clearTimeout(timeout);
@@ -175,6 +175,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin },
       502,
+    );
+  } else {
+    return sourceJson(
+      { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin },
+      run.status >= 400 && run.status < 600 ? run.status : 502,
     );
   }
 
