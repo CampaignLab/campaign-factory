@@ -9033,6 +9033,11 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByText("Read-only source has changed since this local workspace started.")).toBeVisible();
   await expect(page.getByText(/Local approval baseline: acknowledged/)).toBeVisible();
   await expect(page.getByLabel("Source document baseline state")).toContainText("changed since local acknowledgement");
+  await expect(page.getByLabel("Source re-check header status")).toContainText("Source re-check pending · 0/3 views checked");
+  await expect(page.getByLabel("Source re-check header status")).toHaveAttribute(
+    "title",
+    "Reopen Evidence & checks, Strategy & tactics, Drafts before acknowledging this source update.",
+  );
   await expect(page.getByText(/Your browser-local actions and drafts were preserved/)).toBeVisible();
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("Acknowledge after re-checking");
   await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededEvidence & checks");
@@ -9225,6 +9230,11 @@ test("operations workbench: source updates preserve browser-local work and requi
   expect(changedMarkdown).toContain("Source update review: re-check this action against the updated read-only source before approving or queueing local work.");
 
   await page.getByRole("button", { name: /Strategy & tactics/ }).first().click();
+  await expect(page.getByLabel("Source re-check header status")).toContainText("Source re-check pending · 3/3 views checked");
+  await expect(page.getByLabel("Source re-check header status")).toHaveAttribute(
+    "title",
+    "All required source views have been reopened; return to Overview to acknowledge this source update.",
+  );
   await expect(page.getByLabel("Strategy & tactics source update pause")).toContainText("This source view is part of the required re-check.");
   await expect(page.getByLabel("Strategy & tactics source re-check progress")).toContainText("All required views have been reopened; return to Overview to acknowledge this source baseline.");
   sourceVersion = 46;
@@ -9247,6 +9257,7 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeEnabled();
   await page.getByRole("button", { name: "Acknowledge updated source" }).click();
   await expect(page.getByText("Read-only source has changed since this local workspace started.")).toHaveCount(0);
+  await expect(page.getByLabel("Source re-check header status")).toHaveCount(0);
   await expect(page.getByText(/Local approval baseline: acknowledged/)).toBeVisible();
   await expect(page.getByLabel("Source document baseline state")).toContainText("matches local acknowledgement");
   await page.getByRole("button", { name: /Evidence & checks/ }).first().click();

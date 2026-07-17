@@ -2600,6 +2600,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   );
   const sourceRecheckVisitedViews = new Set(sourceRecheckMatchesCurrentSource ? state.sourceRecheckVisitedViews : []);
   const missingSourceRecheckViews = SOURCE_RECHECK_REQUIRED_VIEWS.filter((view) => !sourceRecheckVisitedViews.has(view));
+  const sourceRecheckCheckedCount = SOURCE_RECHECK_REQUIRED_VIEWS.length - missingSourceRecheckViews.length;
   const canAcknowledgeSourceRefresh = !sourceBaselineChanged || missingSourceRecheckViews.length === 0;
   const reviewBlocked = !canRequestReview;
   const reviewItemCount = (state.status === "review" ? 1 : 0) + state.workingDrafts.filter((draft) => draft.status === "review").length;
@@ -3393,7 +3394,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       <div className="mt-3 rounded-[var(--r-lg)] border border-ops-ink/15 bg-background/65 p-3 text-xs text-ops-ink/75" aria-label={ariaLabel}>
         <p className="font-semibold uppercase tracking-[0.1em] text-ops-ink/70">Source re-check progress</p>
         <p className="mt-1">
-          Checked {SOURCE_RECHECK_REQUIRED_VIEWS.length - missingSourceRecheckViews.length}/{SOURCE_RECHECK_REQUIRED_VIEWS.length} required source views for the current baseline.
+          Checked {sourceRecheckCheckedCount}/{SOURCE_RECHECK_REQUIRED_VIEWS.length} required source views for the current baseline.
         </p>
         <ul className="mt-2 grid gap-1 sm:grid-cols-3">
           {SOURCE_RECHECK_REQUIRED_VIEWS.map((view) => {
@@ -5043,6 +5044,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             {source ? (
               <span className="rounded-full bg-ops-blue px-3 py-1 text-xs text-ops-ink">
                 {sourceStatusPhrase(source)} · {source.readyCount}/{source.documents.length} docs ready
+              </span>
+            ) : null}
+            {sourceBaselineChanged ? (
+              <span
+                className="rounded-full border border-ops-coral/70 bg-ops-coral px-3 py-1 text-xs font-medium text-ops-ink"
+                aria-label="Source re-check header status"
+                title={missingSourceRecheckViews.length ? `Reopen ${missingSourceRecheckViews.map((view) => sourceRecheckViewLabels[view]).join(", ")} before acknowledging this source update.` : "All required source views have been reopened; return to Overview to acknowledge this source update."}
+              >
+                Source re-check pending · {sourceRecheckCheckedCount}/{SOURCE_RECHECK_REQUIRED_VIEWS.length} views checked
               </span>
             ) : null}
             <span className="rounded-full bg-ops-mint px-3 py-1 text-xs text-ops-ink">
