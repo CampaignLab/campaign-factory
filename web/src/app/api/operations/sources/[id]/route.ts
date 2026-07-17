@@ -72,10 +72,20 @@ function hasJsonContentType(response: Response) {
   return mediaType === "application/json" || mediaType.endsWith("+json");
 }
 
+function sanitizeRetryAfter(value: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return /^\d{1,5}$/.test(trimmed) ? trimmed : undefined;
+}
+
+function sourceFailureHeaders(result: { retryAfter?: string }) {
+  return result.retryAfter ? { ...NO_STORE_HEADERS, "Retry-After": result.retryAfter } : NO_STORE_HEADERS;
+}
+
 async function fetchSourceJson<T>(
   origin: string,
   path: string,
-): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean }> {
+): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string }> {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -92,7 +102,13 @@ async function fetchSourceJson<T>(
     });
     if (!response.ok) {
       const redirectDetail = isRedirectStatus(response.status) ? " Redirects are not followed for preview-safe source reads." : "";
-      return { ok: false, status: response.status, path, message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}` };
+      return {
+        ok: false,
+        status: response.status,
+        path,
+        message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
+        retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
+      };
     }
     if (!hasJsonContentType(response)) {
       return { ok: false, status: 502, path, contractMismatch: true, message: `Read-only source ${path} returned a non-JSON content type.` };
@@ -162,14 +178,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       );
     }
   } else if (run.status === 404) {
-    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 404);
+    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 404, sourceFailureHeaders(run));
   } else if (isRedirectStatus(run.status)) {
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin },
       502,
     );
   } else if (run.status === 504) {
-    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 504);
+    return sourceJson({ error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }, 504, sourceFailureHeaders(run));
   } else if (run.contractMismatch) {
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin },
@@ -179,6 +195,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return sourceJson(
       { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin },
       run.status >= 400 && run.status < 600 ? run.status : 502,
+      sourceFailureHeaders(run),
     );
   }
 
@@ -201,6 +218,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return sourceJson(
       { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin },
       unavailableSourceStatus(docs.status),
+      sourceFailureHeaders(docs),
     );
   }
 
