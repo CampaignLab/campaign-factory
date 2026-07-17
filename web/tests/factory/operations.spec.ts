@@ -1578,13 +1578,32 @@ test("operations workspace: non-JSON source responses stay as no-fixture-fallbac
   await page.goto("/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153");
 
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
-  await expect(page.getByText(/Operations source adapter returned a non-JSON response \(HTTP 200\)/)).toBeVisible();
+  await expect(page.getByText(/Operations source adapter returned a non-JSON content type \(HTTP 200\)/)).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "View source brief" })).toHaveAttribute(
     "href",
     "https://campaign-factory.vercel.app/factory/c/6b54225d-afa3-41d1-b053-89741094f153",
   );
+});
+
+test("operations workspace: non-JSON rate limits preserve retry guidance", async ({ page }) => {
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 429,
+      headers: { "Retry-After": "75" },
+      contentType: "text/html",
+      body: "<!doctype html><title>Preview rate limit</title><p>try later</p>",
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/Operations source adapter returned a non-JSON content type \(HTTP 429\)/)).toBeVisible();
+  await expect(page.getByText("Source retry guidance: try again after 75 seconds.")).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
 
 test("operations workspace: upstream 404 source failures keep checked source diagnostics", async ({ page }) => {

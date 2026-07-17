@@ -1507,7 +1507,10 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     signal.removeEventListener("abort", abortSource);
   }
   if (!hasJsonResponseContentType(sourceRes)) {
-    throw new Error(`The Operations source adapter returned a non-JSON content type (HTTP ${sourceRes.status}). No fixture fallback was used.`);
+    const retryAfter = sanitizeSourceRetryAfter(sourceRes.headers.get("retry-after"));
+    const err = new Error(`The Operations source adapter returned a non-JSON content type (HTTP ${sourceRes.status}). No fixture fallback was used.`);
+    if (retryAfter) (err as Error & { retryAfter?: string }).retryAfter = retryAfter;
+    throw err;
   }
   const sourceBody = (await sourceRes.json().catch(() => null)) as Partial<OperationsSourcePayload> | ({ error?: string; detail?: string; runStatus?: RunReadModel["status"]; sourceOrigin?: string } & Record<string, unknown>) | null;
   if (!sourceRes.ok) {
