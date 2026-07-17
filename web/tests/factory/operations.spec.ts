@@ -1956,6 +1956,129 @@ test("operations workbench: source evidence claims must reference canonical affe
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: source evidence groups must remain canonical", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Non-canonical evidence group order should not hydrate Ormskirk</p>",
+            plainText: "Non-canonical evidence group order should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [
+            {
+              label: "Verification incomplete",
+              count: 1,
+              claims: [
+                {
+                  id: "late-claim",
+                  text: "Late evidence group should stay hidden",
+                  type: "other",
+                  label: "Verification incomplete",
+                  loadBearing: true,
+                  confidence: "medium",
+                  sourceCount: 1,
+                  affectedOutputs: ["campaign_brief"],
+                },
+              ],
+            },
+            {
+              label: "Verified public information",
+              count: 1,
+              claims: [
+                {
+                  id: "early-claim",
+                  text: "Out-of-order evidence group should fail closed",
+                  type: "other",
+                  label: "Verified public information",
+                  loadBearing: false,
+                  confidence: "high",
+                  sourceCount: 1,
+                  affectedOutputs: ["campaign_brief"],
+                },
+              ],
+            },
+          ],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Evidence group ordering regression", reason: "Contract validation", claimIds: ["late-claim"], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 2, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 1 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Non-canonical evidence group order should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Late evidence group should stay hidden")).toHaveCount(0);
+  await expect(page.getByText("Out-of-order evidence group should fail closed")).toHaveCount(0);
+  await expect(page.getByText("Evidence group ordering regression")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+
+  await page.unroute(`**/api/operations/sources/${campaignId}`);
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 10, lastSequence: 100, events: [] },
+        documents: [
+          {
+            key: "campaign_brief",
+            num: 1,
+            name: "Campaign Brief",
+            status: "ready",
+            html: "<p>Empty evidence group should not hydrate Ormskirk</p>",
+            plainText: "Empty evidence group should not hydrate Ormskirk",
+            isPack: false,
+            sectionKeys: ["problem", "evidence", "objective", "decision_route", "power", "pressure", "strategy", "tactics", "organising"],
+            resourceCount: 0,
+            flags: [],
+          },
+        ],
+        evidence: {
+          groups: [{ label: "Verification incomplete", count: 0, claims: [] }],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Empty group regression", reason: "Contract validation", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Empty evidence group should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Empty group regression")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
 test("operations workbench: duplicate source evidence references do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

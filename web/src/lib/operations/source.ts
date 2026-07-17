@@ -264,9 +264,21 @@ function isOperationsSourceLedgerGroup(value: unknown) {
     typeof value.label === "string" &&
     OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
     isNonNegativeInteger(value.count) &&
+    value.count > 0 &&
     value.count === value.claims.length &&
     value.claims.every((claim) => isOperationsEvidenceClaimView(claim) && claim.label === value.label)
   );
+}
+
+function hasCanonicalOperationsEvidenceGroups(value: EvidenceAndNextChecks) {
+  const labels = Array.from(OPERATIONS_VERIFICATION_LABELS);
+  let previousIndex = -1;
+  for (const group of value.groups) {
+    const index = labels.indexOf(group.label);
+    if (index <= previousIndex) return false;
+    previousIndex = index;
+  }
+  return true;
 }
 
 function hasConsistentOperationsEvidenceTotals(value: EvidenceAndNextChecks) {
@@ -393,6 +405,7 @@ export function isOperationsEvidenceAndNextChecks(value: unknown): value is Evid
     value.terminalGaps.every(isOperationsTerminalGap) &&
     Array.isArray(value.draftNotes) &&
     value.draftNotes.every(isOperationsDraftNote) &&
+    hasCanonicalOperationsEvidenceGroups(value as unknown as EvidenceAndNextChecks) &&
     hasConsistentOperationsEvidenceTotals(value as unknown as EvidenceAndNextChecks) &&
     hasConsistentOperationsEvidenceReferences(value as unknown as EvidenceAndNextChecks)
   );
