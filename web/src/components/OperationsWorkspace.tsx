@@ -1036,13 +1036,25 @@ function activityLooksFixtureBound(activity: Activity) {
   return hasFixtureLeakage([activity.id, activity.label].join("\n"));
 }
 
+function activityLooksTiedToRemovedLocalWork(activity: Activity, removedLocalWorkLabels: string[]) {
+  const label = activity.label.toLocaleLowerCase();
+  return removedLocalWorkLabels.some((removedLabel) => {
+    const normalized = removedLabel.trim().toLocaleLowerCase();
+    return normalized.length >= 8 && label.includes(normalized);
+  });
+}
+
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksFixtureBound(action));
   const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksFixtureBound(draft));
-  const activity = state.activity.filter((item) => !activityLooksFixtureBound(item));
+  const removedLocalWorkLabels = [
+    ...state.localActions.filter((action) => !localActions.some((keptAction) => keptAction.id === action.id)).flatMap((action) => [action.title, action.source]),
+    ...state.workingDrafts.filter((draft) => !workingDrafts.some((keptDraft) => keptDraft.id === draft.id)).flatMap((draft) => [draft.title, draft.subject, draft.sourceWorkingCopy.title]),
+  ];
+  const activity = state.activity.filter((item) => !activityLooksFixtureBound(item) && !activityLooksTiedToRemovedLocalWork(item, removedLocalWorkLabels));
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;

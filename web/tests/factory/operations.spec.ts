@@ -6445,11 +6445,14 @@ test("operations workbench removes fixture identifier-only local work from real 
   await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
 
+  await expect(page.locator("main")).not.toContainText("Barnet local note queued locally.");
+
   const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
   expect(stored).not.toContain("fixture:council-timing-check");
   expect(stored).not.toContain("demo-fixture-local-note");
   expect(stored).not.toContain("fixture_pack");
   expect(stored).not.toContain("legacy-fixture-identifier-only-local-work");
+  expect(stored).not.toContain("Barnet local note queued locally.");
 });
 
 test("operations workbench removes unprovenanced top-level review state from real campaign state", async ({ page }) => {
