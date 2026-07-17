@@ -291,6 +291,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return sourceJson(
       sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin, ...upstreamFailureMetadata(run) }),
       502,
+      sourceFailureHeaders(run),
     );
   } else if (run.status === 504) {
     return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }), 504, sourceFailureHeaders(run));
@@ -319,6 +320,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           ...upstreamFailureMetadata(docs),
         }),
         502,
+        sourceFailureHeaders(docs),
       );
     }
 
