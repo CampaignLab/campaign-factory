@@ -2699,6 +2699,32 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     },
   ];
 
+  useEffect(() => {
+    if (!sourceBaselineChanged || !source || !currentSourceDocumentSignature || !SOURCE_RECHECK_REQUIRED_VIEWS.includes(state.activeView)) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setState((current) => {
+        if (current.workspaceKey !== source.campaignId || !SOURCE_RECHECK_REQUIRED_VIEWS.includes(current.activeView)) return current;
+        const matchesCurrentSource =
+          current.sourceRecheckStateVersion === source.stateVersion &&
+          current.sourceRecheckLastSequence === source.lastSequence &&
+          current.sourceRecheckDocumentSignature === currentSourceDocumentSignature;
+        if (matchesCurrentSource && current.sourceRecheckVisitedViews.includes(current.activeView)) return current;
+        return {
+          ...current,
+          sourceRecheckStateVersion: source.stateVersion,
+          sourceRecheckLastSequence: source.lastSequence,
+          sourceRecheckDocumentSignature: currentSourceDocumentSignature,
+          sourceRecheckVisitedViews: Array.from(new Set([...(matchesCurrentSource ? current.sourceRecheckVisitedViews : []), current.activeView])),
+        };
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSourceDocumentSignature, source, sourceBaselineChanged, state.activeView]);
+
   const setView = (activeView: ViewId) => {
     setState((current) => ({
       ...current,

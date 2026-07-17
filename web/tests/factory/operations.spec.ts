@@ -9209,6 +9209,56 @@ test("operations workbench: source updates preserve browser-local work and requi
   await expect(page.getByLabel("Campaign operations portfolio").locator("article", { hasText: "Keep KFC Out of Ormskirk" })).toContainText("Local signals: no browser-local operations work yet for this campaign.");
 });
 
+test("operations workbench: direct links count required source re-check views", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  let sourceVersion = 44;
+  let lastSequence = 1909;
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? campaignId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: "partial", stateVersion: sourceVersion, lastSequence, events: [] },
+        documents: campaignOperationsDocuments({
+          title: requestedCampaignId === campaignId ? "Keep KFC Out of Ormskirk" : "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+          place: requestedCampaignId === campaignId ? "Ormskirk, Lancashire" : "Tower Hamlets, London",
+          next: sourceVersion === 44 ? "Check the Planning Inspectorate appeals database" : "Check the updated Planning Inspectorate appeal records",
+        }),
+        evidence: campaignEvidence([
+          {
+            id: "appeal-check",
+            description: sourceVersion === 44 ? "Check the Planning Inspectorate appeals database" : "Check the updated Planning Inspectorate appeal records",
+            reason: "Source version changed",
+            affectedSections: ["strategy"],
+          },
+        ]),
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+  await expect(page.getByRole("heading", { name: /Keep KFC Out of Ormskirk into operations/i })).toBeVisible();
+  await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
+  await page.getByRole("button", { name: "Create appeal-status action" }).click();
+  await expect(page.getByText("Confirm Planning Inspectorate appeal status", { exact: true }).first()).toBeVisible();
+
+  sourceVersion = 45;
+  lastSequence = 1918;
+  await page.goto(`/operations?campaignId=${campaignId}&view=evidence`);
+  await expect(page.getByRole("heading", { name: /Evidence & checks/i })).toBeVisible();
+  await page.getByRole("button", { name: /Overview/ }).first().click();
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("CheckedEvidence & checks");
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededStrategy & tactics");
+  await expect(page.getByLabel("Source re-check acknowledgement checklist")).toContainText("NeededDrafts");
+  await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Acknowledge updated source" })).toHaveAttribute(
+    "title",
+    "Reopen Strategy & tactics, Drafts before acknowledging this source update.",
+  );
+});
+
 test("operations workbench: content-only source title changes preserve local work but require source re-check", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   let ormskirkTitle = "Keep KFC Out of Ormskirk";
