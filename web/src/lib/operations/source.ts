@@ -44,6 +44,16 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function hasRenderedText(value: unknown): value is string {
+  if (!isNonEmptyString(value)) return false;
+  const visibleText = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
+    .replace(/&[a-z0-9#]+;/gi, "x")
+    .trim();
+  return visibleText.length > 0;
+}
+
 function isUniqueNonEmptyStringArray(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
@@ -246,7 +256,7 @@ export function isOperationsCompiledDocument(value: unknown): value is CompiledD
     value.name === canonicalDocument.name &&
     typeof value.status === "string" &&
     OPERATIONS_DOCUMENT_STATUSES.has(value.status) &&
-    isNonEmptyString(value.html) &&
+    hasRenderedText(value.html) &&
     isNonEmptyString(value.plainText) &&
     value.isPack === shouldBePack &&
     isJourneySectionKeyArray(value.sectionKeys) &&
