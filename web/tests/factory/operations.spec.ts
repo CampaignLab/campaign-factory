@@ -6061,6 +6061,113 @@ test("operations workbench removes legacy fixture actions from real campaign sta
   expect(stored).not.toContain("Fixture evidence check");
 });
 
+test("operations workbench removes fixture-bound working drafts from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          status: "completed",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Fixture-draft guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const fixtureCopy = {
+      id: "legacy-fixture-working-copy",
+      campaignId,
+      title: "St John the Baptist school street supporter email",
+      channel: "Supporter email",
+      sourceDocument: "Fixture campaign copy",
+      sourceDocumentKey: "fixture_campaign_copy",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: ["Fixture contacts and school gates copy must not appear in a real campaign workspace."],
+      provenance: `Source campaign ${campaignId}; migrated from the Campaign Factory demo workspace fixture.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: "legacy-fixture-working-draft",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "Use this real campaign's source material before review or local queueing.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [
+          {
+            id: "legacy-fixture-working-copy",
+            title: "St John the Baptist school street supporter email",
+            channel: "Supporter email",
+            subject: "Help the school street campaign",
+            body: "Please help with the school-run and school gates campaign around Leicester City Council.",
+            reviewerNote: "Fixture contacts reviewer note.",
+            status: "queued",
+            queuedAt: "2026-07-16T17:54:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T17:54:30.000Z",
+            sourceWorkingCopy: fixtureCopy,
+          },
+        ],
+        activeWorkingDraftId: "legacy-fixture-working-copy",
+        sourceWorkingCopy: null,
+        activity: [{ id: "legacy", label: "Fixture school street working copy was queued." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  await expect(portfolio).toContainText("Stop the leisure park redevelopment");
+  await expect(portfolio).not.toContainText("1 queued locally");
+  await expect(portfolio).not.toContainText("school street");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("St John the Baptist");
+  await expect(page.locator("main")).not.toContainText("Leicester City Council");
+  await expect(page.locator("main")).not.toContainText("Fixture contacts");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.getByRole("heading", { name: "Communications" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("St John the Baptist");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).not.toContain("legacy-fixture-working-copy");
+  expect(stored).not.toContain("St John the Baptist");
+  expect(stored).not.toContain("Leicester City Council");
+  expect(stored).not.toContain("Fixture contacts");
+});
+
 test("operations workbench: failed or not-yet-usable real source loads do not fall back to the fixture", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {

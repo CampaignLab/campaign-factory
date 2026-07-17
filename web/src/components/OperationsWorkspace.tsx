@@ -1002,21 +1002,44 @@ function localActionLooksFixtureBound(action: LocalAction) {
   return FIXTURE_LEAKAGE_RE.test([action.id, action.title, action.source, action.owner, action.timing, action.provenance].join("\n"));
 }
 
+function sourceWorkingCopyLooksFixtureBound(copy: SourceWorkingCopy) {
+  return FIXTURE_LEAKAGE_RE.test([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings].join("\n"));
+}
+
+function workingDraftLooksFixtureBound(draft: WorkingDraft) {
+  return FIXTURE_LEAKAGE_RE.test([
+    draft.id,
+    draft.title,
+    draft.channel,
+    draft.subject,
+    draft.body,
+    draft.reviewerNote,
+    draft.sourceWorkingCopy.id,
+    draft.sourceWorkingCopy.title,
+    draft.sourceWorkingCopy.channel,
+    draft.sourceWorkingCopy.sourceDocument,
+    draft.sourceWorkingCopy.sourceDocumentKey,
+    draft.sourceWorkingCopy.provenance,
+    ...draft.sourceWorkingCopy.warnings,
+  ].join("\n"));
+}
+
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksFixtureBound(action));
-  const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey);
+  const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksFixtureBound(draft));
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
-  const sourceWorkingCopy = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey ? state.sourceWorkingCopy : null;
+  const sourceWorkingCopy = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey && !sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy) ? state.sourceWorkingCopy : null;
   const removedFixtureAudienceState = selectedSegment !== state.selectedSegment || contactFilter !== state.contactFilter;
   const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;
-  const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopy);
+  const removedFixtureSourceWorkingCopy = Boolean(state.sourceWorkingCopy && sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy));
+  const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopy && !removedFixtureSourceWorkingCopy);
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
-  const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureTopLevelCopy;
+  const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy;
 
   if (
     localActions.length === state.localActions.length &&
@@ -1038,7 +1061,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     body: resetTopLevelDraft
       ? removedMismatchedTopLevelSourceCopy
         ? "This browser-local draft was reset because its stored source provenance belonged to another campaign. Use a source resource from this campaign before review or local queueing."
-        : "This browser-local draft was reset because it still contained fixture campaign copy. Use this real campaign's source material before review or local queueing."
+        : "This browser-local draft was reset because it still contained fixture campaign copy or fixture-bound provenance. Use this real campaign's source material before review or local queueing."
       : state.body,
     reviewerNote: resetTopLevelDraft ? "" : state.reviewerNote,
     status: resetTopLevelDraft ? "draft" : state.status,
