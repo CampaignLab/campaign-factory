@@ -1932,6 +1932,66 @@ test("operations source API: invalid UTF-8 source documents fail closed after th
   }
 });
 
+test("operations source API: mismatched content-length source documents fail closed after the validated run header", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return Response.json({ campaignId: curatedId, status: "partial", stateVersion: 1, lastSequence: 0, events: [] });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response('{"documents":[],"evidence":{"groups":[],"conflicts":[],"nextChecks":[],"terminalGaps":[],"draftNotes":[],"totals":{"claims":0,"loadBearing":0,"verifiedLoadBearing":0,"unresolvedLoadBearing":0}}}', {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "2",
+          "x-matched-path": "/api/factory/runs/[id]/documents",
+          "x-vercel-id": "lhr1::iad1::ops-doc-mismatched-content-length",
+        },
+      });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expectPublicSourceJsonBoundary(response.headers, "mismatched content-length source documents");
+
+    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceContentLength?: number; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned a Content-Length header that did not match the JSON body length.`);
+    expect(body.runStatus).toBe("partial");
+    expect(body.sourceOrigin).toBe("https://campaign-factory.vercel.app");
+    expect(body.sourceStep).toBe("documents");
+    expect(body.sourceFailureKind).toBe("contract_mismatch");
+    expect(body.sourcePath).toBe(`/api/factory/runs/${curatedId}/documents`);
+    expect(body.sourceHttpStatus).toBe(200);
+    expect(body.sourceRequestId).toBe("lhr1::iad1::ops-doc-mismatched-content-length");
+    expect(body.sourceMatchedPath).toBe("/api/factory/runs/[id]/documents");
+    expect(body.sourceContentLength).toBe(2);
+    expect(body.sourceBodyTruncated).toBeUndefined();
+    expect(body.sourceContentType).toBe("application/json");
+    expect(body.documents).toBeUndefined();
+    expect(body.sourceRunUnavailable).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: unsupported JSON charset source documents fail closed after the validated run header", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
