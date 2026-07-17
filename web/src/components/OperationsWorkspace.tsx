@@ -4485,6 +4485,15 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         <SmallLabel>Campaign context</SmallLabel>
         <h2 className="mt-2 text-3xl font-medium tracking-tight">{section.title}</h2>
         <p className="mt-3 max-w-3xl text-muted-foreground">{section.intro}</p>
+        {sourceBaselineChanged && (section.title === "Evidence & checks" || section.title === "Strategy & tactics") ? (
+          <div className="mt-5 rounded-[var(--r-xl)] border border-ops-coral/70 bg-ops-coral/35 p-3 text-sm text-ops-ink" aria-label={`${section.title} source update pause`}>
+            <p className="font-medium">This source view is part of the required re-check.</p>
+            <p className="mt-1 text-ops-ink/75">
+              Review the refreshed {section.title.toLowerCase()} source material before returning to Overview to acknowledge the update and unlock local approval or queue changes.
+            </p>
+            {renderSourceRecheckProgress(`${section.title} source re-check progress`)}
+          </div>
+        ) : null}
         <div className="mt-6 overflow-hidden rounded-[var(--r-2xl)] border border-border">
           <div className="hidden grid-cols-[0.75fr_minmax(0,1.15fr)_minmax(0,1fr)_0.55fr] gap-3 border-b border-border bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground md:grid">
             <span>Brief item</span>

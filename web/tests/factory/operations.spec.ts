@@ -9077,6 +9077,8 @@ test("operations workbench: source updates preserve browser-local work and requi
     "Acknowledge the updated read-only source before creating new source-derived local actions.",
   );
   await page.getByRole("button", { name: /Evidence & checks/ }).first().click();
+  await expect(page.getByLabel("Evidence & checks source update pause")).toContainText("This source view is part of the required re-check.");
+  await expect(page.getByLabel("Evidence & checks source re-check progress")).toContainText("Checked 1/3 required source views for the current baseline.");
   await expect(page.getByLabel("Source next checks ledger").getByRole("button", { name: "Action created" })).toBeDisabled();
   await expect(page.getByLabel("Source next checks ledger").getByRole("button", { name: "Action created" })).toHaveAttribute(
     "title",
@@ -9191,6 +9193,8 @@ test("operations workbench: source updates preserve browser-local work and requi
   expect(changedMarkdown).toContain("Source update review: re-check this action against the updated read-only source before approving or queueing local work.");
 
   await page.getByRole("button", { name: /Strategy & tactics/ }).first().click();
+  await expect(page.getByLabel("Strategy & tactics source update pause")).toContainText("This source view is part of the required re-check.");
+  await expect(page.getByLabel("Strategy & tactics source re-check progress")).toContainText("All required views have been reopened; return to Overview to acknowledge this source baseline.");
   sourceVersion = 46;
   lastSequence = 1929;
   await page.reload();
