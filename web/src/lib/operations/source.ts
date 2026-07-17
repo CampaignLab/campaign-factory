@@ -76,6 +76,17 @@ const OPERATIONS_SECTION_STATUSES = new Set<string>(["empty", "assembling", "und
 const OPERATIONS_JOURNEY_SECTION_KEYS = new Set<string>(JOURNEY_STEPS.map((step) => step.key));
 const OPERATIONS_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const OPERATIONS_CLAIM_CONFIDENCES = new Set<string>(["high", "medium", "low"]);
+const OPERATIONS_CLAIM_TYPES = new Set<string>([
+  "authority",
+  "process",
+  "deadline",
+  "officeholder",
+  "policy",
+  "stakeholder_position",
+  "number",
+  "context",
+  "other",
+]);
 
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
@@ -260,8 +271,9 @@ function isOperationsEvidenceClaimView(value: unknown) {
   if (!isRecord(value)) return false;
   return (
     isNonEmptyString(value.id) &&
-    typeof value.text === "string" &&
+    isNonEmptyString(value.text) &&
     typeof value.type === "string" &&
+    OPERATIONS_CLAIM_TYPES.has(value.type) &&
     typeof value.label === "string" &&
     OPERATIONS_VERIFICATION_LABELS.has(value.label) &&
     typeof value.loadBearing === "boolean" &&
