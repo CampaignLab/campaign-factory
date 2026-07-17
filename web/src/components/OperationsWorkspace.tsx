@@ -1496,6 +1496,8 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
       headers: SOURCE_CLIENT_FETCH_HEADERS,
       cache: "no-store",
       credentials: "omit",
+      redirect: "manual",
+      referrerPolicy: "no-referrer",
       signal: controller.signal,
     });
   } catch (error) {

@@ -1994,6 +1994,39 @@ test("operations workspace: non-JSON source responses stay as no-fixture-fallbac
   );
 });
 
+test("operations workspace: source adapter redirects are not followed in the browser", async ({ page }) => {
+  let redirectedProbeRequests = 0;
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      status: 302,
+      headers: { Location: "/api/operations/redirect-probe?target=https://example.invalid/leaked-source" },
+      body: "",
+    });
+  });
+  await page.route("**/api/operations/redirect-probe**", async (route) => {
+    redirectedProbeRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: "6b54225d-afa3-41d1-b053-89741094f153", status: "completed", stateVersion: 99, lastSequence: 99, events: [] },
+        documents: canonicalOperationsDocuments("Redirected source should not hydrate Barnet"),
+        evidence: { groups: [], conflicts: [], nextChecks: [], terminalGaps: [], draftNotes: [], totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 } },
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=6b54225d-afa3-41d1-b053-89741094f153");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/Operations source adapter returned a non-JSON content type/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText("Redirected source should not hydrate Barnet")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  expect(redirectedProbeRequests).toBe(0);
+});
+
 test("operations workspace: non-JSON rate limits preserve retry guidance", async ({ page }) => {
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
     await route.fulfill({
