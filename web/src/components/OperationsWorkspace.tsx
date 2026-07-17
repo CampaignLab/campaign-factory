@@ -1047,6 +1047,10 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedFixtureSourceWorkingCopy = Boolean(state.sourceWorkingCopy && sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy));
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopy && !removedFixtureSourceWorkingCopy);
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
+  const removedFixtureSourceBaseline = Boolean(
+    (state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature)) ||
+      (state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature)),
+  );
   const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy;
 
   if (
@@ -1056,7 +1060,8 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     sourceWorkingCopy === state.sourceWorkingCopy &&
     selectedSegment === state.selectedSegment &&
     contactFilter === state.contactFilter &&
-    !removedFixtureTopLevelCopy
+    !removedFixtureTopLevelCopy &&
+    !removedFixtureSourceBaseline
   ) {
     return state;
   }
@@ -1065,6 +1070,14 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ...state,
     selectedSegment,
     contactFilter,
+    sourceStateVersion: removedFixtureSourceBaseline ? null : state.sourceStateVersion,
+    sourceLastSequence: removedFixtureSourceBaseline ? null : state.sourceLastSequence,
+    sourceDocumentSignature: removedFixtureSourceBaseline ? null : state.sourceDocumentSignature,
+    sourceAcknowledgedAt: removedFixtureSourceBaseline ? null : state.sourceAcknowledgedAt,
+    sourceRecheckStateVersion: removedFixtureSourceBaseline ? null : state.sourceRecheckStateVersion,
+    sourceRecheckLastSequence: removedFixtureSourceBaseline ? null : state.sourceRecheckLastSequence,
+    sourceRecheckDocumentSignature: removedFixtureSourceBaseline ? null : state.sourceRecheckDocumentSignature,
+    sourceRecheckVisitedViews: removedFixtureSourceBaseline ? [] : state.sourceRecheckVisitedViews,
     subject: resetTopLevelDraft ? "Local source draft reset" : state.subject,
     body: resetTopLevelDraft
       ? removedMismatchedTopLevelSourceCopy
@@ -1079,7 +1092,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     activeWorkingDraftId,
     sourceWorkingCopy,
     activity:
-      removedMismatchedLocalWork || resetTopLevelDraft
+      removedMismatchedLocalWork || resetTopLevelDraft || removedFixtureSourceBaseline
         ? [{ id: "workspace-sanitized", label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed." }]
         : state.activity,
   };
