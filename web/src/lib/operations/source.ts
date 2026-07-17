@@ -147,6 +147,11 @@ function isOperationsDocumentFlag(value: unknown): value is string {
   return value.slice(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim().length > 0;
 }
 
+function operationsDocumentFlagClaimText(value: string) {
+  if (!value.startsWith(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM)) return null;
+  return value.slice(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
+}
+
 function isOperationsDocumentFlagArray(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
@@ -295,6 +300,26 @@ export function isOperationsCompiledDocumentList(value: unknown): value is Compi
     if (!isOperationsCompiledDocument(doc) || seen.has(doc.key) || doc.key !== canonicalDocument.key) return false;
     seen.add(doc.key);
   }
+  return true;
+}
+
+export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocument[], evidence: EvidenceAndNextChecks) {
+  const unresolvedLoadBearingClaimTexts = new Set<string>();
+  for (const group of evidence.groups) {
+    for (const claim of group.claims) {
+      if (claim.loadBearing && UNRESOLVED_LABELS.has(claim.label)) {
+        unresolvedLoadBearingClaimTexts.add(claim.text);
+      }
+    }
+  }
+
+  for (const doc of documents) {
+    for (const flag of doc.flags) {
+      const claimText = operationsDocumentFlagClaimText(flag);
+      if (claimText !== null && !unresolvedLoadBearingClaimTexts.has(claimText)) return false;
+    }
+  }
+
   return true;
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   OPERATIONS_DEFAULT_SOURCE_ORIGIN,
+  hasConsistentOperationsDocumentEvidence,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsPublicCampaignId,
@@ -133,7 +134,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
-  if (!isOperationsCompiledDocumentList(docs.value.documents) || !isOperationsEvidenceAndNextChecks(docs.value.evidence)) {
+  if (
+    !isOperationsCompiledDocumentList(docs.value.documents) ||
+    !isOperationsEvidenceAndNextChecks(docs.value.evidence) ||
+    !hasConsistentOperationsDocumentEvidence(docs.value.documents, docs.value.evidence)
+  ) {
     return sourceJson(
       { error: "Campaign source contract mismatch", detail: "The public source did not return compiled documents and evidence in the expected shape.", sourceOrigin: origin },
       502,

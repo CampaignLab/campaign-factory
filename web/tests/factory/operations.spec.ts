@@ -3787,6 +3787,64 @@ test("operations workbench: unsupported compiled document flags do not hydrate a
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: unresolved document claim flags must match the evidence ledger before hydration", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const documents = canonicalOperationsDocuments();
+  documents[0] = {
+    ...documents[0],
+    html: "<p>Phantom unresolved document flag should not hydrate Ormskirk</p>",
+    plainText: "Phantom unresolved document flag should not hydrate Ormskirk",
+    flags: ["Unresolved load-bearing claim: Phantom council decision claim should not hydrate Ormskirk"],
+  };
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 13, lastSequence: 103, events: [] },
+        documents,
+        evidence: {
+          groups: [
+            {
+              label: "Verification incomplete",
+              count: 1,
+              claims: [
+                {
+                  id: "claim-real",
+                  text: "A different unresolved source claim is present in the ledger",
+                  type: "other",
+                  label: "Verification incomplete",
+                  loadBearing: true,
+                  confidence: "high",
+                  sourceCount: 1,
+                  affectedOutputs: ["campaign_brief"],
+                },
+              ],
+            },
+          ],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check the actual public claim ledger", reason: "Document flags must be source-backed", claimIds: ["claim-real"], affectedSections: ["campaign_brief"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 1, loadBearing: 1, verifiedLoadBearing: 0, unresolvedLoadBearing: 1 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Phantom unresolved document flag should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Phantom council decision claim should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("A different unresolved source claim is present in the ledger")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: rejects inconsistent evidence totals before hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

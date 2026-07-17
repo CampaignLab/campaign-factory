@@ -11,6 +11,7 @@ import type { RunReadModel } from "@/lib/factory/contracts/api";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
 import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
+  hasConsistentOperationsDocumentEvidence,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
@@ -1515,7 +1516,11 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
   }
 
   const body = { documents: sourceBody.documents, evidence: sourceBody.evidence };
-  if (!isOperationsCompiledDocumentList(body.documents) || !isOperationsEvidenceAndNextChecks(body.evidence)) {
+  if (
+    !isOperationsCompiledDocumentList(body.documents) ||
+    !isOperationsEvidenceAndNextChecks(body.evidence) ||
+    !hasConsistentOperationsDocumentEvidence(body.documents, body.evidence)
+  ) {
     const err = new Error("The compiled campaign response did not match the typed public document contract.");
     (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
