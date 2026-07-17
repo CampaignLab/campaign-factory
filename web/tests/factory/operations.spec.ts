@@ -751,7 +751,7 @@ test("operations source API: malformed content-length source runs fail closed be
     expect(response.status).toBe(502);
     expectPublicSourceJsonBoundary(response.headers, "malformed content-length source run body");
 
-    const body = (await response.json()) as { error?: string; detail?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceContentLength?: number; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[] };
+    const body = (await response.json()) as { error?: string; detail?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceContentLength?: number; sourceContentLengthMalformed?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[] };
     expect(body.error).toBe("Campaign source contract mismatch");
     expect(body.detail).toContain("returned a malformed Content-Length header despite the complete-response JSON contract");
     expect(body.sourceStep).toBe("run");
@@ -759,6 +759,7 @@ test("operations source API: malformed content-length source runs fail closed be
     expect(body.sourcePath).toBe(`/api/factory/runs/${curatedId}`);
     expect(body.sourceHttpStatus).toBe(200);
     expect(body.sourceContentLength).toBeUndefined();
+    expect(body.sourceContentLengthMalformed).toBe(true);
     expect(body.sourceBodyTruncated).toBe(true);
     expect(body.sourceContentType).toBe("application/json");
     expect(body.documents).toBeUndefined();
@@ -2015,7 +2016,7 @@ test("operations source API: mismatched content-length source documents fail clo
     expect(response.status).toBe(502);
     expectPublicSourceJsonBoundary(response.headers, "mismatched content-length source documents");
 
-    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceContentLength?: number; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceContentLength?: number; sourceContentLengthMalformed?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
     expect(body.error).toBe("Campaign source contract mismatch");
     expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned a Content-Length header that did not match the JSON body length.`);
     expect(body.runStatus).toBe("partial");
@@ -2075,7 +2076,7 @@ test("operations source API: malformed content-length source documents fail clos
     expect(response.status).toBe(502);
     expectPublicSourceJsonBoundary(response.headers, "malformed content-length source documents");
 
-    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceContentLength?: number; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
+    const body = (await response.json()) as { error?: string; detail?: string; runStatus?: string; sourceOrigin?: string; sourceStep?: string; sourceFailureKind?: string; sourcePath?: string; sourceHttpStatus?: number; sourceRequestId?: string; sourceMatchedPath?: string; sourceContentLength?: number; sourceContentLengthMalformed?: boolean; sourceBodyTruncated?: boolean; sourceContentType?: string; documents?: unknown[]; sourceRunUnavailable?: boolean };
     expect(body.error).toBe("Campaign source contract mismatch");
     expect(body.detail).toContain(`Read-only source /api/factory/runs/${curatedId}/documents returned a malformed Content-Length header despite the complete-response JSON contract.`);
     expect(body.runStatus).toBe("partial");
@@ -2087,6 +2088,7 @@ test("operations source API: malformed content-length source documents fail clos
     expect(body.sourceRequestId).toBe("lhr1::iad1::ops-doc-malformed-content-length");
     expect(body.sourceMatchedPath).toBe("/api/factory/runs/[id]/documents");
     expect(body.sourceContentLength).toBeUndefined();
+    expect(body.sourceContentLengthMalformed).toBe(true);
     expect(body.sourceBodyTruncated).toBe(true);
     expect(body.sourceContentType).toBe("application/json");
     expect(body.documents).toBeUndefined();
@@ -4177,6 +4179,38 @@ test("operations workspace: oversized JSON diagnostics survive client sanitizati
   await expect(page.getByText(/JSON body larger than the preview-safe limit/)).toBeVisible();
   await expect(page.getByText(/source failure oversized JSON · upstream HTTP 200/)).toBeVisible();
   await expect(page.getByText(/content length 2100035 bytes · upstream body truncated · upstream content type application\/json/)).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+});
+
+
+test("operations workspace: malformed content-length diagnostics survive client sanitization without fixture fallback", async ({ page }) => {
+  await page.route("**/api/operations/sources/**", async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Campaign source contract mismatch",
+        detail: "Read-only source /api/factory/runs/69f257b6-9913-4395-94f7-5c25b4b5fe95/documents returned a malformed Content-Length header despite the complete-response JSON contract.",
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        sourceStep: "documents",
+        sourceFailureKind: "contract_mismatch",
+        sourcePath: "/api/factory/runs/69f257b6-9913-4395-94f7-5c25b4b5fe95/documents",
+        sourceHttpStatus: 200,
+        sourceContentLengthMalformed: true,
+        sourceBodyTruncated: true,
+        sourceContentType: "application/json",
+      }),
+    });
+  });
+
+  await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95");
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText(/malformed Content-Length header despite the complete-response JSON contract/)).toBeVisible();
+  await expect(page.getByText(/source failure contract mismatch · upstream HTTP 200/)).toBeVisible();
+  await expect(page.getByText(/content length malformed · upstream body truncated · upstream content type application\/json/)).toBeVisible();
+  await expect(page.getByText(/content length \d+ bytes/)).toHaveCount(0);
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
