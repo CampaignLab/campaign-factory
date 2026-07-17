@@ -78,6 +78,12 @@ function sanitizeRetryAfter(value: string | null) {
   return /^\d{1,5}$/.test(trimmed) ? trimmed : undefined;
 }
 
+function sanitizeSourceRequestId(value: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return /^[A-Za-z0-9:_.-]{1,128}$/.test(trimmed) ? trimmed : undefined;
+}
+
 function sourceFailureHeaders(result: { retryAfter?: string }) {
   return result.retryAfter ? { ...NO_STORE_HEADERS, "Retry-After": result.retryAfter } : NO_STORE_HEADERS;
 }
@@ -88,10 +94,20 @@ function sourceFailureBody(step: SourceStep, body: Record<string, unknown>) {
   return { ...body, sourceStep: step };
 }
 
+function upstreamFailureMetadata(result: { sourceHttpStatus?: number; sourceRequestId?: string }) {
+  return {
+    ...(result.sourceHttpStatus ? { sourceHttpStatus: result.sourceHttpStatus } : {}),
+    ...(result.sourceRequestId ? { sourceRequestId: result.sourceRequestId } : {}),
+  };
+}
+
 async function fetchSourceJson<T>(
   origin: string,
   path: string,
-): Promise<{ ok: true; value: T } | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string }> {
+): Promise<
+  | { ok: true; value: T }
+  | { ok: false; status: number; message: string; path: string; contractMismatch?: boolean; retryAfter?: string; sourceHttpStatus?: number; sourceRequestId?: string }
+> {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -117,15 +133,33 @@ async function fetchSourceJson<T>(
         path,
         message: `Read-only source ${path} returned HTTP ${response.status}.${redirectDetail}`,
         retryAfter: sanitizeRetryAfter(response.headers.get("retry-after")),
+        sourceHttpStatus: response.status,
+        sourceRequestId: sanitizeSourceRequestId(response.headers.get("x-vercel-id")),
       };
     }
     if (!hasJsonContentType(response)) {
-      return { ok: false, status: 502, path, contractMismatch: true, message: `Read-only source ${path} returned a non-JSON content type.` };
+      return {
+        ok: false,
+        status: 502,
+        path,
+        contractMismatch: true,
+        message: `Read-only source ${path} returned a non-JSON content type.`,
+        sourceHttpStatus: response.status,
+        sourceRequestId: sanitizeSourceRequestId(response.headers.get("x-vercel-id")),
+      };
     }
     try {
       return { ok: true, value: (await response.json()) as T };
     } catch {
-      return { ok: false, status: 502, path, contractMismatch: true, message: `Read-only source ${path} returned malformed JSON.` };
+      return {
+        ok: false,
+        status: 502,
+        path,
+        contractMismatch: true,
+        message: `Read-only source ${path} returned malformed JSON.`,
+        sourceHttpStatus: response.status,
+        sourceRequestId: sanitizeSourceRequestId(response.headers.get("x-vercel-id")),
+      };
     }
   } catch {
     return {
@@ -187,22 +221,22 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       );
     }
   } else if (run.status === 404) {
-    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }), 404, sourceFailureHeaders(run));
+    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }), 404, sourceFailureHeaders(run));
   } else if (isRedirectStatus(run.status)) {
     return sourceJson(
-      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin }),
+      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: "The public source run redirected instead of returning the allow-listed read-only run contract.", sourceOrigin: origin, ...upstreamFailureMetadata(run) }),
       502,
     );
   } else if (run.status === 504) {
-    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }), 504, sourceFailureHeaders(run));
+    return sourceJson(sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }), 504, sourceFailureHeaders(run));
   } else if (run.contractMismatch) {
     return sourceJson(
-      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin }),
+      sourceFailureBody("run", { error: "Campaign source contract mismatch", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }),
       502,
     );
   } else {
     return sourceJson(
-      sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin }),
+      sourceFailureBody("run", { error: "Campaign source run unavailable", detail: run.message, sourceOrigin: origin, ...upstreamFailureMetadata(run) }),
       run.status >= 400 && run.status < 600 ? run.status : 502,
       sourceFailureHeaders(run),
     );
@@ -212,20 +246,20 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!docs.ok) {
     if (isRedirectStatus(docs.status)) {
       return sourceJson(
-        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin }),
+        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: "The public source documents redirected instead of returning the allow-listed read-only document contract.", sourceOrigin: origin, ...upstreamFailureMetadata(docs) }),
         502,
       );
     }
 
     if (docs.contractMismatch) {
       return sourceJson(
-        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: docs.message, sourceOrigin: origin }),
+        sourceFailureBody("documents", { error: "Campaign source contract mismatch", detail: docs.message, sourceOrigin: origin, ...upstreamFailureMetadata(docs) }),
         502,
       );
     }
 
     return sourceJson(
-      sourceFailureBody("documents", { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin }),
+      sourceFailureBody("documents", { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin, ...upstreamFailureMetadata(docs) }),
       unavailableSourceStatus(docs.status),
       sourceFailureHeaders(docs),
     );
