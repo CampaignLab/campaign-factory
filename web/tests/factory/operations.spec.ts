@@ -3621,7 +3621,7 @@ test("operations workbench: unavailable run header must not carry hidden source 
 
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
-  await expect(page.getByText(/inconsistent unavailable run-header provenance/i)).toBeVisible();
+  await expect(page.getByText(/did not include a validated run header/i)).toBeVisible();
   await expect(page.getByText("Hidden event-state Ormskirk")).toHaveCount(0);
   await expect(page.getByText("Hidden run state should not hydrate")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
@@ -3688,14 +3688,14 @@ test("operations workbench: synthetic run header must carry unavailable provenan
 
   await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
   await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
-  await expect(page.getByText(/inconsistent unavailable run-header provenance/i)).toBeVisible();
+  await expect(page.getByText(/unvalidated synthetic run header/i)).toBeVisible();
   await expect(page.getByText("Unmarked synthetic Ormskirk")).toHaveCount(0);
   await expect(page.getByText("Unmarked synthetic header should not hydrate")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
-test("operations workbench: unavailable run header stays visible when documents load", async ({ page }) => {
+test("operations workbench: unavailable run header must fail closed before document hydration", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
   await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
@@ -3720,11 +3720,12 @@ test("operations workbench: unavailable run header stays visible when documents 
 
   await page.goto(`/operations?campaignId=${campaignId}`);
 
-  await expect(page.getByRole("heading", { name: "Run header unavailable Ormskirk" }).first()).toBeVisible();
-  await expect(page.getByText("Source header unavailable").first()).toBeVisible();
-  await expect(page.getByText(/compiled campaign documents loaded read-only/i).first()).toBeVisible();
-  await expect(page.getByText("Partial but usable")).toHaveCount(0);
-  await expect(page.getByText("No fixture fallback used", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not include a validated run header/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Run header unavailable Ormskirk" })).toHaveCount(0);
+  await expect(page.getByText("Confirm the public source run header once the endpoint recovers")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
 });
 
 test("operations workbench: source terminal gaps require public text and journey steps", async ({ page }) => {

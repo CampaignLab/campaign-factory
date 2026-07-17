@@ -12,11 +12,10 @@ import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/docu
 import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
   hasConsistentOperationsDocumentEvidence,
-  hasUnavailableOperationsRunHeaderProvenance,
+  hasSyntheticUnavailableOperationsRunHeader,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
-  isOperationsSourceRunUnavailableMarker,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -211,7 +210,6 @@ type CampaignSource = {
   nextGate?: string;
   sourceHref: string;
   sourceOrigin: string;
-  sourceRunUnavailable?: boolean;
 };
 
 type SourceState =
@@ -1142,15 +1140,12 @@ function statusPhrase(status: RunReadModel["status"]) {
 }
 
 function sourceStatusPhrase(source: CampaignSource) {
-  return source.sourceRunUnavailable ? "Source header unavailable" : statusPhrase(source.runStatus);
+  return statusPhrase(source.runStatus);
 }
 
 function sourceStatusDetail(source: CampaignSource) {
   const documentSummary = `${source.readyCount}/${source.documents.length} documents ready`;
   const incompleteSummary = source.incompleteDocuments.map((doc) => `${doc.name} ${doc.status}`).join(", ") || "no incomplete documents";
-  if (source.sourceRunUnavailable) {
-    return `Source header unavailable · compiled documents loaded read-only; ${documentSummary}; ${incompleteSummary}.`;
-  }
   return `${statusPhrase(source.runStatus)} · ${documentSummary}; ${incompleteSummary}.`;
 }
 
@@ -1287,7 +1282,7 @@ function buildInitialStateForSource(source: CampaignSource): DemoState {
       "",
       `This is a browser-local working draft for ${source.title}${source.place ? ` in ${source.place}` : ""}. No provider action, scheduling, contact import, or public source write-back has happened.`,
       "",
-      `Current source status: ${sourceStatusPhrase(source)}; ${source.readyCount}/${source.documents.length} compiled documents are ready${source.sourceRunUnavailable ? " from the read-only documents endpoint while the run header was unavailable" : ""}.`,
+      `Current source status: ${sourceStatusPhrase(source)}; ${source.readyCount}/${source.documents.length} compiled documents are ready.`,
       "",
       `Next source check: ${nextCheck}`,
       "",
@@ -1306,7 +1301,7 @@ function buildInitialStateForSource(source: CampaignSource): DemoState {
     workingDrafts: [],
     activeWorkingDraftId: null,
     sourceWorkingCopy: null,
-    activity: [{ id: `source-${source.campaignId}`, label: `${source.sourceRunUnavailable ? "Compiled campaign documents loaded read-only while the run header was unavailable" : "Real campaign source loaded read-only"} for ${source.title}; local operations state is separate.` }],
+    activity: [{ id: `source-${source.campaignId}`, label: `Real campaign source loaded read-only for ${source.title}; local operations state is separate.` }],
   };
 }
 
@@ -1353,9 +1348,7 @@ function buildSourceContext(source: CampaignSource): typeof campaignContext {
         {
           label: "Source status",
           detail: sourceStatusDetail(source),
-          use: source.sourceRunUnavailable
-            ? "Compiled documents can still populate the workspace, but the missing run header remains visible instead of pretending the source status is known."
-            : "Partial is usable, but incomplete documents remain visible rather than silently filled.",
+          use: "Partial is usable, but incomplete documents remain visible rather than silently filled.",
           owner: "Workbench",
         },
         {
@@ -1530,14 +1523,18 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     if (sourceOrigin) (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
-  if (!isOperationsSourceRunUnavailableMarker(sourceBody.sourceRunUnavailable)) {
+  if (sourceBody.sourceRunUnavailable === true) {
+    const err = new Error("The public campaign source did not include a validated run header. No compiled document hydration was used.");
+    (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
+    throw err;
+  }
+  if (sourceBody.sourceRunUnavailable !== undefined && sourceBody.sourceRunUnavailable !== false) {
     const err = new Error("The public campaign source returned malformed unavailable run-header provenance.");
     (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
-  const sourceRunUnavailable = sourceBody.sourceRunUnavailable === true;
-  if (!hasUnavailableOperationsRunHeaderProvenance(run, sourceRunUnavailable)) {
-    const err = new Error("The public campaign source returned inconsistent unavailable run-header provenance.");
+  if (hasSyntheticUnavailableOperationsRunHeader(run)) {
+    const err = new Error("The public campaign source returned an unvalidated synthetic run header.");
     (err as Error & { sourceOrigin?: string }).sourceOrigin = sourceOrigin;
     throw err;
   }
@@ -1582,7 +1579,6 @@ async function fetchCampaignSource(campaignId: string, signal: AbortSignal): Pro
     nextGate: priorityGate?.description ?? body.evidence.nextChecks[0]?.description,
     sourceHref: `${sourceOrigin}/factory/c/${campaignId}`,
     sourceOrigin,
-    sourceRunUnavailable,
   };
 }
 

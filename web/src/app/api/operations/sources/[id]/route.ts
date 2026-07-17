@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   OPERATIONS_DEFAULT_SOURCE_ORIGIN,
   hasConsistentOperationsDocumentEvidence,
-  hasSyntheticUnavailableOperationsRunHeader,
   hasUnavailableOperationsRunHeaderProvenance,
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
@@ -113,10 +112,6 @@ async function fetchSourceJson<T>(
   }
 }
 
-function upstreamFailureDetail(primary: { message: string }, secondary?: { status: number; path: string }) {
-  return secondary ? `${primary.message} The run header also failed at ${secondary.path} with HTTP ${secondary.status}.` : primary.message;
-}
-
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   if (!UUID_RE.test(id) || !isOperationsPublicCampaignId(id)) {
@@ -200,7 +195,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
 
     return sourceJson(
-      { error: "Campaign source documents unavailable", detail: upstreamFailureDetail(docs, run.ok ? undefined : run), sourceOrigin: origin },
+      { error: "Campaign source documents unavailable", detail: docs.message, sourceOrigin: origin },
       docs.status === 404 ? 404 : docs.status === 504 ? 504 : 502,
     );
   }
@@ -216,21 +211,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
-  const responseRun = run.ok ? run.value : ({ campaignId: id, status: "partial", stateVersion: 0, lastSequence: 0, events: [] } as OperationsSourcePayload["run"]);
-  if (!run.ok && !hasSyntheticUnavailableOperationsRunHeader(responseRun)) {
-    return sourceJson(
-      { error: "Campaign source contract mismatch", detail: "The public source adapter could not produce an honest unavailable run header.", sourceOrigin: origin },
-      502,
-    );
-  }
-
   return sourceJson(
     {
       sourceOrigin: origin,
-      run: responseRun,
+      run: run.value,
       documents: docs.value.documents,
       evidence: docs.value.evidence,
-      sourceRunUnavailable: run.ok ? undefined : true,
     } as OperationsSourcePayload,
   );
 }
