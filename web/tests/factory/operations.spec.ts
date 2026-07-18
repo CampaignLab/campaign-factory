@@ -18318,6 +18318,47 @@ test("operations workbench rejects primary source-check actions with non-primary
   expect(storedState).not.toContain("primary-check-title-drift");
 });
 
+test("operations workbench keeps source next-check actions with action-safe restored ids", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: barnetId, status: "completed", stateVersion: 82, lastSequence: 2320, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([
+          { id: "primary", description: "Check Barnet decision records", reason: "Primary next source check", affectedSections: ["strategy"] },
+          { id: "Committee Minute #42", description: "Confirm committee minute record", reason: "Source ids may contain readable punctuation", affectedSections: ["evidence"] },
+        ]),
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=evidence`);
+  const ledger = page.getByLabel("Source next checks ledger");
+  await ledger.getByRole("button", { name: "Create action" }).nth(1).click();
+  await expect(page.getByText("Check: Confirm committee minute record").first()).toBeVisible();
+
+  let storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain(`source:${barnetId}:next-check:check-2-committee-minute-42`);
+  expect(storedState).toContain("derived from next check check-2-committee-minute-42");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("Check: Confirm committee minute record").first()).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.");
+
+  storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain("Check: Confirm committee minute record");
+  expect(storedState).toContain("check-2-committee-minute-42");
+});
+
 test("operations workbench rejects source actions whose id kind disagrees with stored provenance", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

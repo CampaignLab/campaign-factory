@@ -2331,9 +2331,15 @@ function sourcePrimaryCheckButton(source: CampaignSource) {
   return /appeal|planning inspectorate/i.test(source.nextGate ?? "") ? "Create appeal-status action" : "Create source-check action";
 }
 
+function sourceCheckActionLocalKey(check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
+  if (/^[a-z0-9_-]{1,80}$/.test(check.id)) return check.id;
+  const slug = sourceResourceTitleSlug(check.id || check.description).slice(0, 64) || "source-check";
+  return `check-${index + 1}-${slug}`.slice(0, 80);
+}
+
 function sourceCheckActionId(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
   if (index === 0) return `source:${source.campaignId}:primary-source-check`;
-  return `source:${source.campaignId}:next-check:${check.id || index + 1}`;
+  return `source:${source.campaignId}:next-check:${sourceCheckActionLocalKey(check, index)}`;
 }
 
 function sourceCheckActionTitle(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
@@ -4110,7 +4116,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       timing: index === 0 ? "Before phase change or stronger public claims" : shortText(check.reason || "Before related copy or tactics move forward", 120),
       priority: index === 0 ? "High" : "Medium",
       status: "next",
-      provenance: `Source campaign ${source.campaignId}; derived from next check ${check.id || index + 1}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`,
+      provenance: `Source campaign ${source.campaignId}; derived from next check ${index === 0 ? check.id || index + 1 : sourceCheckActionLocalKey(check, index)}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`,
     });
   };
 
