@@ -1279,10 +1279,12 @@ function storedTimestampIsBefore(left: string, right: string) {
 }
 
 function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
-  return ["channel", "subject", "body", "reviewerNote", "status", "createdAt", "updatedAt"].some((field) => {
+  return ["title", "channel", "subject", "body", "reviewerNote", "status", "createdAt", "updatedAt"].some((field) => {
     const value = draft[field as keyof WorkingDraft];
     return (value !== undefined && typeof value !== "string") || storedTextIsInvisible(value);
   }) ||
+    storedSourceMetadataTextIsMalformed(draft.title) ||
+    storedSourceMetadataTextIsMalformed(draft.channel) ||
     storedSourceScopedIdIsMalformed(draft.id) ||
     typeof draft.createdAt !== "string" ||
     !isCurrentOrPastStoredTimestamp(draft.createdAt) ||

@@ -9067,6 +9067,103 @@ test("operations workbench rejects padded source working-copy metadata from real
   expect(stored).not.toContain("padded-metadata-copy");
 });
 
+test("operations workbench rejects padded source draft metadata from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Padded working-draft metadata guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${campaignId}:real-barnet-source-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local update",
+        body: "Hi — can you support the campaign after the next source check?",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${campaignId}:resource:lobbying_pack:padded-draft-metadata-copy`,
+            title: " Barnet padded draft metadata source copy ",
+            channel: " Briefing note ",
+            subject: "Padded working draft metadata should not queue",
+            body: "This queued local copy should fail closed because its working-draft metadata needed trim-only recovery.",
+            reviewerNote: "Review before any local queueing.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T18:02:30.000Z",
+            sourceWorkingCopy: {
+              id: `source:${campaignId}:resource:lobbying_pack:padded-draft-metadata-copy`,
+              campaignId,
+              title: "Barnet padded draft metadata source copy",
+              channel: "Briefing note",
+              sourceDocument: "Lobbying Pack",
+              sourceDocumentKey: "lobbying_pack",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              warnings: ["Confirm the current Barnet decision record before any external use."],
+              provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${campaignId}:resource:lobbying_pack:padded-draft-metadata-copy`,
+        sourceWorkingCopy: null,
+        activity: [{ id: "padded-draft-metadata-copy", label: "Placed approved draft into the local demo queue for Barnet padded draft metadata source copy." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet padded draft metadata source copy");
+  await expect(page.locator("main")).not.toContainText("Padded working draft metadata should not queue");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Barnet padded draft metadata source copy");
+  expect(stored).not.toContain("Padded working draft metadata should not queue");
+  expect(stored).not.toContain("padded-draft-metadata-copy");
+});
+
 test("operations workbench rejects blank source working-copy warning metadata from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
