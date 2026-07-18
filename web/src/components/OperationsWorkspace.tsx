@@ -1301,20 +1301,25 @@ function stateHasOlderSourceResourceBaseline(state: DemoState, source: CampaignS
   return baselinePrecedesCurrentSource && state.sourceDocumentSignature !== currentDocumentSignature;
 }
 
+function localActionMatchesCurrentSourceCheckAction(action: LocalAction, source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
+  return Boolean(
+    action.id === sourceCheckActionId(source, check, index) &&
+      normaliseOperationsSourceInlineText(action.title) === normaliseOperationsSourceInlineText(sourceCheckActionTitle(source, check, index)) &&
+      normaliseOperationsSourceInlineText(action.source) === normaliseOperationsSourceInlineText(sourceCheckActionSource(check)) &&
+      normaliseOperationsSourceInlineText(action.owner).toLowerCase() === "reviewer" &&
+      normaliseOperationsSourceInlineText(action.timing) === normaliseOperationsSourceInlineText(sourceCheckActionTiming(check, index)) &&
+      action.priority === sourceCheckActionPriority(index) &&
+      normaliseOperationsSourceInlineText(action.provenance) === normaliseOperationsSourceInlineText(sourceCheckActionProvenance(source, check, index)),
+  );
+}
+
 function localActionMatchesCurrentSourceAction(action: LocalAction, source: CampaignSource) {
   if (action.id === `source:${source.campaignId}:primary-source-check`) {
     const primaryCheck = source.evidence.nextChecks[0];
-    const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
-    return Boolean(
-      primaryCheck &&
-        normaliseOperationsSourceInlineText(action.title) === normaliseOperationsSourceInlineText(sourceCheckActionTitle(source, primaryCheck, 0)) &&
-        provenance.includes(`derived from next check ${normaliseOperationsSourceInlineText(sourceCheckActionProvenanceKey(primaryCheck, 0)).toLowerCase()}`),
-    );
+    return Boolean(primaryCheck && localActionMatchesCurrentSourceCheckAction(action, source, primaryCheck, 0));
   }
 
-  const currentCheckAction = source.evidence.nextChecks
-    .slice(1)
-    .some((check, offset) => action.id === sourceCheckActionId(source, check, offset + 1) && normaliseOperationsSourceInlineText(action.title) === normaliseOperationsSourceInlineText(sourceCheckActionTitle(source, check, offset + 1)));
+  const currentCheckAction = source.evidence.nextChecks.slice(1).some((check, offset) => localActionMatchesCurrentSourceCheckAction(action, source, check, offset + 1));
   if (currentCheckAction) return true;
 
   const currentIncompleteDocumentAction = source.incompleteDocuments.some(
@@ -2520,6 +2525,22 @@ function sourceCheckActionId(source: CampaignSource, check: EvidenceAndNextCheck
 function sourceCheckActionTitle(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
   if (index === 0) return sourcePrimaryCheckTitle(source);
   return `Check: ${shortText(check.description, 82)}`;
+}
+
+function sourceCheckActionSource(check: EvidenceAndNextChecks["nextChecks"][number]) {
+  return `Campaign source · Evidence & checks${check.affectedSections?.length ? ` · ${check.affectedSections.join(", ")}` : ""}`;
+}
+
+function sourceCheckActionTiming(check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
+  return index === 0 ? "Before phase change or stronger public claims" : shortText(check.reason || "Before related copy or tactics move forward", 120);
+}
+
+function sourceCheckActionPriority(index: number): LocalAction["priority"] {
+  return index === 0 ? "High" : "Medium";
+}
+
+function sourceCheckActionProvenance(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
+  return `Source campaign ${source.campaignId}; derived from next check ${sourceCheckActionProvenanceKey(check, index)}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`;
 }
 
 function incompleteDocumentActionId(source: CampaignSource, doc: CompiledDocument) {
@@ -4292,12 +4313,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     createLocalAction({
       id: sourceCheckActionId(source, check, index),
       title: sourceCheckActionTitle(source, check, index),
-      source: `Campaign source · Evidence & checks${check.affectedSections?.length ? ` · ${check.affectedSections.join(", ")}` : ""}`,
+      source: sourceCheckActionSource(check),
       owner: "Reviewer",
-      timing: index === 0 ? "Before phase change or stronger public claims" : shortText(check.reason || "Before related copy or tactics move forward", 120),
-      priority: index === 0 ? "High" : "Medium",
+      timing: sourceCheckActionTiming(check, index),
+      priority: sourceCheckActionPriority(index),
       status: "next",
-      provenance: `Source campaign ${source.campaignId}; derived from next check ${sourceCheckActionProvenanceKey(check, index)}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`,
+      provenance: sourceCheckActionProvenance(source, check, index),
     });
   };
 

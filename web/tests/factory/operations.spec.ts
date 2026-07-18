@@ -19253,6 +19253,83 @@ test("operations workbench rejects source tactic actions whose target provenance
   expect(storedState).not.toContain("source-tactic-target-drift");
 });
 
+test("operations workbench rejects source check actions whose owner drifts from current source", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: barnetId, status: "completed", stateVersion: 81, lastSequence: 2292, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet planning records",
+        }),
+        evidence: campaignEvidence([{ id: "barnet-planning-record", description: "Check Barnet planning records", reason: "Source check owner provenance guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local source-check action should be sanitized before drifted owner metadata is trusted.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:primary-source-check`,
+            title: "Verify planning decision record",
+            source: "Campaign source · Evidence & checks · strategy",
+            owner: "Shadow reviewer",
+            timing: "Before phase change or stronger public claims",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; derived from next check barnet-planning-record; stored only in this browser.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "source-check-owner-drift", label: "Created action: Verify planning decision record for Shadow reviewer." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Shadow reviewer");
+  await expect(page.locator("main")).toContainText("Actions: 0 local items");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).not.toContain("Shadow reviewer");
+  expect(storedState).not.toContain("source-check-owner-drift");
+});
+
 test("operations workbench rejects padded source action metadata before portfolio or workspace counts", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
