@@ -6276,6 +6276,111 @@ test("operations workbench rejects source working drafts without campaign proven
   expect(stored).not.toContain("Barnet source copy queued locally without source campaign provenance");
 });
 
+test("operations workbench rejects source working drafts with loosely embedded campaign ids", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? campaignId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 12, lastSequence: 23, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Embedded source-copy id guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    const looselyScopedCopy = {
+      id: `manual-${id}-source-copy`,
+      campaignId: id,
+      title: "Barnet source copy with loosely embedded id",
+      channel: "Briefing note",
+      sourceDocument: "Lobbying Pack",
+      sourceDocumentKey: "lobbying_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: ["Confirm the current Barnet decision record before any external use."],
+      provenance: `Copied from Lobbying Pack in campaign ${id}; browser-local embedded-id regression fixture.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 12,
+        sourceLastSequence: 23,
+        sourceDocumentSignature: `source:${id}:real-barnet-source-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Loosely embedded source copy should be reset",
+        body: "This top-level source copy mentions the campaign UUID but does not start with a campaign-scoped source copy id.",
+        reviewerNote: "Loosely embedded source-copy reviewer note",
+        status: "queued",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-16T18:02:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: looselyScopedCopy.id,
+            title: looselyScopedCopy.title,
+            channel: "Briefing note",
+            subject: "Loosely embedded working draft subject should be removed",
+            body: "Loosely embedded working draft body should be removed",
+            reviewerNote: "Loosely embedded working draft reviewer note should be removed",
+            status: "queued",
+            queuedAt: "2026-07-16T18:03:30.000Z",
+            createdAt: looselyScopedCopy.createdAt,
+            updatedAt: "2026-07-16T18:03:30.000Z",
+            sourceWorkingCopy: looselyScopedCopy,
+          },
+        ],
+        activeWorkingDraftId: looselyScopedCopy.id,
+        sourceWorkingCopy: looselyScopedCopy,
+        activity: [{ id: "embedded-copy", label: "Barnet source provenance briefing queued locally from a loosely embedded campaign id." }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet source provenance briefing queued locally from a loosely embedded campaign id");
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=drafts`);
+  await expect(page.locator("main")).not.toContainText("Loosely embedded source copy should be reset");
+  await expect(page.locator("main")).not.toContainText("Loosely embedded working draft subject should be removed");
+  await expect(page.locator("main")).not.toContainText("Loosely embedded working draft body should be removed");
+  await expect(page.locator("main")).not.toContainText("Loosely embedded working draft reviewer note should be removed");
+  await expect(page.getByLabel("Local working draft library")).toHaveCount(0);
+
+  const stored = await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"sourceWorkingCopy":null');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain(`manual-${campaignId}-source-copy`);
+  expect(stored).not.toContain("Loosely embedded working draft subject should be removed");
+  expect(stored).not.toContain("Barnet source provenance briefing queued locally from a loosely embedded campaign id");
+});
+
 test("operations workbench resets legacy top-level source drafts from another campaign", async ({ page }) => {
   const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";

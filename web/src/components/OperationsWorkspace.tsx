@@ -996,6 +996,12 @@ function sourceBaselineSignatureMatchesWorkspace(value: string, expectedWorkspac
   return Boolean(match && match[1]?.toLowerCase() === expectedKey && textReferencesOnlyExpectedCampaign(value, expectedKey));
 }
 
+function sourceScopedLocalIdMatchesWorkspace(value: string, expectedWorkspaceKey: string) {
+  const expectedKey = expectedWorkspaceKey.toLowerCase();
+  const match = value.match(/^(?:source:)?([0-9a-f-]{36})(?::|$)/i);
+  return Boolean(match && match[1]?.toLowerCase() === expectedKey && textReferencesOnlyExpectedCampaign(value, expectedKey));
+}
+
 function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: string) {
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
   const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
@@ -1009,9 +1015,7 @@ function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
   if (copy.campaignId !== expectedCampaignId) return false;
-  const idCampaignId = copy.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
-  if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
-  if (!referencedCampaignIds(copy.id).some((campaignId) => campaignId.toLowerCase() === expectedCampaignId)) return false;
+  if (!sourceScopedLocalIdMatchesWorkspace(copy.id, expectedCampaignId)) return false;
   if (!referencedCampaignIds(copy.provenance).some((campaignId) => campaignId.toLowerCase() === expectedCampaignId)) return false;
   if (!textFieldsReferenceOnlyExpectedCampaign([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings], expectedCampaignId)) return false;
   const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
@@ -1021,8 +1025,7 @@ function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWork
 
 function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey: string) {
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
-  const idCampaignId = draft.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
-  if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
+  if (draft.id !== draft.sourceWorkingCopy.id || !sourceScopedLocalIdMatchesWorkspace(draft.id, expectedCampaignId)) return false;
   if (!textFieldsReferenceOnlyExpectedCampaign([draft.id, draft.title, draft.channel, draft.subject, draft.body, draft.reviewerNote], expectedCampaignId)) return false;
   return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedCampaignId);
 }
