@@ -13256,6 +13256,80 @@ test("operations portfolio sanitizes malformed browser-local state before local 
   expect(storedState).not.toContain("portfolio-malformed-action");
 });
 
+test("operations portfolio counts legacy top-level source working copies as local drafts", async ({ page }) => {
+  const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
+    [ormskirkId]: { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", status: "partial" },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London", status: "partial" },
+    "6b54225d-afa3-41d1-b053-89741094f153": { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", status: "completed" },
+  };
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? ormskirkId;
+    const campaign = campaignTitles[requestedCampaignId] ?? campaignTitles[ormskirkId];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: campaign.status, stateVersion: 69, lastSequence: 2190, events: [] },
+        documents: campaignOperationsDocuments({ title: campaign.title, place: campaign.place, next: `Check ${campaign.place} source records` }),
+        evidence: campaignEvidence([{ id: "portfolio-top-level-draft-count", description: `Check ${campaign.place} source records`, reason: "Portfolio top-level source draft count guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 69,
+        sourceLastSequence: 2190,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Keep KFC Out of Ormskirk supporter update",
+        body: "This browser-local source draft is stored in the legacy top-level copy slot and should still appear in portfolio local-work signals.",
+        reviewerNote: "Approved but not queued.",
+        status: "approved",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: {
+          id: `source:${id}:digital-pack-top-level-portfolio-count`,
+          campaignId: id,
+          title: "Ormskirk supporter update",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "digital_campaign_pack",
+          createdAt: "2026-07-17T20:05:00.000Z",
+          warnings: ["Confirm Ormskirk appeal records before stronger claims."],
+          provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+        },
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "top-level-draft-approval", label: "Human approval recorded for this local demo draft." }],
+      }),
+    );
+  }, ormskirkId);
+
+  await page.goto("/operations");
+  await expect(page.getByRole("heading", { name: "Keep KFC Out of Ormskirk" })).toBeVisible();
+  const ormskirkRow = page.locator("article").filter({ hasText: "Keep KFC Out of Ormskirk" });
+  await expect(ormskirkRow).toContainText("1 working draft");
+  await expect(ormskirkRow).not.toContainText("queued locally");
+});
+
 test("operations portfolio removes browser-local state stored under the wrong campaign key", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";

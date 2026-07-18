@@ -1494,9 +1494,10 @@ function loadSanitizedWorkspaceState(campaignId: string, persistSanitized = fals
 function portfolioLocalCounts(campaignId: string, persistSanitized = false): PortfolioLocalCounts {
   const state = loadSanitizedWorkspaceState(campaignId, persistSanitized);
   if (!state) return emptyPortfolioLocalCounts();
+  const topLevelSourceDraftCount = state.sourceWorkingCopy ? 1 : 0;
   return {
     actions: state.localActions.length,
-    drafts: state.workingDrafts.length,
+    drafts: topLevelSourceDraftCount + state.workingDrafts.length,
     reviews: (state.status === "review" ? 1 : 0) + state.workingDrafts.filter((draft) => draft.status === "review").length,
     queued: (hasRecordedLocalQueue(state.status, state.queuedAt) ? 1 : 0) + state.workingDrafts.filter((draft) => hasRecordedLocalQueue(draft.status, draft.queuedAt)).length,
   };
