@@ -934,18 +934,30 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
   };
 }
 
+function referencedCampaignIds(value: string) {
+  return value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) ?? [];
+}
+
+function textReferencesOnlyExpectedCampaign(value: string, expectedWorkspaceKey: string) {
+  return referencedCampaignIds(value).every((campaignId) => campaignId.toLowerCase() === expectedWorkspaceKey.toLowerCase());
+}
+
 function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: string) {
   const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
   if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
+  if (!textReferencesOnlyExpectedCampaign(action.id, expectedWorkspaceKey)) return false;
+  if (!textReferencesOnlyExpectedCampaign(action.provenance, expectedWorkspaceKey)) return false;
   const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1];
   if (provenanceCampaignId && provenanceCampaignId !== expectedWorkspaceKey) return false;
-  return true;
+  return Boolean(idCampaignId === expectedWorkspaceKey || provenanceCampaignId === expectedWorkspaceKey);
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
   if (copy.campaignId !== expectedWorkspaceKey) return false;
   const idCampaignId = copy.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
   if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
+  if (!textReferencesOnlyExpectedCampaign(copy.id, expectedWorkspaceKey)) return false;
+  if (!textReferencesOnlyExpectedCampaign(copy.provenance, expectedWorkspaceKey)) return false;
   const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1];
   if (provenanceCampaignId && provenanceCampaignId !== expectedWorkspaceKey) return false;
   return true;
@@ -954,6 +966,7 @@ function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWork
 function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey: string) {
   const idCampaignId = draft.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
   if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
+  if (!textReferencesOnlyExpectedCampaign(draft.id, expectedWorkspaceKey)) return false;
   return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedWorkspaceKey);
 }
 

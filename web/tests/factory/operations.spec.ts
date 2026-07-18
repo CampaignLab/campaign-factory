@@ -7407,6 +7407,139 @@ test("operations workbench rejects cross-campaign source-copy identifiers from r
   expect(stored).not.toContain(otherCampaignId);
 });
 
+test("operations workbench rejects cross-campaign UUIDs in source provenance text", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const otherCampaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Cross-campaign provenance UUID guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ campaignId, otherId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${campaignId}`,
+        JSON.stringify({
+          workspaceKey: campaignId,
+          sourceStateVersion: 14,
+          sourceLastSequence: 25,
+          sourceDocumentSignature: "real-barnet-source-baseline",
+          sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+          selectedSegment: "source_primary",
+          subject: "Barnet local update",
+          body: "Hi — can you support the campaign after the next source check?",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "outbox",
+          contactFilter: "source_primary",
+          contactReadinessFilter: "all",
+          scheduleIntent: "tomorrow_morning",
+          queuedAt: null,
+          localActions: [
+            {
+              id: "legacy-local-action",
+              title: "Barnet generic legacy local action",
+              source: "Local workspace",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "Medium",
+              status: "next",
+              provenance: "Created in this browser-local operations workspace.",
+            },
+            {
+              id: `source:${campaignId}:action:cross-provenance`,
+              title: "Barnet action carrying Ormskirk provenance",
+              source: "Lobbying Pack",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Copied from campaign ${otherId} into this browser-local workspace.`,
+            },
+          ],
+          workingDrafts: [
+            {
+              id: `source:${campaignId}:resource:lobbying_pack:cross-provenance-copy`,
+              title: "Barnet provenance-mismatched source copy",
+              channel: "Briefing note",
+              subject: "Cross-campaign provenance should not render",
+              body: "This queued local copy carries another campaign identifier only in provenance text and should be removed.",
+              reviewerNote: "",
+              status: "queued",
+              queuedAt: "2026-07-16T18:02:30.000Z",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              updatedAt: "2026-07-16T18:02:30.000Z",
+              sourceWorkingCopy: {
+                id: `source:${campaignId}:resource:lobbying_pack:cross-provenance-copy`,
+                campaignId,
+                title: "Barnet provenance-mismatched source copy",
+                channel: "Briefing note",
+                sourceDocument: "Lobbying Pack",
+                sourceDocumentKey: "lobbying_pack",
+                createdAt: "2026-07-16T17:52:30.000Z",
+                warnings: ["Confirm the current Barnet decision record before any external use."],
+                provenance: `Copied from Lobbying Pack in campaign ${otherId}; this editable copy is browser-local.`,
+              },
+            },
+          ],
+          activeWorkingDraftId: `source:${campaignId}:resource:lobbying_pack:cross-provenance-copy`,
+          sourceWorkingCopy: null,
+          activity: [
+            { id: "generic-legacy-local-action", label: "Created action: Barnet generic legacy local action" },
+            { id: "cross-provenance-action", label: "Created action: Barnet action carrying Ormskirk provenance" },
+            { id: "cross-provenance-copy-queued", label: "Placed approved draft into the local demo queue for Barnet provenance-mismatched source copy." },
+          ],
+        }),
+      );
+    },
+    { campaignId: barnetId, otherId: otherCampaignId },
+  );
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet provenance-mismatched source copy");
+  await expect(page.locator("main")).not.toContainText("Barnet generic legacy local action");
+  await expect(page.locator("main")).not.toContainText("Barnet action carrying Ormskirk provenance");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.locator("main")).not.toContainText("Barnet generic legacy local action");
+  await expect(page.locator("main")).not.toContainText("Barnet action carrying Ormskirk provenance");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"localActions":[]');
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Barnet provenance-mismatched source copy");
+  expect(stored).not.toContain("Barnet generic legacy local action");
+  expect(stored).not.toContain("Barnet action carrying Ormskirk provenance");
+  expect(stored).not.toContain(otherCampaignId);
+});
+
 test("operations workbench rejects malformed local-action fields from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
