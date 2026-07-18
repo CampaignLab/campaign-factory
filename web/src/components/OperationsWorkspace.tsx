@@ -1051,6 +1051,21 @@ function activityLooksLikeTopLevelDraftWorkflow(activity: Activity) {
   );
 }
 
+function topLevelDraftLooksAlreadyReset(state: DemoState) {
+  return state.subject === "Local source draft reset" && state.body.startsWith("This browser-local");
+}
+
+function topLevelDraftHasUnprovenancedLocalCopy(state: DemoState) {
+  if (state.sourceWorkingCopy || topLevelDraftLooksAlreadyReset(state)) return false;
+  return Boolean(
+    state.status !== "draft" ||
+      state.queuedAt ||
+      state.reviewerNote ||
+      state.subject !== initialState.subject ||
+      state.body !== initialState.body,
+  );
+}
+
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
@@ -1101,7 +1116,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedFixtureSourceWorkingCopy = Boolean(state.sourceWorkingCopy && sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy));
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopyCandidate && !removedFixtureSourceWorkingCopy);
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
-  const removedUnprovenancedTopLevelReviewState = !sourceWorkingCopy && Boolean(state.status !== "draft" || state.queuedAt || state.reviewerNote);
+  const removedUnprovenancedTopLevelReviewState = !sourceWorkingCopy && topLevelDraftHasUnprovenancedLocalCopy(state);
   const removedFixtureSourceBaseline = Boolean(
     (state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature)) ||
       (state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature)),
