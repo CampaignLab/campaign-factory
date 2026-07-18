@@ -13957,6 +13957,10 @@ test("operations workbench: next-check metadata changes preserve browser-local w
 test("operations workbench: order-only source metadata changes keep the acknowledged baseline current", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   let affectedSections = ["strategy", "evidence"];
+  let nextChecks = [
+    { id: "appeal-check", description: "Check Ormskirk appeal records", reason: "Order-only source metadata", affectedSections },
+    { id: "resident-consent-check", description: "Confirm resident evidence consent", reason: "Order-only secondary check", affectedSections: ["evidence", "organising"] },
+  ];
   let claimIds = ["claim-1", "claim-2"];
   let affectedOutputs = ["digital_pack", "campaign_strategy"];
   let draftNotes = [
@@ -13972,10 +13976,11 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let documentFlags = ["Unresolved load-bearing claim: Unresolved source claim 1", "Unresolved load-bearing claim: Unresolved source claim 2"];
 
   const sourceEvidence = () => {
-    const evidence = campaignEvidence([{ id: "appeal-check", description: "Check Ormskirk appeal records", reason: "Order-only source metadata", affectedSections }], 2);
+    const evidence = campaignEvidence(nextChecks, 2);
     evidence.groups[0].claims[0].affectedOutputs = affectedOutputs;
     evidence.groups[0].claims[1].affectedOutputs = [...affectedOutputs].reverse();
-    evidence.nextChecks[0].claimIds = claimIds;
+    const appealCheck = evidence.nextChecks.find((check) => check.id === "appeal-check");
+    if (appealCheck) appealCheck.claimIds = claimIds;
     evidence.draftNotes = draftNotes;
     evidence.terminalGaps = terminalGaps;
     const conflictClaim = {
@@ -14020,6 +14025,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   expect(beforeOrderChange.sourceDocumentSignature).toContain(`source:${campaignId}:`);
 
   affectedSections = [...affectedSections].reverse();
+  nextChecks = nextChecks.map((check) => check.id === "appeal-check" ? { ...check, affectedSections } : check).reverse();
   claimIds = [...claimIds].reverse();
   affectedOutputs = [...affectedOutputs].reverse();
   draftNotes = [...draftNotes].reverse();

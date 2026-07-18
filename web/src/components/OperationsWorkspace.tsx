@@ -2093,13 +2093,20 @@ function sourceDocumentSignature(source: CampaignSource) {
           }))
           .sort((left, right) => sourceSignatureCompare(left.label, right.label)),
         conflicts: source.evidence.conflicts.map(sourceEvidenceClaimSignature).sort((left, right) => sourceSignatureCompare(sourceEvidenceClaimSortKey(left), sourceEvidenceClaimSortKey(right))),
-        nextChecks: source.evidence.nextChecks.map((check) => ({
-          id: check.id,
-          description: check.description,
-          reason: check.reason,
-          claimIds: sourceSignatureStrings(check.claimIds),
-          affectedSections: sourceSignatureStrings(check.affectedSections),
-        })),
+        nextChecks: source.evidence.nextChecks
+          .map((check) => ({
+            id: check.id,
+            description: check.description,
+            reason: check.reason,
+            claimIds: sourceSignatureStrings(check.claimIds),
+            affectedSections: sourceSignatureStrings(check.affectedSections),
+          }))
+          .sort((left, right) =>
+            sourceSignatureCompare(
+              `${left.id}\u0000${left.description}\u0000${left.reason}`,
+              `${right.id}\u0000${right.description}\u0000${right.reason}`,
+            ),
+          ),
         terminalGaps: source.evidence.terminalGaps
           .map((gap) => ({ id: gap.id, description: gap.description, agentRunId: gap.agentRunId ?? null, step: gap.step ?? null, at: gap.at }))
           .sort((left, right) =>
