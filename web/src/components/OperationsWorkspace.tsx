@@ -1118,6 +1118,13 @@ function activityLooksLikeTopLevelDraftWorkflow(activity: Activity) {
   );
 }
 
+function activityLooksLikeDraftWorkflow(activity: Activity) {
+  return (
+    activityLooksLikeTopLevelDraftWorkflow(activity) ||
+    /\b(created|selected|viewed|edited|duplicated|archived)\b.{0,80}\b(local copy|working copy|source resource|draft|communication copy)\b/i.test(activity.label)
+  );
+}
+
 function activityLooksLikeLocalActionWorkflow(activity: Activity) {
   return /\b(created action|added action|updated action|action status|marked action|moved action|completed action|blocked action)\b/i.test(activity.label);
 }
@@ -1201,10 +1208,12 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
       (state.sourceRecheckDocumentSignature && (state.sourceRecheckStateVersion === null || state.sourceRecheckLastSequence === null)),
   );
   const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy || removedUnprovenancedTopLevelReviewState || removedDuplicatedTopLevelSourceCopy;
+  const hasRetainedLocalWork = Boolean(localActions.length || workingDrafts.length || sourceWorkingCopy || state.status !== "draft" || state.queuedAt);
+  const removedOrphanedDraftWorkflowActivity = !hasRetainedLocalWork && state.activity.some(activityLooksLikeDraftWorkflow);
   const removedQueuedWorkingDraft = state.workingDrafts.some((draft) => draft.status === "queued" && !workingDrafts.some((keptDraft) => keptDraft.id === draft.id));
   const hasQueuedWorkingDraft = workingDrafts.some((draft) => draft.status === "queued");
   const hasQueuedTopLevelSourceCopy = Boolean(sourceWorkingCopy && state.status === "queued");
-  const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
+  const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft || removedOrphanedDraftWorkflowActivity) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
   const resetSourceBaseline =
     removedFixtureSourceBaseline ||
     removedIncompleteSourceBaseline ||
@@ -1232,6 +1241,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
       !activityLooksFixtureBound(item) &&
       !activityLooksTiedToRemovedLocalWork(item, [...removedLocalWorkReferences, ...topLevelDraftResetReferences]) &&
       !(removedTopLevelDraftWorkflowActivity && activityLooksLikeTopLevelDraftWorkflow(item)) &&
+      !(removedOrphanedDraftWorkflowActivity && activityLooksLikeDraftWorkflow(item)) &&
       !(removedMismatchedLocalWork && activityLooksLikeLocalActionWorkflow(item)),
   );
   const removedFixtureActivity = activity.length !== state.activity.length;
@@ -1246,6 +1256,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     !removedFixtureTopLevelCopy &&
     !removedUnprovenancedTopLevelReviewState &&
     !removedDuplicatedTopLevelSourceCopy &&
+    !removedOrphanedDraftWorkflowActivity &&
     !resetSourceBaseline &&
     !removedFixtureActivity
   ) {
@@ -1283,7 +1294,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     activeWorkingDraftId,
     sourceWorkingCopy,
     activity:
-      removedMismatchedLocalWork || resetTopLevelDraft || resetSourceBaseline || removedFixtureActivity
+      removedMismatchedLocalWork || resetTopLevelDraft || removedOrphanedDraftWorkflowActivity || resetSourceBaseline || removedFixtureActivity
         ? [{ id: "workspace-sanitized", label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed." }, ...activity].slice(0, 7)
         : state.activity,
   };
