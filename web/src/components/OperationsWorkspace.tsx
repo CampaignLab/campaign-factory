@@ -896,9 +896,11 @@ function normaliseActivity(activity: unknown): Activity[] {
   for (const item of activity) {
     if (!item || typeof item !== "object") continue;
     const candidate = item as Partial<Activity>;
-    const id = typeof candidate.id === "string" ? candidate.id.trim() : "";
-    const label = typeof candidate.label === "string" ? candidate.label.trim() : "";
-    if (!id || !label) continue;
+    const rawId = candidate.id;
+    const rawLabel = candidate.label;
+    const id = typeof rawId === "string" ? rawId.trim() : "";
+    const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
+    if (!id || !label || !storedTextHasVisibleText(id) || !storedTextHasVisibleText(label) || storedSourceScopedIdIsMalformed(rawId)) continue;
     const idKey = id.toLowerCase();
     if (seenIds.has(idKey)) continue;
     seenIds.add(idKey);

@@ -19345,6 +19345,83 @@ test("operations workbench trims blank browser-local activity before export", as
   expect(stored).not.toContain("blank-label");
 });
 
+test("operations workbench rejects invisible and padded source-scoped browser-local activity before export", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? campaignId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Retrieve the GLA decision report and Barnet committee minutes",
+        }),
+        evidence: campaignEvidence([{ id: "next", description: "Retrieve the GLA decision report and Barnet committee minutes", reason: "Activity invisibility regression", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${id}:barnet-source-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local update",
+        body: "Hi — can you support the campaign after the next source check?",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: [
+          { id: "invisible-label", label: "\u2060\u200b" },
+          { id: ` source:${id}:activity:padded-source-id `, label: "This padded source-scoped activity should be rejected." },
+          { id: "barnet-visible-activity", label: "Reviewed Barnet local workspace boundary." },
+        ],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  const jsonPath = await jsonDownload.path();
+  expect(jsonPath).toBeTruthy();
+  const pack = JSON.parse(await readFile(jsonPath!, "utf8")) as { activity: string[] };
+  expect(pack.activity).toContain("Browser-local state was sanitized for this real campaign workspace; public source data was not changed.");
+  expect(pack.activity).toContain("Reviewed Barnet local workspace boundary.");
+  expect(pack.activity).not.toContain("This padded source-scoped activity should be rejected.");
+  expect(pack.activity.join("\n")).not.toContain("\u2060");
+  expect(pack.activity.join("\n")).not.toContain("\u200b");
+
+  const stored = await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId);
+  expect(stored).toContain('"id":"barnet-visible-activity"');
+  expect(stored).not.toContain("invisible-label");
+  expect(stored).not.toContain("padded-source-id");
+});
+
 test("operations workbench: all real campaign routes export source-specific local packs", async ({ page }) => {
   const campaigns = {
     "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
