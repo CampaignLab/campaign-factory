@@ -941,16 +941,17 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
     .map((draft) => {
       const sourceWorkingCopy = normaliseSourceWorkingCopy(draft.sourceWorkingCopy);
       if (!sourceWorkingCopy || typeof draft.id !== "string" || !draft.id || typeof draft.title !== "string" || !draft.title) return null;
+      const malformed = workingDraftHasMalformedField(draft);
       const createdAt = typeof draft.createdAt === "string" && draft.createdAt ? draft.createdAt : sourceWorkingCopy.createdAt;
       return {
         id: draft.id,
-        title: draft.title,
-        channel: typeof draft.channel === "string" && draft.channel ? draft.channel : sourceWorkingCopy.channel || "Source draft",
-        subject: typeof draft.subject === "string" && draft.subject ? draft.subject : draft.title,
-        body: typeof draft.body === "string" && draft.body ? draft.body : "",
-        reviewerNote: typeof draft.reviewerNote === "string" ? draft.reviewerNote : "",
-        status: draft.status === "draft" || draft.status === "review" || draft.status === "approved" || draft.status === "queued" ? draft.status : "draft",
-        queuedAt: typeof draft.queuedAt === "string" ? draft.queuedAt : null,
+        title: malformed ? INVALID_LOCAL_DRAFT_SUBJECT : draft.title,
+        channel: malformed ? "Malformed browser-local draft" : typeof draft.channel === "string" && draft.channel ? draft.channel : sourceWorkingCopy.channel || "Source draft",
+        subject: malformed ? INVALID_LOCAL_DRAFT_SUBJECT : typeof draft.subject === "string" && draft.subject ? draft.subject : draft.title,
+        body: malformed ? INVALID_LOCAL_DRAFT_BODY : typeof draft.body === "string" && draft.body ? draft.body : "",
+        reviewerNote: malformed ? "" : typeof draft.reviewerNote === "string" ? draft.reviewerNote : "",
+        status: malformed ? "draft" : draft.status === "draft" || draft.status === "review" || draft.status === "approved" || draft.status === "queued" ? draft.status : "draft",
+        queuedAt: malformed ? null : typeof draft.queuedAt === "string" ? draft.queuedAt : null,
         createdAt,
         updatedAt: typeof draft.updatedAt === "string" && draft.updatedAt ? draft.updatedAt : createdAt,
         sourceWorkingCopy,
@@ -980,6 +981,13 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
 
 const INVALID_LOCAL_DRAFT_SUBJECT = "Local draft unavailable";
 const INVALID_LOCAL_DRAFT_BODY = "This browser-local draft could not be restored because its saved subject or body was malformed.";
+
+function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
+  return ["channel", "subject", "body", "reviewerNote", "status", "createdAt", "updatedAt"].some((field) => {
+    const value = draft[field as keyof WorkingDraft];
+    return value !== undefined && typeof value !== "string";
+  }) || (draft.queuedAt !== undefined && draft.queuedAt !== null && typeof draft.queuedAt !== "string");
+}
 
 function normaliseState(parsed: Partial<DemoState>): DemoState {
   const workingDrafts = normaliseWorkingDrafts(parsed.workingDrafts, parsed);
@@ -1057,6 +1065,10 @@ function sourceWorkingCopyLooksFixtureBound(copy: SourceWorkingCopy) {
   return hasFixtureLeakage([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings].join("\n"));
 }
 
+function workingDraftLooksMalformed(draft: WorkingDraft) {
+  return draft.title === INVALID_LOCAL_DRAFT_SUBJECT || draft.subject === INVALID_LOCAL_DRAFT_SUBJECT || draft.body === INVALID_LOCAL_DRAFT_BODY;
+}
+
 function workingDraftLooksFixtureBound(draft: WorkingDraft) {
   return hasFixtureLeakage([
     draft.id,
@@ -1118,7 +1130,9 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksMalformed(action) && !localActionLooksFixtureBound(action));
-  const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksFixtureBound(draft));
+  const workingDrafts = state.workingDrafts.filter(
+    (draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksMalformed(draft) && !workingDraftLooksFixtureBound(draft),
+  );
   const sourceWorkingCopyCandidate = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey && !sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy) ? state.sourceWorkingCopy : null;
   const removedLocalWorkReferences = [
     ...state.localActions

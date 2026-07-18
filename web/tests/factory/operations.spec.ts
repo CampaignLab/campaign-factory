@@ -7490,6 +7490,108 @@ test("operations workbench rejects malformed working-draft and activity fields f
   expect(stored).not.toContain("Malformed object id should be removed");
 });
 
+test("operations workbench rejects malformed working-draft copy fields from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Malformed working-draft copy guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: "real-barnet-source-baseline",
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local update",
+        body: "Hi — can you support the campaign after the next source check?",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${campaignId}:resource:lobbying_pack:malformed-body`,
+            title: "Barnet briefing note",
+            channel: "Briefing note",
+            subject: { text: "Malformed Barnet working-draft subject" },
+            body: { text: "Malformed Barnet working-draft body" },
+            reviewerNote: { text: "Malformed Barnet working-draft reviewer note" },
+            status: "queued",
+            queuedAt: { at: "2026-07-16T18:02:30.000Z" },
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T18:02:30.000Z",
+            sourceWorkingCopy: {
+              id: `source:${campaignId}:resource:lobbying_pack:malformed-body`,
+              campaignId,
+              title: "Barnet briefing note",
+              channel: "Briefing note",
+              sourceDocument: "Lobbying Pack",
+              sourceDocumentKey: "lobbying_pack",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              warnings: ["Confirm the current Barnet decision record before any external use."],
+              provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${campaignId}:resource:lobbying_pack:malformed-body`,
+        sourceWorkingCopy: null,
+        activity: [{ id: "malformed-working-draft-body", label: "Barnet briefing note queued locally from malformed saved copy fields." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet briefing note queued locally from malformed saved copy fields");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.locator("main")).not.toContainText("Malformed Barnet working-draft subject");
+  await expect(page.locator("main")).not.toContainText("Malformed Barnet working-draft body");
+  await expect(page.locator("main")).not.toContainText("Malformed Barnet working-draft reviewer note");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Malformed Barnet working-draft subject");
+  expect(stored).not.toContain("Malformed Barnet working-draft body");
+  expect(stored).not.toContain("Malformed Barnet working-draft reviewer note");
+  expect(stored).not.toContain("Barnet briefing note queued locally from malformed saved copy fields");
+});
+
 test("operations workbench rejects malformed top-level draft fields from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
