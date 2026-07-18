@@ -1592,15 +1592,17 @@ function localStorageKeyFor(campaignId?: string) {
 function localStorageKeysForCampaign(campaignId: string) {
   if (typeof window === "undefined") return [];
   const canonicalKey = localStorageKeyFor(campaignId);
-  const prefix = `${STORAGE_KEY}:`;
+  const keyedPrefixes = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS].map((key) => `${key}:`);
   const keys = [canonicalKey];
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (!key || key === canonicalKey || key === STORAGE_KEY || LEGACY_STORAGE_KEYS.includes(key) || !key.startsWith(prefix)) continue;
+    if (!key || key === canonicalKey || key === STORAGE_KEY || LEGACY_STORAGE_KEYS.includes(key)) continue;
+    const prefix = keyedPrefixes.find((candidate) => key.startsWith(candidate));
+    if (!prefix) continue;
     const storedCampaignId = normaliseStoredCampaignId(key.slice(prefix.length));
     if (storedCampaignId === campaignId) keys.push(key);
   }
-  return [...keys, STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+  return [...new Set([...keys, STORAGE_KEY, ...LEGACY_STORAGE_KEYS])];
 }
 
 function firstNonEmptyLine(value?: string) {

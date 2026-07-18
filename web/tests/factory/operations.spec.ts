@@ -14241,6 +14241,81 @@ test("operations portfolio migrates unscoped legacy browser-local campaign stora
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"))).toBeNull();
 });
 
+test("operations workbench migrates legacy per-campaign browser-local storage keys", async ({ page }) => {
+  const campaignId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 64, lastSequence: 2160, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years",
+          place: "Tower Hamlets, London",
+          next: "Verify Tower Hamlets housing delivery evidence",
+        }),
+        evidence: campaignEvidence([{ id: "legacy-per-campaign-local-state", description: "Verify Tower Hamlets housing delivery evidence", reason: "Legacy per-campaign localStorage migration guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v2:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 64,
+        sourceLastSequence: 2160,
+        sourceDocumentSignature: `source:${id}:legacy-per-campaign-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T21:30:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Tower Hamlets legacy per-campaign source draft",
+        body: "This browser-local real campaign state was saved under a v2 per-campaign Operations key.",
+        reviewerNote: "Review before local queueing.",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:legacy-per-campaign-action`,
+            title: "Verify Tower Hamlets housing delivery evidence",
+            source: "Campaign source · Evidence & checks",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; created from Evidence & checks.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "legacy-per-campaign-action", label: "Created action: Verify Tower Hamlets housing delivery evidence" }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Verify Tower Hamlets housing delivery evidence");
+
+  await expect.poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v2:${id}`), campaignId)).toBeNull();
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.workspaceKey).toBe(campaignId);
+  expect(storedState.localActions).toHaveLength(1);
+});
+
 test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
