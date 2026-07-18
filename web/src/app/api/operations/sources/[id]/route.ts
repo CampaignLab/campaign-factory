@@ -413,9 +413,12 @@ function normalizeSourceDocuments(value: unknown) {
 function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>) {
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
+  const affectedOutputs = Array.isArray(record.affectedOutputs) ? (uniqueStrings(record.affectedOutputs) as string[]) : record.affectedOutputs;
+  const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueStrings(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
   return {
     ...record,
-    contradictsClaimIds: Array.isArray(record.contradictsClaimIds) && claimIds.size > 0 ? record.contradictsClaimIds.filter((claimId) => typeof claimId === "string" && claimId !== record.id && claimIds.has(claimId)) : record.contradictsClaimIds,
+    affectedOutputs,
+    contradictsClaimIds: Array.isArray(contradictsClaimIds) && claimIds.size > 0 ? contradictsClaimIds.filter((claimId) => claimId !== record.id && claimIds.has(claimId)) : contradictsClaimIds,
   };
 }
 
@@ -441,10 +444,12 @@ function normalizeSourceEvidence(value: unknown) {
       ? record.nextChecks.map((check) => {
           if (typeof check !== "object" || check === null) return check;
           const checkRecord = check as Record<string, unknown>;
+          const checkClaimIds = Array.isArray(checkRecord.claimIds) ? (uniqueStrings(checkRecord.claimIds) as string[]) : checkRecord.claimIds;
+          const affectedSections = Array.isArray(checkRecord.affectedSections) ? (uniqueStrings(checkRecord.affectedSections) as string[]) : checkRecord.affectedSections;
           return {
             ...checkRecord,
-            claimIds: Array.isArray(checkRecord.claimIds) && claimIds.size > 0 ? checkRecord.claimIds.filter((claimId) => typeof claimId === "string" && claimIds.has(claimId)) : checkRecord.claimIds,
-            affectedSections: Array.isArray(checkRecord.affectedSections) ? checkRecord.affectedSections.filter((section) => typeof section === "string" && SOURCE_AFFECTED_SECTION_KEYS.has(section)) : checkRecord.affectedSections,
+            claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds,
+            affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
           };
         })
       : record.nextChecks,

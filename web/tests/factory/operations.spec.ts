@@ -3447,7 +3447,12 @@ test("operations source API: normalizes recoverable legacy source references bef
     [{ id: "legacy-reference", description: "Legacy source check keeps the current claim and drops historical ids.", reason: "Older public source builds can carry archived claim ids in next checks.", affectedSections: ["documents", "lobbying_pack", "evidence"] }],
     1,
   );
-  evidence.nextChecks[0].claimIds = ["claim-1", "archived-claim-from-previous-build"];
+  const legacyClaim = evidence.groups[0].claims[0] as { affectedOutputs: string[]; contradictsClaimIds?: string[] };
+  legacyClaim.affectedOutputs = ["campaign_brief", "campaign_brief", "digital_pack"];
+  legacyClaim.contradictsClaimIds = ["claim-1", "claim-1", "archived-claim-from-previous-build"];
+  const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[]; affectedSections: string[] };
+  legacyNextCheck.claimIds = ["claim-1", "claim-1", "archived-claim-from-previous-build"];
+  legacyNextCheck.affectedSections = ["documents", "lobbying_pack", "lobbying_pack", "evidence"];
   const documentsBody = JSON.stringify({ documents, evidence });
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -3472,8 +3477,10 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(response.status).toBe(200);
     expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
 
-    const body = (await response.json()) as { documents?: Array<{ flags?: string[] }>; evidence?: { nextChecks?: Array<{ claimIds?: string[]; affectedSections?: string[] }> }; sourceFailureKind?: string };
+    const body = (await response.json()) as { documents?: Array<{ flags?: string[] }>; evidence?: { groups?: Array<{ claims?: Array<{ affectedOutputs?: string[]; contradictsClaimIds?: string[] }> }>; nextChecks?: Array<{ claimIds?: string[]; affectedSections?: string[] }> }; sourceFailureKind?: string };
     expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1"]);
+    expect(body.evidence?.groups?.[0]?.claims?.[0]?.affectedOutputs).toEqual(["campaign_brief", "digital_pack"]);
+    expect(body.evidence?.groups?.[0]?.claims?.[0]?.contradictsClaimIds).toEqual([]);
     expect(body.evidence?.nextChecks?.[0]?.claimIds).toEqual(["claim-1"]);
     expect(body.evidence?.nextChecks?.[0]?.affectedSections).toEqual(["lobbying_pack", "evidence"]);
     expect(body.sourceFailureKind).toBeUndefined();
