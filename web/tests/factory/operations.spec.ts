@@ -7304,6 +7304,90 @@ test("operations workbench rejects malformed source working-copy fields from rea
   expect(stored).not.toContain("malformed-copy");
 });
 
+test("operations workbench rejects malformed local-action fields from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Malformed local-action guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: "real-barnet-source-baseline",
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local update",
+        body: "Hi — can you support the campaign after the next source check?",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${campaignId}:check:bad-local-action`,
+            title: { text: "Malformed Barnet local action" },
+            source: "Evidence & checks",
+            owner: ["Campaigner"],
+            timing: "Before any external use",
+            priority: "High",
+            status: { value: "in_progress" },
+            provenance: `Source campaign ${campaignId}; copied from a read-only evidence check.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: [{ id: "malformed-local-action", label: "Created action: Malformed Barnet local action" }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Malformed Barnet local action");
+  await expect(page.locator("main")).not.toContainText("Created action: Malformed Barnet local action");
+
+  await page.goto(`/operations?campaignId=${barnetId}`);
+  await expect(page.locator("main")).not.toContainText("1 action");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"localActions":[]');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Malformed Barnet local action");
+  expect(stored).not.toContain("bad-local-action");
+});
+
 test("operations workbench rejects malformed working-draft and activity fields from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

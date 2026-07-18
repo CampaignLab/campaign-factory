@@ -869,20 +869,33 @@ function normaliseActivity(activity: unknown): Activity[] {
   return normalised.length ? normalised : [];
 }
 
+const INVALID_LOCAL_ACTION_TITLE = "Local action unavailable";
+const INVALID_LOCAL_ACTION_SOURCE = "Malformed browser-local action";
+
+function localActionHasMalformedField(action: Record<string, unknown>) {
+  return ["id", "title", "source", "owner", "timing", "provenance", "priority", "status"].some((field) => {
+    const value = action[field];
+    return value !== undefined && typeof value !== "string";
+  });
+}
+
 function normaliseLocalActions(actions: unknown): LocalAction[] {
   if (!Array.isArray(actions)) return [];
   return actions
-    .filter((action): action is Partial<LocalAction> => Boolean(action) && typeof action === "object")
-    .map((action, index) => ({
-      id: typeof action.id === "string" && action.id ? action.id : `local-action-${index + 1}`,
-      title: typeof action.title === "string" && action.title ? action.title : "Untitled local action",
-      source: typeof action.source === "string" && action.source ? action.source : "Local workspace",
-      owner: typeof action.owner === "string" && action.owner ? action.owner : "Campaigner",
-      timing: typeof action.timing === "string" && action.timing ? action.timing : "Next",
-      priority: action.priority === "High" || action.priority === "Medium" || action.priority === "Low" ? action.priority : "Medium",
-      status: action.status === "next" || action.status === "in_progress" || action.status === "blocked" || action.status === "done" ? action.status : "next",
-      provenance: typeof action.provenance === "string" && action.provenance ? action.provenance : "Created in this browser-local operations workspace.",
-    }));
+    .filter((action): action is Record<string, unknown> => Boolean(action) && typeof action === "object")
+    .map((action, index) => {
+      const malformed = localActionHasMalformedField(action);
+      return {
+        id: typeof action.id === "string" && action.id ? action.id : `local-action-${index + 1}`,
+        title: malformed ? INVALID_LOCAL_ACTION_TITLE : typeof action.title === "string" && action.title ? action.title : "Untitled local action",
+        source: malformed ? INVALID_LOCAL_ACTION_SOURCE : typeof action.source === "string" && action.source ? action.source : "Local workspace",
+        owner: typeof action.owner === "string" && action.owner ? action.owner : "Campaigner",
+        timing: typeof action.timing === "string" && action.timing ? action.timing : "Next",
+        priority: action.priority === "High" || action.priority === "Medium" || action.priority === "Low" ? action.priority : "Medium",
+        status: action.status === "next" || action.status === "in_progress" || action.status === "blocked" || action.status === "done" ? action.status : "next",
+        provenance: typeof action.provenance === "string" && action.provenance ? action.provenance : "Created in this browser-local operations workspace.",
+      };
+    });
 }
 
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
@@ -1032,6 +1045,10 @@ function topLevelDraftLooksFixtureBound(state: DemoState) {
   return hasFixtureLeakage(fixtureText);
 }
 
+function localActionLooksMalformed(action: LocalAction) {
+  return action.title === INVALID_LOCAL_ACTION_TITLE || action.source === INVALID_LOCAL_ACTION_SOURCE;
+}
+
 function localActionLooksFixtureBound(action: LocalAction) {
   return hasFixtureLeakage([action.id, action.title, action.source, action.owner, action.timing, action.provenance].join("\n"));
 }
@@ -1077,6 +1094,10 @@ function activityLooksLikeTopLevelDraftWorkflow(activity: Activity) {
   );
 }
 
+function activityLooksLikeLocalActionWorkflow(activity: Activity) {
+  return /\b(created action|added action|updated action|action status|marked action|moved action|completed action|blocked action)\b/i.test(activity.label);
+}
+
 function topLevelDraftLooksAlreadyReset(state: DemoState) {
   return state.subject === "Local source draft reset" && state.body.startsWith("This browser-local");
 }
@@ -1096,7 +1117,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
-  const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksFixtureBound(action));
+  const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksMalformed(action) && !localActionLooksFixtureBound(action));
   const workingDrafts = state.workingDrafts.filter((draft) => draft.sourceWorkingCopy.campaignId === expectedWorkspaceKey && !workingDraftLooksFixtureBound(draft));
   const sourceWorkingCopyCandidate = state.sourceWorkingCopy?.campaignId === expectedWorkspaceKey && !sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy) ? state.sourceWorkingCopy : null;
   const removedLocalWorkReferences = [
@@ -1184,7 +1205,8 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     (item) =>
       !activityLooksFixtureBound(item) &&
       !activityLooksTiedToRemovedLocalWork(item, [...removedLocalWorkReferences, ...topLevelDraftResetReferences]) &&
-      !(removedTopLevelDraftWorkflowActivity && activityLooksLikeTopLevelDraftWorkflow(item)),
+      !(removedTopLevelDraftWorkflowActivity && activityLooksLikeTopLevelDraftWorkflow(item)) &&
+      !(removedMismatchedLocalWork && activityLooksLikeLocalActionWorkflow(item)),
   );
   const removedFixtureActivity = activity.length !== state.activity.length;
 
