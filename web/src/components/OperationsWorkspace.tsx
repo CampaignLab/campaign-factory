@@ -1368,11 +1368,23 @@ function hasStoredState(storageKey = STORAGE_KEY) {
 
 const emptyPortfolioLocalCounts = (): PortfolioLocalCounts => ({ actions: 0, drafts: 0, reviews: 0, queued: 0 });
 
-function portfolioLocalCounts(campaignId: string): PortfolioLocalCounts {
-  if (typeof window === "undefined") return emptyPortfolioLocalCounts();
-  const loaded = loadState(localStorageKeyFor(campaignId));
-  if (loaded.workspaceKey !== campaignId) return emptyPortfolioLocalCounts();
+function loadSanitizedWorkspaceState(campaignId: string, persistSanitized = false): DemoState | null {
+  if (typeof window === "undefined") return null;
+  const storageKey = localStorageKeyFor(campaignId);
+  const raw = localStorage.getItem(storageKey);
+  const loaded = loadState(storageKey);
+  if (loaded.workspaceKey !== campaignId) return null;
   const state = sanitizeStateForWorkspace(loaded, campaignId);
+  if (persistSanitized && raw) {
+    const sanitizedRaw = JSON.stringify(state);
+    if (sanitizedRaw !== raw) localStorage.setItem(storageKey, sanitizedRaw);
+  }
+  return state;
+}
+
+function portfolioLocalCounts(campaignId: string, persistSanitized = false): PortfolioLocalCounts {
+  const state = loadSanitizedWorkspaceState(campaignId, persistSanitized);
+  if (!state) return emptyPortfolioLocalCounts();
   return {
     actions: state.localActions.length,
     drafts: state.workingDrafts.length,
@@ -1396,10 +1408,8 @@ function localSignalPhrases(counts: PortfolioLocalCounts, sourceRecheckItemCount
 }
 
 function storedSourceRecheckSummary(campaignId: string, source: CampaignSource) {
-  if (typeof window === "undefined") return null;
-  const loaded = loadState(localStorageKeyFor(campaignId));
-  if (loaded.workspaceKey !== campaignId) return null;
-  const state = sanitizeStateForWorkspace(loaded, campaignId);
+  const state = loadSanitizedWorkspaceState(campaignId);
+  if (!state) return null;
   const currentDocumentSignature = sourceDocumentSignature(source);
   const baselineChanged = Boolean(
     state.sourceStateVersion !== null &&
@@ -2350,21 +2360,23 @@ function OperationsPortfolio() {
     const itemRefreshId = (portfolioItemRefreshIds.current[campaign.id] ?? 0) + 1;
     portfolioItemRefreshIds.current[campaign.id] = itemRefreshId;
     const controller = new AbortController();
+    const loadingLocalCounts = portfolioLocalCounts(campaign.id, true);
     portfolioControllers.current.push(controller);
     setItems((current) =>
       current.map((item) =>
         item.campaign.id === campaign.id
-          ? { campaign, status: "loading", local: portfolioLocalCounts(campaign.id) }
+          ? { campaign, status: "loading", local: loadingLocalCounts }
           : item,
       ),
     );
     fetchCampaignSource(campaign.id, controller.signal)
       .then((source) => {
         if (controller.signal.aborted || currentRefreshId !== portfolioRefreshId.current || itemRefreshId !== portfolioItemRefreshIds.current[campaign.id]) return;
+        const localCounts = portfolioLocalCounts(campaign.id, true);
         setItems((current) =>
           current.map((item) =>
             item.campaign.id === campaign.id
-              ? { campaign, status: "ready", source, local: portfolioLocalCounts(campaign.id) }
+              ? { campaign, status: "ready", source, local: localCounts }
               : item,
           ),
         );
@@ -2398,10 +2410,11 @@ function OperationsPortfolio() {
         const sourceContentTypeMissing = (error as { sourceContentTypeMissing?: boolean } | null)?.sourceContentTypeMissing;
         const sourceTextEncoding = (error as { sourceTextEncoding?: "malformed" } | null)?.sourceTextEncoding;
         const runStatus = (error as { runStatus?: RunReadModel["status"] } | null)?.runStatus;
+        const localCounts = portfolioLocalCounts(campaign.id, true);
         setItems((current) =>
           current.map((item) =>
             item.campaign.id === campaign.id
-              ? { campaign, status: "error", title: isSourceRunNotReadyStatus(runStatus) ? "Campaign not usable yet" : "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentLengthMalformed, sourceContentRange, sourceServer, sourceContentEncoding, sourceContentCharset, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, sourceTextEncoding, checkedAt: new Date().toISOString(), local: portfolioLocalCounts(campaign.id) }
+              ? { campaign, status: "error", title: isSourceRunNotReadyStatus(runStatus) ? "Campaign not usable yet" : "Campaign source unavailable", message, runStatus, sourceOrigin, sourceStep, sourceFailureKind, retryAfter, sourcePath, sourceHttpStatus, sourceElapsedMs, sourceRequestId, sourceMatchedPath, sourceCacheStatus, sourceCacheControl, sourceAgeSeconds, sourceResponseDate, sourceContentLength, sourceContentLengthMalformed, sourceContentRange, sourceServer, sourceContentEncoding, sourceContentCharset, sourceBodyEmpty, sourceBodyTruncated, sourceContentType, sourceContentTypeMissing, sourceTextEncoding, checkedAt: new Date().toISOString(), local: localCounts }
               : item,
           ),
         );
@@ -2418,7 +2431,7 @@ function OperationsPortfolio() {
       PORTFOLIO_CAMPAIGNS.map((campaign) => ({
         campaign,
         status: "loading",
-        local: portfolioLocalCounts(campaign.id),
+        local: portfolioLocalCounts(campaign.id, true),
       })),
     );
     PORTFOLIO_CAMPAIGNS.forEach((campaign) => refreshCampaign(campaign, currentRefreshId));
