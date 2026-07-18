@@ -926,15 +926,21 @@ function normaliseLocalActions(actions: unknown): LocalAction[] {
     .filter((action): action is Record<string, unknown> => Boolean(action) && typeof action === "object")
     .map((action, index) => {
       const malformed = localActionHasMalformedField(action);
+      const id = typeof action.id === "string" ? action.id.trim() : "";
+      const title = typeof action.title === "string" ? action.title.trim() : "";
+      const source = typeof action.source === "string" ? action.source.trim() : "";
+      const owner = typeof action.owner === "string" ? action.owner.trim() : "";
+      const timing = typeof action.timing === "string" ? action.timing.trim() : "";
+      const provenance = typeof action.provenance === "string" ? action.provenance.trim() : "";
       return {
-        id: typeof action.id === "string" && action.id ? action.id : `local-action-${index + 1}`,
-        title: malformed ? INVALID_LOCAL_ACTION_TITLE : typeof action.title === "string" && action.title ? action.title : "Untitled local action",
-        source: malformed ? INVALID_LOCAL_ACTION_SOURCE : typeof action.source === "string" && action.source ? action.source : "Local workspace",
-        owner: typeof action.owner === "string" && action.owner ? action.owner : "Campaigner",
-        timing: typeof action.timing === "string" && action.timing ? action.timing : "Next",
+        id: id || `local-action-${index + 1}`,
+        title: malformed || (typeof action.title === "string" && !title) ? INVALID_LOCAL_ACTION_TITLE : title || "Untitled local action",
+        source: malformed || (typeof action.source === "string" && !source) ? INVALID_LOCAL_ACTION_SOURCE : source || "Local workspace",
+        owner: owner || "Campaigner",
+        timing: timing || "Next",
         priority: action.priority === "High" || action.priority === "Medium" || action.priority === "Low" ? action.priority : "Medium",
         status: action.status === "next" || action.status === "in_progress" || action.status === "blocked" || action.status === "done" ? action.status : "next",
-        provenance: typeof action.provenance === "string" && action.provenance ? action.provenance : "Created in this browser-local operations workspace.",
+        provenance: provenance || "Created in this browser-local operations workspace.",
       };
     });
 }

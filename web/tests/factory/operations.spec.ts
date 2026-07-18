@@ -13650,6 +13650,104 @@ test("operations workbench deduplicates browser-local activity ids for real camp
   expect(storedState).not.toContain("Case-only duplicate Ormskirk local note should be removed before rendering");
 });
 
+test("operations workbench trims and drops blank restored local action fields", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 63, lastSequence: 2130, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet committee records",
+        }),
+        evidence: campaignEvidence([{ id: "blank-local-action-trim", description: "Check Barnet committee records", reason: "Blank restored action guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 63,
+        sourceLastSequence: 2130,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local source draft",
+        body: "This browser-local draft keeps Barnet source context while restored actions are sanitized.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `  source:${id}:barnet-committee-records  `,
+            title: "  Check Barnet committee records  ",
+            source: "  Tactics and Timeline  ",
+            owner: "  Campaigner  ",
+            timing: "  Next  ",
+            priority: "High",
+            status: "next",
+            provenance: `  Source campaign ${id}; created from Barnet source records.  `,
+          },
+          {
+            id: `source:${id}:blank-action-title`,
+            title: "   ",
+            source: "Tactics and Timeline",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "Medium",
+            status: "next",
+            provenance: `Source campaign ${id}; blank restored action title should be scrubbed.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [
+          { id: "blank-action-note", label: "Blank restored action title should be scrubbed from Barnet local actions." },
+          { id: "trimmed-action-note", label: "Barnet local action with padded fields should be trimmed and kept." },
+        ],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByText("Check Barnet committee records", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Blank restored action title should be scrubbed", { exact: false })).toHaveCount(0);
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  const parsed = JSON.parse(storedState) as { localActions: Array<{ id: string; title: string; source: string; owner: string; timing: string; provenance: string }> };
+  expect(parsed.localActions).toHaveLength(1);
+  expect(parsed.localActions[0]).toMatchObject({
+    id: `source:${campaignId}:barnet-committee-records`,
+    title: "Check Barnet committee records",
+    source: "Tactics and Timeline",
+    owner: "Campaigner",
+    timing: "Next",
+    provenance: `Source campaign ${campaignId}; created from Barnet source records.`,
+  });
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).not.toContain("blank-action-title");
+});
+
 test("operations workbench keeps one sanitized activity note when state is cleaned again", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
