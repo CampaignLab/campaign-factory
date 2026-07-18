@@ -19279,6 +19279,84 @@ test("operations workbench records sanitized activity when duplicate source re-c
   expect(storedState.activity.filter((item: { id: string }) => item.id === "workspace-sanitized")).toHaveLength(1);
 });
 
+test("operations workbench clears stale source re-check baselines older than the acknowledged source", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 81, lastSequence: 2310, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning records" }),
+        evidence: campaignEvidence([{ id: "stale-recheck-baseline", description: "Check Barnet planning records", reason: "Stale re-check baseline scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 80,
+        sourceLastSequence: 2300,
+        sourceDocumentSignature: `source:${id}:acknowledged-read-only-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local workspace has valid local action work and stale source re-check metadata from before the acknowledged baseline.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:next-check:stale-recheck-baseline`,
+            title: "Check Barnet planning records",
+            source: "Campaign source · Evidence & checks",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; derived from next check stale-recheck-baseline; stored only in this browser.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: 79,
+        sourceRecheckLastSequence: 2290,
+        sourceRecheckDocumentSignature: `source:${id}:older-read-only-baseline`,
+        sourceRecheckVisitedViews: ["evidence", "strategy", "drafts"],
+        activity: [{ id: "stale-recheck-baseline-action", label: "Created action: Check Barnet planning records" }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=overview`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("1 local item needs source re-check");
+  await expect(page.getByText("Acknowledge after re-checking")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Re-check Evidence & checks" })).toBeVisible();
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.localActions).toHaveLength(1);
+  expect(storedState.sourceDocumentSignature).toBe(`source:${campaignId}:acknowledged-read-only-baseline`);
+  expect(storedState.sourceRecheckStateVersion).toBeNull();
+  expect(storedState.sourceRecheckLastSequence).toBeNull();
+  expect(storedState.sourceRecheckDocumentSignature).toBeNull();
+  expect(storedState.sourceRecheckVisitedViews).toEqual([]);
+  expect(storedState.activity[0].id).toBe("workspace-sanitized");
+  expect(JSON.stringify(storedState)).not.toContain("older-read-only-baseline");
+});
+
 test("operations workbench: source updates without local work refresh the baseline without a re-check lock", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
