@@ -471,9 +471,15 @@ function uniqueSourceReferenceIds(values: unknown) {
   return unique;
 }
 
-function normalizeSourceVerificationLabel(value: unknown) {
+function normalizeSourceVisibleText(value: unknown) {
   if (typeof value !== "string") return undefined;
-  return SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normaliseOperationsSourceInlineText(value));
+  const normalized = normaliseOperationsSourceInlineText(value);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeSourceVerificationLabel(value: unknown) {
+  const normalized = normalizeSourceVisibleText(value);
+  return normalized ? SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normalized) : undefined;
 }
 
 function normalizeSourceAffectedSectionKey(value: string) {
@@ -516,7 +522,9 @@ function isRecoverableSourceTerminalGap(value: Record<string, unknown>) {
 function normalizeSourceTerminalGap(value: Record<string, unknown>) {
   const normalized = { ...value };
   const id = normalizeSourceReferenceId(normalized.id);
+  const description = normalizeSourceVisibleText(normalized.description);
   if (id) normalized.id = id;
+  if (description) normalized.description = description;
   if (normalized.agentRunId !== undefined && typeof normalized.agentRunId !== "string") delete normalized.agentRunId;
   if (normalized.step !== undefined) {
     const step = normalized.step;
@@ -541,11 +549,15 @@ function isRecoverableSourceNextCheck(value: Record<string, unknown>) {
 
 function normalizeSourceNextCheck(value: Record<string, unknown>, claimIds: Set<string>): Record<string, unknown> {
   const id = normalizeSourceReferenceId(value.id);
+  const description = normalizeSourceVisibleText(value.description);
+  const reason = normalizeSourceVisibleText(value.reason);
   const checkClaimIds = Array.isArray(value.claimIds) ? (uniqueSourceReferenceIds(value.claimIds) as string[]) : value.claimIds;
   const affectedSections = normalizeSourceAffectedSectionValues(value.affectedSections);
   return {
     ...value,
     ...(id ? { id } : {}),
+    ...(description ? { description } : {}),
+    ...(reason ? { reason } : {}),
     claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds === null ? undefined : checkClaimIds,
     affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
   };
@@ -615,14 +627,17 @@ function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fal
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
   const id = normalizeSourceReferenceId(record.id);
+  const text = normalizeSourceVisibleText(record.text);
+  const excerpt = normalizeSourceVisibleText(record.excerpt);
   const affectedOutputs = normalizeSourceAffectedSectionValues(record.affectedOutputs);
   const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueSourceReferenceIds(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
   const label = normalizeSourceVerificationLabel(record.label) ?? fallbackLabel;
   return {
     ...record,
     ...(id ? { id } : {}),
+    ...(text ? { text } : {}),
     ...(label ? { label } : {}),
-    ...(record.excerpt === null ? { excerpt: undefined } : {}),
+    ...(record.excerpt === null ? { excerpt: undefined } : excerpt ? { excerpt } : {}),
     affectedOutputs,
     contradictsClaimIds: Array.isArray(contradictsClaimIds) && claimIds.size > 0 ? contradictsClaimIds.filter((claimId) => claimId !== id && claimIds.has(claimId)) : contradictsClaimIds === null ? undefined : contradictsClaimIds,
   };
@@ -728,8 +743,8 @@ function normalizeSourceDraftNotes(value: unknown) {
       notes.push(note);
       continue;
     }
-    const normalizedSection = normaliseOperationsSourceInlineText(record.section);
-    const normalizedText = normaliseOperationsSourceInlineText(record.text);
+    const normalizedSection = normalizeSourceVisibleText(record.section);
+    const normalizedText = normalizeSourceVisibleText(record.text);
     if (!normalizedSection || !normalizedText) {
       notes.push(note);
       continue;
@@ -737,7 +752,7 @@ function normalizeSourceDraftNotes(value: unknown) {
     const key = `${normalizedSection}\u0000${normalizedText}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    notes.push(record);
+    notes.push({ ...record, section: normalizedSection, text: normalizedText });
   }
   return notes;
 }
