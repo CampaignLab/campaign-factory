@@ -1085,7 +1085,6 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
         ]
       : []),
   ];
-  const activity = state.activity.filter((item) => !activityLooksFixtureBound(item) && !activityLooksTiedToRemovedLocalWork(item, removedLocalWorkReferences));
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
@@ -1093,7 +1092,6 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const sourceWorkingCopy = removedDuplicatedTopLevelSourceCopy ? null : sourceWorkingCopyCandidate;
   const removedFixtureAudienceState = selectedSegment !== state.selectedSegment || contactFilter !== state.contactFilter;
   const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;
-  const removedFixtureActivity = activity.length !== state.activity.length;
   const removedFixtureSourceWorkingCopy = Boolean(state.sourceWorkingCopy && sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy));
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopyCandidate && !removedFixtureSourceWorkingCopy);
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
@@ -1117,6 +1115,23 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     removedFixtureSourceBaseline ||
     removedIncompleteSourceBaseline ||
     (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
+  const topLevelDraftResetReferences = resetTopLevelDraft
+    ? [
+        state.subject,
+        state.body,
+        state.reviewerNote,
+        state.status,
+        state.queuedAt,
+        state.sourceWorkingCopy?.id,
+        state.sourceWorkingCopy?.title,
+        state.sourceWorkingCopy?.sourceDocument,
+        state.sourceWorkingCopy?.sourceDocumentKey,
+      ].filter((reference): reference is string => typeof reference === "string" && reference.length > 0)
+    : [];
+  const activity = state.activity.filter(
+    (item) => !activityLooksFixtureBound(item) && !activityLooksTiedToRemovedLocalWork(item, [...removedLocalWorkReferences, ...topLevelDraftResetReferences]),
+  );
+  const removedFixtureActivity = activity.length !== state.activity.length;
 
   if (
     localActions.length === state.localActions.length &&
