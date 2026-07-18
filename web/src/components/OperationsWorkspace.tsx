@@ -1506,6 +1506,10 @@ function hasStoredState(storageKey = STORAGE_KEY) {
 
 const emptyPortfolioLocalCounts = (): PortfolioLocalCounts => ({ actions: 0, drafts: 0, reviews: 0, queued: 0 });
 
+function isSharedLegacyStorageKey(key: string) {
+  return key === STORAGE_KEY || LEGACY_STORAGE_KEYS.includes(key);
+}
+
 function loadSanitizedWorkspaceState(campaignId: string, persistSanitized = false): DemoState | null {
   if (typeof window === "undefined") return null;
   const storageKey = localStorageKeyFor(campaignId);
@@ -1514,7 +1518,7 @@ function loadSanitizedWorkspaceState(campaignId: string, persistSanitized = fals
     if (!raw) continue;
     const loaded = loadState(candidateKey);
     if (loaded.workspaceKey !== campaignId) {
-      if (persistSanitized) localStorage.removeItem(candidateKey);
+      if (persistSanitized && !isSharedLegacyStorageKey(candidateKey)) localStorage.removeItem(candidateKey);
       continue;
     }
     const state = sanitizeStateForWorkspace(loaded, campaignId);
@@ -1592,11 +1596,11 @@ function localStorageKeysForCampaign(campaignId: string) {
   const keys = [canonicalKey];
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (!key || key === canonicalKey || !key.startsWith(prefix)) continue;
+    if (!key || key === canonicalKey || key === STORAGE_KEY || LEGACY_STORAGE_KEYS.includes(key) || !key.startsWith(prefix)) continue;
     const storedCampaignId = normaliseStoredCampaignId(key.slice(prefix.length));
     if (storedCampaignId === campaignId) keys.push(key);
   }
-  return keys;
+  return [...keys, STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
 }
 
 function firstNonEmptyLine(value?: string) {

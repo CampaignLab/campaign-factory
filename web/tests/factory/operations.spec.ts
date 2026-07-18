@@ -14124,6 +14124,83 @@ test("operations workbench migrates uppercase browser-local campaign storage key
   expect(storedState.localActions).toHaveLength(1);
 });
 
+test("operations portfolio migrates unscoped legacy browser-local campaign storage", async ({ page }) => {
+  const campaignId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? campaignId;
+    const isTowerHamlets = requestedCampaignId === campaignId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: "partial", stateVersion: isTowerHamlets ? 63 : 44, lastSequence: isTowerHamlets ? 2150 : 1909, events: [] },
+        documents: campaignOperationsDocuments({
+          title: isTowerHamlets ? "Build 5,000 affordable houses in Tower Hamlets in the next 3 years" : "Keep KFC Out of Ormskirk",
+          place: isTowerHamlets ? "Tower Hamlets, London" : "Ormskirk, Lancashire",
+          next: isTowerHamlets ? "Verify Tower Hamlets housing delivery evidence" : "Check Ormskirk appeal records",
+        }),
+        evidence: campaignEvidence([{ id: "legacy-unscoped-local-state", description: "Verify Tower Hamlets housing delivery evidence", reason: "Unscoped legacy localStorage migration guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      "cf_operations_demo_v3",
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 63,
+        sourceLastSequence: 2150,
+        sourceDocumentSignature: `source:${id}:legacy-unscoped-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T21:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Tower Hamlets legacy unscoped source draft",
+        body: "This browser-local real campaign state was saved by an older unscoped Operations workspace key.",
+        reviewerNote: "Review before local queueing.",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:legacy-unscoped-action`,
+            title: "Verify Tower Hamlets housing delivery evidence",
+            source: "Campaign source · Evidence & checks",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; created from Evidence & checks.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "legacy-unscoped-action", label: "Created action: Verify Tower Hamlets housing delivery evidence" }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto("/operations");
+  const towerHamletsRow = page.locator("article").filter({ hasText: "Build 5,000 affordable houses in Tower Hamlets" });
+  await expect(towerHamletsRow).toContainText("1 action");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.workspaceKey).toBe(campaignId);
+  expect(storedState.localActions).toHaveLength(1);
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"))).toBeNull();
+});
+
 test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
