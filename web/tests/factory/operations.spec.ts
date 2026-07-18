@@ -3490,11 +3490,18 @@ test("operations source API: normalizes recoverable legacy source references bef
   documents[0].html = `<p>${documents[0].plainText}</p>`;
   (documents[0] as { status: unknown }).status = " Needs\u00a0Verification ";
   (documents[3] as { status: unknown }).status = " UNDER_REVIEW ";
+  (documents[3] as { name: unknown }).name = " Campaign&nbsp;Strategy ";
+  (documents[3] as { num: unknown }).num = " 4 ";
+  (documents[3] as { isPack: unknown }).isPack = " false ";
   (documents[1] as { resourceCount: unknown }).resourceCount = " 0 ";
   (documents[6] as { resourceCount: unknown }).resourceCount = " 1 ";
   documents[8].plainText = withCompiledDocumentDisclaimer("DIGITAL CAMPAIGN PACK\n\nSupporter&nbsp email\n\nSubject: Source&nbsp update\n\nBefore you send this, check\n\nConfirm\n  the council&nbsp source before reusing this pack line.");
   documents[8].html = `<p>${documents[8].plainText}</p>`;
   (documents[8] as { status: unknown }).status = " READY ";
+  (documents[8] as { key: unknown }).key = "Digital&nbsp;Campaign Pack document";
+  (documents[8] as { name: unknown }).name = " Digital&nbsp;Campaign\n Pack ";
+  (documents[8] as { num: unknown }).num = " 9 ";
+  (documents[8] as { isPack: unknown }).isPack = " true ";
   documents[8].flags = [];
   documents[8].sectionKeys = ["Digital Campaign Pack document", "digital_pack", "Digital&nbsp;Campaign&nbsp;Pack"];
   (documents[8] as { resourceCount: unknown }).resourceCount = " 1 ";
@@ -3576,12 +3583,14 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(response.status).toBe(200);
     expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
 
-    const body = (await response.json()) as { run?: { batchId?: unknown; status?: string; stateVersion?: number; lastSequence?: number; events?: unknown[] }; documents?: Array<{ flags?: string[]; plainText?: string; status?: string; sectionKeys?: string[]; resourceCount?: number }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ id?: string; text?: string; type?: string; confidence?: string; loadBearing?: boolean; sourceCount?: number; affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; description?: string; reason?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string; description?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
+    const body = (await response.json()) as { run?: { batchId?: unknown; status?: string; stateVersion?: number; lastSequence?: number; events?: unknown[] }; documents?: Array<{ key?: string; num?: number; name?: string; isPack?: boolean; flags?: string[]; plainText?: string; status?: string; sectionKeys?: string[]; resourceCount?: number }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ id?: string; text?: string; type?: string; confidence?: string; loadBearing?: boolean; sourceCount?: number; affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; description?: string; reason?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string; description?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
     expect(body.run).toMatchObject({ status: "completed", stateVersion: 88, lastSequence: 900, events: [] });
     expect(body.run).not.toHaveProperty("batchId");
     expect(body.documents?.[0]?.status).toBe("needs verification");
     expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1", "A source section is flagged needs verification."]);
     expect(body.documents?.[3]?.status).toBe("under review");
+    expect(body.documents?.[3]).toMatchObject({ key: "campaign_strategy", num: 4, name: "Campaign Strategy", isPack: false });
+    expect(body.documents?.[8]).toMatchObject({ key: "digital_pack", num: 9, name: "Digital Campaign Pack", isPack: true });
     expect(body.documents?.[8]?.plainText).toContain("Supporter email");
     expect(body.documents?.[8]?.plainText).toContain("Subject: Source update");
     expect(body.documents?.[8]?.plainText).toContain("Before you send this, check");

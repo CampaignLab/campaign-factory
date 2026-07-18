@@ -12,7 +12,7 @@ import {
   normaliseOperationsSourcePresentationText,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
-import { DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
+import { CANONICAL_DOCUMENTS, DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import { VERIFICATION_LABELS } from "@/lib/pipeline/labels";
 
 export const runtime = "nodejs";
@@ -116,6 +116,22 @@ const SOURCE_RUN_STATUS_BY_VISIBLE_TEXT = new Map<string, string>([
 ]);
 const SOURCE_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const SOURCE_DOCUMENT_STATUS_BY_VISIBLE_TEXT = new Map<string, string>(DOCUMENT_STATUSES.flatMap((status) => [[status, status], [status.replace(/ /g, "_"), status], [status.replace(/ /g, "-"), status]]));
+const SOURCE_CANONICAL_DOCUMENTS_BY_KEY = new Map<string, (typeof CANONICAL_DOCUMENTS)[number]>(CANONICAL_DOCUMENTS.map((document) => [document.key, document]));
+const SOURCE_DOCUMENT_KEY_BY_VISIBLE_TEXT = new Map<string, string>(
+  CANONICAL_DOCUMENTS.flatMap((document) => [
+    [normaliseOperationsSourceInlineText(document.key), document.key],
+    [normaliseOperationsSourceInlineText(document.name), document.key],
+    [normaliseOperationsSourceInlineText(`${document.name} document`), document.key],
+    [normaliseOperationsSourceInlineText(document.name.replace(/ and /g, " & ")), document.key],
+    [normaliseOperationsSourceInlineText(`${document.name.replace(/ and /g, " & ")} document`), document.key],
+  ]),
+);
+const SOURCE_DOCUMENT_NAME_BY_VISIBLE_TEXT = new Map<string, string>(
+  CANONICAL_DOCUMENTS.flatMap((document) => [
+    [normaliseOperationsSourceInlineText(document.name), document.name],
+    [normaliseOperationsSourceInlineText(document.name.replace(/ and /g, " & ")), document.name],
+  ]),
+);
 const SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM = "Unresolved load-bearing claim: ";
 const SOURCE_DOCUMENT_FLAG_NEEDS_VERIFICATION = "A source section is flagged needs verification.";
 const SOURCE_DOCUMENT_FLAG_PLACEHOLDERS = "Contains explicit verification placeholders.";
@@ -748,18 +764,51 @@ function normalizeSourceDocumentStatus(value: unknown) {
   return normalized ? (SOURCE_DOCUMENT_STATUS_BY_VISIBLE_TEXT.get(normalized) ?? value) : value;
 }
 
+function normalizeSourceDocumentKey(value: unknown) {
+  if (typeof value !== "string") return value;
+  const normalized = normaliseOperationsSourceInlineText(value);
+  if (SOURCE_CANONICAL_DOCUMENTS_BY_KEY.has(normalized)) return normalized;
+  const folded = normalizeSourceAffectedSectionKey(value);
+  if (SOURCE_CANONICAL_DOCUMENTS_BY_KEY.has(folded)) return folded;
+  return SOURCE_DOCUMENT_KEY_BY_VISIBLE_TEXT.get(normalized) ?? value;
+}
+
+function normalizeSourceDocumentName(value: unknown, documentKey: unknown) {
+  if (typeof value !== "string") return value;
+  const normalized = normaliseOperationsSourceInlineText(value);
+  if (typeof documentKey === "string") {
+    const canonicalDocument = SOURCE_CANONICAL_DOCUMENTS_BY_KEY.get(documentKey);
+    if (canonicalDocument && SOURCE_DOCUMENT_NAME_BY_VISIBLE_TEXT.get(normalized) === canonicalDocument.name) return canonicalDocument.name;
+  }
+  return SOURCE_DOCUMENT_NAME_BY_VISIBLE_TEXT.get(normalized) ?? value;
+}
+
+function normalizeSourceDocumentNum(value: unknown) {
+  return normalizeSourceNonNegativeInteger(value);
+}
+
+function normalizeSourceDocumentIsPack(value: unknown) {
+  return normalizeSourceBoolean(value);
+}
+
 function normalizeSourceDocuments(value: unknown) {
   return Array.isArray(value)
     ? value.map((document) => {
         if (typeof document !== "object" || document === null) return document;
+        const sourceDocument = document as Record<string, unknown>;
+        const key = normalizeSourceDocumentKey(sourceDocument.key);
         const normalizedDocument = {
-          ...(document as Record<string, unknown>),
-          plainText: normalizeSourceDocumentPlainText((document as Record<string, unknown>).plainText),
-          status: normalizeSourceDocumentStatus((document as Record<string, unknown>).status),
-          sectionKeys: normalizeSourceDocumentSectionKeys((document as Record<string, unknown>).sectionKeys, (document as Record<string, unknown>).key),
-          resourceCount: normalizeSourceDocumentResourceCount((document as Record<string, unknown>).resourceCount),
+          ...sourceDocument,
+          key,
+          num: normalizeSourceDocumentNum(sourceDocument.num),
+          name: normalizeSourceDocumentName(sourceDocument.name, key),
+          isPack: normalizeSourceDocumentIsPack(sourceDocument.isPack),
+          plainText: normalizeSourceDocumentPlainText(sourceDocument.plainText),
+          status: normalizeSourceDocumentStatus(sourceDocument.status),
+          sectionKeys: normalizeSourceDocumentSectionKeys(sourceDocument.sectionKeys, key),
+          resourceCount: normalizeSourceDocumentResourceCount(sourceDocument.resourceCount),
         };
-        return { ...normalizedDocument, flags: normalizeSourceDocumentFlags((document as Record<string, unknown>).flags, normalizedDocument) };
+        return { ...normalizedDocument, flags: normalizeSourceDocumentFlags(sourceDocument.flags, normalizedDocument) };
       })
     : value;
 }
