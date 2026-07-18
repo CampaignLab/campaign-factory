@@ -62,7 +62,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 function normaliseSourcePresentationText(value: string) {
-  return value
+  return decodeOperationsSourceTextEntities(value)
     .normalize("NFC")
     .replace(/[\u00ad\u200b\u200c\u200d\u2060\ufeff]/g, "")
     .replace(/[\u2028\u2029]/g, "\n")
@@ -135,11 +135,9 @@ const OPERATIONS_SOURCE_HTML_ENTITIES: Record<string, string> = {
   trade: "™",
 };
 
-function visibleRenderedText(value: string) {
-  return normaliseSourcePresentationText(
-    value
-      .replace(/<[^>]*>/g, " ")
-      .replace(/&(?:nbsp|ensp|emsp|thinsp|hairsp|numsp|puncsp|mediumspace|nobreak|#160|#xA0);/gi, " ")
+function decodeOperationsSourceTextEntities(value: string) {
+  return value
+    .replace(/&(?:nbsp|ensp|emsp|thinsp|hairsp|numsp|puncsp|mediumspace|nobreak|#160|#xA0);/gi, " ")
     .replace(/&#(\d+);/g, (_entity, codePoint: string) => {
       const parsed = Number.parseInt(codePoint, 10);
       return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
@@ -156,10 +154,16 @@ function visibleRenderedText(value: string) {
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
-      .replace(/&lt;/gi, "<")
-      .replace(/&gt;/gi, ">")
-      .replace(/&([a-z][a-z0-9]+);/gi, (entity, name: string) => OPERATIONS_SOURCE_HTML_ENTITIES[name] ?? entity)
-      .replace(/&[a-z0-9#]+;/gi, "")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&([a-z][a-z0-9]+);/gi, (entity: string, name: string) => OPERATIONS_SOURCE_HTML_ENTITIES[name] ?? entity)
+    .replace(/&[a-z0-9#]+;/gi, "");
+}
+
+function visibleRenderedText(value: string) {
+  return normaliseSourcePresentationText(
+    value
+      .replace(/<[^>]*>/g, " ")
       .replace(/\s+/g, " "),
   );
 }

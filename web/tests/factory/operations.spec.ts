@@ -13980,15 +13980,18 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let includeInvisibleSourceBreakHints = false;
   let includeNoBreakSourceSpaces = false;
   let encodeNamedHtmlEntities = false;
+  let encodePlainSourceEntities = false;
   let reflowSourceEvidenceText = false;
 
   const sourceEvidence = () => {
     const reflowEvidenceText = (value: string) => reflowSourceEvidenceText ? value.replace(/ /g, "\n  ") : value;
+    const encodeSourceText = (value: string) => encodePlainSourceEntities ? value.replace(/Café/g, "Caf&eacute;").replace(/—/g, "&mdash;") : value;
+    const sourceEvidenceText = (value: string) => encodeSourceText(reflowEvidenceText(useComposedSourceAccents ? value.normalize("NFC") : value));
     const evidence = campaignEvidence(
       nextChecks.map((check) => ({
         ...check,
-        description: reflowEvidenceText(check.description),
-        reason: reflowEvidenceText(check.reason),
+        description: sourceEvidenceText(check.description),
+        reason: sourceEvidenceText(check.reason),
       })),
       2,
     );
@@ -13996,11 +13999,11 @@ test("operations workbench: order-only source metadata changes keep the acknowle
     evidence.groups[0].claims[1].affectedOutputs = [...affectedOutputs].reverse();
     const appealCheck = evidence.nextChecks.find((check) => check.id === "appeal-check");
     if (appealCheck) appealCheck.claimIds = claimIds;
-    evidence.draftNotes = draftNotes.map((note) => ({ section: reflowEvidenceText(note.section), text: reflowEvidenceText(note.text) }));
-    evidence.terminalGaps = terminalGaps.map((gap) => ({ ...gap, description: reflowEvidenceText(gap.description) }));
+    evidence.draftNotes = draftNotes.map((note) => ({ section: sourceEvidenceText(note.section), text: sourceEvidenceText(note.text) }));
+    evidence.terminalGaps = terminalGaps.map((gap) => ({ ...gap, description: sourceEvidenceText(gap.description) }));
     const conflictClaim = {
       id: "claim-conflict-appeal-status",
-      text: reflowEvidenceText("Appeal-status source conflict remains unresolved."),
+      text: sourceEvidenceText("Café appeal-status source conflict remains unresolved — readable boundary."),
       type: "other",
       label: "Conflicting evidence",
       loadBearing: true,
@@ -14018,6 +14021,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   };
 
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const campaignBriefText = (value: string) => encodePlainSourceEntities ? value.replace(/Café/g, "Caf&eacute;") : value;
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
@@ -14033,13 +14037,15 @@ test("operations workbench: order-only source metadata changes keep the acknowle
             ? {
                 ...document,
                 flags: includeNoBreakSourceSpaces ? documentFlags.map((flag) => flag.replace("load-bearing claim", "load-bearing\u00a0claim")) : documentFlags,
-                plainText: (reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText).replace(
-                  "same readable source boundary",
-                  includeInvisibleSourceBreakHints
-                    ? "same\u00a0read\u00adable source\u200b\u202f\u200c\u200d\u2060boundary"
-                    : includeNoBreakSourceSpaces
-                      ? "same\u00a0readable source\u202fboundary"
-                      : "same readable source boundary",
+                plainText: campaignBriefText(
+                  (reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText).replace(
+                    "same readable source boundary",
+                    includeInvisibleSourceBreakHints
+                      ? "same\u00a0read\u00adable source\u200b\u202f\u200c\u200d\u2060boundary"
+                      : includeNoBreakSourceSpaces
+                        ? "same\u00a0readable source\u202fboundary"
+                        : "same readable source boundary",
+                  ),
                 ),
                 html: wrapCampaignBriefHtml
                   ? `<section class="source-shell" data-route="campaign-brief">${document.html.replace(
@@ -14082,6 +14088,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   includeInvisibleSourceBreakHints = true;
   includeNoBreakSourceSpaces = true;
   encodeNamedHtmlEntities = true;
+  encodePlainSourceEntities = true;
   reflowSourceEvidenceText = true;
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();

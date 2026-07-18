@@ -2042,7 +2042,7 @@ function sourceSignatureHash(value: string) {
 }
 
 function sourceSignatureText(value: string) {
-  return value
+  return decodeSourceSignatureEntities(value)
     .normalize("NFC")
     .replace(/[\u00ad\u200b\u200c\u200d\u2060\ufeff]/g, "")
     .replace(/[\u2028\u2029]/g, "\n")
@@ -2119,31 +2119,35 @@ const SOURCE_SIGNATURE_HTML_ENTITIES: Record<string, string> = {
   trade: "™",
 };
 
+function decodeSourceSignatureEntities(value: string) {
+  return value
+    .replace(/&(?:nbsp|ensp|emsp|thinsp|hairsp|numsp|puncsp|mediumspace|nobreak|#160|#xA0);/gi, " ")
+    .replace(/&#(\d+);/g, (_entity, codePoint: string) => {
+      const parsed = Number.parseInt(codePoint, 10);
+      return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_entity, codePoint: string) => {
+      const parsed = Number.parseInt(codePoint, 16);
+      return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
+    })
+    .replace(/&mdash;/gi, "—")
+    .replace(/&ndash;/gi, "–")
+    .replace(/&lsquo;|&rsquo;/gi, "'")
+    .replace(/&ldquo;|&rdquo;/gi, '"')
+    .replace(/&hellip;/gi, "…")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&([a-z][a-z0-9]+);/gi, (entity: string, name: string) => SOURCE_SIGNATURE_HTML_ENTITIES[name] ?? entity)
+    .replace(/&[a-z0-9#]+;/gi, "");
+}
+
 function sourceSignatureHtmlText(value: string) {
   return sourceSignatureText(
     value
       .replace(/<[^>]*>/g, " ")
-      .replace(/&(?:nbsp|ensp|emsp|thinsp|hairsp|numsp|puncsp|mediumspace|nobreak|#160|#xA0);/gi, " ")
-      .replace(/&#(\d+);/g, (_entity, codePoint: string) => {
-        const parsed = Number.parseInt(codePoint, 10);
-        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
-      })
-      .replace(/&#x([0-9a-f]+);/gi, (_entity, codePoint: string) => {
-        const parsed = Number.parseInt(codePoint, 16);
-        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 0x10ffff ? String.fromCodePoint(parsed) : "";
-      })
-      .replace(/&mdash;/gi, "—")
-      .replace(/&ndash;/gi, "–")
-      .replace(/&lsquo;|&rsquo;/gi, "'")
-      .replace(/&ldquo;|&rdquo;/gi, '"')
-      .replace(/&hellip;/gi, "…")
-      .replace(/&amp;/gi, "&")
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;|&apos;/gi, "'")
-      .replace(/&lt;/gi, "<")
-      .replace(/&gt;/gi, ">")
-      .replace(/&([a-z][a-z0-9]+);/gi, (entity, name: string) => SOURCE_SIGNATURE_HTML_ENTITIES[name] ?? entity)
-      .replace(/&[a-z0-9#]+;/gi, "")
       .replace(/\s+/g, " "),
   );
 }
