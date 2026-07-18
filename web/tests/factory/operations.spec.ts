@@ -3465,12 +3465,12 @@ test("operations source API: normalizes recoverable legacy source references bef
     "Research &amp; Evidence",
     "evidence base",
   ];
-  legacyClaim.contradictsClaimIds = ["claim-2", "claim-2", "archived-claim-from-previous-build"];
+  legacyClaim.contradictsClaimIds = [" claim-2 ", "claim-2", "archived-claim-from-previous-build"];
   (evidence.groups[0].claims[1] as { contradictsClaimIds?: null }).contradictsClaimIds = null;
   evidence.conflicts = [legacyClaim, legacyClaim, { ...legacyClaim, id: "archived-claim-from-previous-build", contradictsClaimIds: ["claim-1"] }];
   const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[] | null; affectedSections: string[]; reason: string };
   const legacyNextCheckReason = legacyNextCheck.reason;
-  legacyNextCheck.claimIds = ["claim-1", "claim-1", "archived-claim-from-previous-build"];
+  legacyNextCheck.claimIds = [" claim-1 ", "claim-1", "archived-claim-from-previous-build"];
   legacyNextCheck.affectedSections = ["documents", "Campaign&nbsp;Strategy document", "Lobbying Pack document", "lobbying_pack", "Media Pack document", "Tactics &amp; Timeline document", "Research &amp; Evidence", "evidence base"];
   legacyNextCheck.reason = "";
   evidence.nextChecks.push({ ...legacyNextCheck, reason: legacyNextCheckReason, description: "Duplicate legacy source check should recover the valid source row." });

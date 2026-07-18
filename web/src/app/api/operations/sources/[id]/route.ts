@@ -452,6 +452,20 @@ function uniqueStrings(values: unknown) {
   return unique;
 }
 
+function uniqueSourceReferenceIds(values: unknown) {
+  if (!Array.isArray(values)) return values;
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const id = value.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    unique.push(id);
+  }
+  return unique;
+}
+
 function normalizeSourceVerificationLabel(value: unknown) {
   if (typeof value !== "string") return undefined;
   return SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normaliseOperationsSourceInlineText(value));
@@ -519,7 +533,7 @@ function isRecoverableSourceNextCheck(value: Record<string, unknown>) {
 }
 
 function normalizeSourceNextCheck(value: Record<string, unknown>, claimIds: Set<string>): Record<string, unknown> {
-  const checkClaimIds = Array.isArray(value.claimIds) ? (uniqueStrings(value.claimIds) as string[]) : value.claimIds;
+  const checkClaimIds = Array.isArray(value.claimIds) ? (uniqueSourceReferenceIds(value.claimIds) as string[]) : value.claimIds;
   const affectedSections = normalizeSourceAffectedSectionValues(value.affectedSections);
   return {
     ...value,
@@ -592,7 +606,7 @@ function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fal
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
   const affectedOutputs = normalizeSourceAffectedSectionValues(record.affectedOutputs);
-  const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueStrings(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
+  const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueSourceReferenceIds(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
   const label = normalizeSourceVerificationLabel(record.label) ?? fallbackLabel;
   return {
     ...record,
