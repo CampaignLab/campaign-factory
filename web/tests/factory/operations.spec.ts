@@ -13017,6 +13017,123 @@ test("operations workbench demotes queued source drafts with date-only queue val
   expect(storedState).not.toContain("date-only-queue-time");
 });
 
+test("operations workbench clears stale queue timestamps from non-queued source drafts", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 68, lastSequence: 2180, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Keep KFC Out of Ormskirk",
+          place: "Ormskirk, Lancashire",
+          next: "Check Ormskirk appeal records before public escalation",
+        }),
+        evidence: campaignEvidence([{ id: "stale-nonqueued-queued-at", description: "Check Ormskirk appeal records", reason: "Non-queued draft timestamp scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 68,
+        sourceLastSequence: 2180,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Keep KFC Out of Ormskirk update",
+        body: "This approved source draft has a stale queue timestamp and must not appear queued in Outbox or export.",
+        reviewerNote: "Approved, but not currently queued.",
+        status: "approved",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-17T21:00:00.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${id}:digital-pack-stale-approved-queued-at`,
+            title: "Ormskirk supporter follow-up",
+            channel: "Email",
+            subject: "Ormskirk supporter follow-up",
+            body: "This approved working draft also has a stale queue timestamp that should be scrubbed.",
+            reviewerNote: "Approved working copy, not queued.",
+            status: "approved",
+            queuedAt: "2026-07-17T21:05:00.000Z",
+            createdAt: "2026-07-17T20:05:00.000Z",
+            updatedAt: "2026-07-17T20:08:00.000Z",
+            sourceWorkingCopy: {
+              id: `source:${id}:digital-pack-stale-approved-queued-at`,
+              campaignId: id,
+              title: "Ormskirk supporter follow-up",
+              channel: "Email",
+              sourceDocument: "Digital Campaign Pack",
+              sourceDocumentKey: "digital_campaign_pack",
+              createdAt: "2026-07-17T20:05:00.000Z",
+              warnings: ["Confirm Ormskirk appeal records before stronger claims."],
+              provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${id}:digital-pack-stale-approved-queued-at`,
+        sourceWorkingCopy: {
+          id: `source:${id}:digital-pack-top-level-stale-approved-queued-at`,
+          campaignId: id,
+          title: "Ormskirk supporter email from source",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "digital_campaign_pack",
+          createdAt: "2026-07-17T20:05:00.000Z",
+          warnings: ["Confirm Ormskirk appeal records before stronger claims."],
+          provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+        },
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [
+          { id: "stale-approval-note", label: "Human approval recorded for this local demo draft." },
+          { id: "stale-queue-time", label: "Placed approved draft in local demo queue with stale timing." },
+        ],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Queued locally");
+
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  const jsonPath = await jsonDownload.path();
+  expect(jsonPath).toBeTruthy();
+  const packText = await readFile(jsonPath!, "utf8");
+  expect(packText).toContain('"queuedCount": 0');
+  expect(packText).not.toContain('"queuedAt": "2026-07-17T21:00:00.000Z"');
+  expect(packText).not.toContain('"queuedAt": "2026-07-17T21:05:00.000Z"');
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).toContain('"status":"approved"');
+  expect(storedState).toContain('"queuedAt":null');
+  expect(storedState).toContain('"scheduleIntent":"after_approval"');
+  expect(storedState).not.toContain("stale-queue-time");
+  expect(storedState).not.toContain("2026-07-17T21:00:00.000Z");
+  expect(storedState).not.toContain("2026-07-17T21:05:00.000Z");
+});
+
 test("operations portfolio sanitizes malformed browser-local state before local counts", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
