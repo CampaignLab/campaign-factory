@@ -19659,6 +19659,88 @@ test("operations workbench rejects source tactic actions whose target provenance
   expect(storedState).not.toContain("source-tactic-target-drift");
 });
 
+test("operations workbench rejects source tactic actions carrying source-check provenance", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: barnetId, status: "completed", stateVersion: 81, lastSequence: 2292, events: [] },
+        documents: campaignOperationsDocuments(
+          {
+            title: "Stop the leisure park redevelopment in Barnet",
+            place: "Barnet, London",
+            next: "Check Barnet decision records",
+          },
+          {
+            tactics_timeline: "TACTICS AND TIMELINE\n\nP1 Check Barnet planning records\n\nType: research\n\nTarget: Planning committee\n\nOwner: Reviewer\n\nTiming: After source checks are understood",
+          },
+        ),
+        evidence: campaignEvidence([{ id: "source-tactic-mixed-provenance", description: "Check Barnet decision records", reason: "Source tactic mixed provenance guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local tactic action should be sanitized before mixed source-check provenance is trusted.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:tactic:1-p1-check-barnet-planning-records`,
+            title: "P1 Check Barnet planning records",
+            source: "Campaign source · Tactics and Timeline · research",
+            owner: "Reviewer",
+            timing: "After source checks are understood",
+            priority: "Medium",
+            status: "next",
+            provenance: `Source campaign ${id}; tactic target: Planning committee; derived from next check next check source-tactic-mixed-provenance. This creates browser-local owned work only and does not change the public tactics document.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "source-tactic-mixed-provenance", label: "Created action: P1 Check Barnet planning records with next-check provenance." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.")).toBeVisible();
+  await expect(page.locator("main")).toContainText("Actions: 0 local items");
+  await expect(page.locator("main")).not.toContainText("source-tactic-mixed-provenance");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).not.toContain("P1 Check Barnet planning records");
+  expect(storedState).not.toContain("source-tactic-mixed-provenance");
+});
+
 test("operations workbench rejects source check actions whose owner drifts from current source", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

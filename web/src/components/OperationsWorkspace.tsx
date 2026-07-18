@@ -1203,7 +1203,17 @@ function localActionTacticMatchesStoredSourceId(actionId: string, title: string,
   if (!Number.isInteger(tacticNumber) || tacticNumber < 1 || tacticNumber > 6) return false;
   const storedTitleSlug = match[2] ?? "";
   const canonicalTitleSlug = sourceResourceTitleSlug(title).slice(0, 48);
-  return Boolean(storedTitleSlug && canonicalTitleSlug && storedTitleSlug === canonicalTitleSlug && source.includes("tactics and timeline") && provenance.includes("tactic target"));
+  return Boolean(
+    storedTitleSlug &&
+      canonicalTitleSlug &&
+      storedTitleSlug === canonicalTitleSlug &&
+      source.includes("tactics and timeline") &&
+      provenance.includes("tactic target") &&
+      !provenance.includes("derived from next check") &&
+      !provenance.includes("next check") &&
+      !provenance.includes("incomplete") &&
+      !provenance.includes("remains"),
+  );
 }
 
 function generatedSourceCheckIdMatchesTitle(checkId: string, title: string) {
@@ -1341,6 +1351,10 @@ function localActionMatchesCurrentSourceCheckAction(action: LocalAction, source:
   );
 }
 
+function sourceTacticActionProvenance(source: CampaignSource, tactic: SourceTactic) {
+  return `Source campaign ${source.campaignId}; tactic target: ${tactic.target}. This creates browser-local owned work only and does not change the public tactics document.`;
+}
+
 function localActionMatchesCurrentSourceAction(action: LocalAction, source: CampaignSource) {
   if (action.id === `source:${source.campaignId}:primary-source-check`) {
     const primaryCheck = source.evidence.nextChecks[0];
@@ -1374,7 +1388,7 @@ function localActionMatchesCurrentSourceAction(action: LocalAction, source: Camp
         normaliseOperationsSourceInlineText(action.timing) === normaliseOperationsSourceInlineText(tactic.timing) &&
         action.priority === tactic.priority &&
         Boolean(tacticTarget) &&
-        actionProvenance.includes(`tactic target: ${tacticTarget}`),
+        actionProvenance === normaliseOperationsSourceInlineText(sourceTacticActionProvenance(source, tactic)).toLowerCase(),
     );
   });
 }
@@ -4428,7 +4442,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       timing: tactic.timing,
       priority: tactic.priority,
       status: tactic.priority === "High" ? "next" : "blocked",
-      provenance: `Source campaign ${source.campaignId}; tactic target: ${tactic.target}. This creates browser-local owned work only and does not change the public tactics document.`,
+      provenance: sourceTacticActionProvenance(source, tactic),
     });
   };
 
