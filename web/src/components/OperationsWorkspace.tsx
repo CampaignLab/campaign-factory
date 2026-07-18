@@ -1003,7 +1003,7 @@ function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: 
   if (!textFieldsReferenceOnlyExpectedCampaign([action.id, action.title, action.source, action.owner, action.timing, action.provenance], expectedCampaignId)) return false;
   const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
   if (provenanceCampaignId && provenanceCampaignId !== expectedCampaignId) return false;
-  return Boolean(idCampaignId === expectedCampaignId || provenanceCampaignId === expectedCampaignId);
+  return Boolean(idCampaignId === expectedCampaignId && provenanceCampaignId === expectedCampaignId);
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
