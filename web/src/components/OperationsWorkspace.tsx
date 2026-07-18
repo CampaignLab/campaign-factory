@@ -1187,12 +1187,21 @@ function localActionIncompleteDocumentMatchesStoredSourceId(actionId: string, ti
   );
 }
 
+function localActionTacticMatchesStoredSourceId(actionId: string, title: string, source: string, provenance: string) {
+  const match = actionId.match(/^source:[0-9a-f-]{36}:tactic:(\d+)-([a-z0-9-]{1,48})$/);
+  if (!match) return false;
+  const tacticNumber = Number(match[1]);
+  if (!Number.isInteger(tacticNumber) || tacticNumber < 1 || tacticNumber > 6) return false;
+  const storedTitleSlug = match[2] ?? "";
+  const canonicalTitleSlug = sourceResourceTitleSlug(title).slice(0, 48);
+  return Boolean(storedTitleSlug && canonicalTitleSlug && storedTitleSlug === canonicalTitleSlug && source.includes("tactics and timeline") && provenance.includes("tactic target"));
+}
+
 function localActionSourceMatchesStoredSourceId(action: LocalAction) {
   const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
   const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
   const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
   const describesNextCheck = source.includes("evidence & checks") && provenance.includes("next check");
-  const describesTacticTarget = source.includes("tactics and timeline") && provenance.includes("tactic target");
 
   if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id) || /^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) {
     return describesNextCheck;
@@ -1201,7 +1210,7 @@ function localActionSourceMatchesStoredSourceId(action: LocalAction) {
     return localActionIncompleteDocumentMatchesStoredSourceId(action.id, title, source, provenance);
   }
   if (/^source:[0-9a-f-]{36}:tactic:/i.test(action.id)) {
-    return describesTacticTarget;
+    return localActionTacticMatchesStoredSourceId(action.id, title, source, provenance);
   }
   return false;
 }
