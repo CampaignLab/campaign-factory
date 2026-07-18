@@ -3447,6 +3447,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     [{ id: "legacy-reference", description: "Legacy source check keeps the current claim and drops historical ids.", reason: "Older public source builds can carry archived claim ids in next checks.", affectedSections: ["documents", "lobbying_pack", "evidence"] }],
     2,
   );
+  evidence.groups[0].label = "Supported inference";
   evidence.groups[0].count = 7;
   evidence.groups[0].claims.push({ ...evidence.groups[0].claims[0] });
   evidence.groups.push({ label: "Verification incomplete", count: 1, claims: [{ ...evidence.groups[0].claims[1] }] });

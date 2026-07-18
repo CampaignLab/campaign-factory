@@ -452,27 +452,37 @@ function normalizeSourceEvidenceGroups(record: Record<string, unknown>, claimIds
     }
 
     const groupRecord = group as Record<string, unknown>;
-    if (typeof groupRecord.label !== "string") {
-      passthroughGroups.push(group);
-      continue;
-    }
+    const fallbackGroupLabel = typeof groupRecord.label === "string" && SOURCE_VERIFICATION_LABELS.has(groupRecord.label) ? groupRecord.label : undefined;
+    const claimsByLabel = new Map<string, unknown[]>();
+    const passthroughClaims: unknown[] = [];
 
-    const claims: unknown[] = [];
     for (const claim of groupRecord.claims as unknown[]) {
       const normalizedClaim = normalizeSourceEvidenceClaim(claim, claimIds);
-      if (typeof normalizedClaim === "object" && normalizedClaim !== null && typeof (normalizedClaim as Record<string, unknown>).id === "string") {
-        const claimId = (normalizedClaim as Record<string, unknown>).id as string;
+      const claimRecord = typeof normalizedClaim === "object" && normalizedClaim !== null ? (normalizedClaim as Record<string, unknown>) : undefined;
+      const claimLabel = typeof claimRecord?.label === "string" && SOURCE_VERIFICATION_LABELS.has(claimRecord.label) ? claimRecord.label : fallbackGroupLabel;
+      if (claimRecord && typeof claimRecord.id === "string") {
+        const claimId = claimRecord.id;
         if (seenClaimIds.has(claimId)) continue;
         seenClaimIds.add(claimId);
       }
-      claims.push(normalizedClaim);
+      if (!claimLabel) {
+        passthroughClaims.push(normalizedClaim);
+        continue;
+      }
+      claimsByLabel.set(claimLabel, [...(claimsByLabel.get(claimLabel) ?? []), normalizedClaim]);
     }
 
-    const existingGroup = groupedByLabel.get(groupRecord.label);
-    if (existingGroup) {
-      existingGroup.claims.push(...claims);
-    } else {
-      groupedByLabel.set(groupRecord.label, { label: groupRecord.label, claims });
+    for (const [label, claims] of claimsByLabel) {
+      const existingGroup = groupedByLabel.get(label);
+      if (existingGroup) {
+        existingGroup.claims.push(...claims);
+      } else {
+        groupedByLabel.set(label, { label, claims });
+      }
+    }
+
+    if (passthroughClaims.length > 0) {
+      passthroughGroups.push({ ...groupRecord, count: passthroughClaims.length, claims: passthroughClaims });
     }
   }
 
