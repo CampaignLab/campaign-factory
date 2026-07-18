@@ -3460,8 +3460,8 @@ test("operations source API: normalizes recoverable legacy source references bef
   legacyNextCheck.affectedSections = ["documents", "lobbying_pack", "lobbying_pack", "evidence"];
   evidence.nextChecks.push({ ...legacyNextCheck, description: "Duplicate legacy source check should be ignored." });
   evidence.terminalGaps = [
+    { id: "legacy-gap", description: "Stale duplicated terminal gap date is recoverable.", at: "2026-07-17" },
     { id: "legacy-gap", description: "Legacy terminal gap appears once.", at: "2026-07-17T10:00:00.000Z" },
-    { id: "legacy-gap", description: "Duplicated legacy terminal gap is recoverable.", at: "2026-07-17T10:00:00.000Z" },
   ];
   const documentsBody = JSON.stringify({ documents, evidence });
 

@@ -135,6 +135,7 @@ function sourceJsonCharsetContractMismatch(response: Response) {
 }
 
 const RETRY_AFTER_HTTP_DATE_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+const SOURCE_ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function sanitizeRetryAfter(value: string | null) {
   if (!value) return undefined;
@@ -407,6 +408,18 @@ function uniqueStrings(values: unknown) {
   return unique;
 }
 
+function isRecoverableSourceTerminalGap(value: Record<string, unknown>) {
+  return (
+    typeof value.id === "string" &&
+    value.id.trim().length > 0 &&
+    typeof value.description === "string" &&
+    value.description.trim().length > 0 &&
+    typeof value.at === "string" &&
+    SOURCE_ISO_DATETIME_RE.test(value.at) &&
+    Number.isFinite(Date.parse(value.at))
+  );
+}
+
 function normalizeSourceDocuments(value: unknown) {
   return Array.isArray(value)
     ? value.map((document) => (typeof document === "object" && document !== null ? { ...(document as Record<string, unknown>), flags: uniqueStrings((document as Record<string, unknown>).flags) } : document))
@@ -523,7 +536,27 @@ function normalizeSourceEvidence(value: unknown) {
     }
   }
   const seenNextCheckIds = new Set<string>();
-  const seenTerminalGapIds = new Set<string>();
+  const terminalGapsById = new Map<string, Record<string, unknown>>();
+  const terminalGapOrder: string[] = [];
+  const passthroughTerminalGaps: unknown[] = [];
+  if (Array.isArray(record.terminalGaps)) {
+    for (const gap of record.terminalGaps) {
+      if (typeof gap !== "object" || gap === null) {
+        passthroughTerminalGaps.push(gap);
+        continue;
+      }
+      const gapRecord = gap as Record<string, unknown>;
+      if (typeof gapRecord.id !== "string") {
+        passthroughTerminalGaps.push(gap);
+        continue;
+      }
+      if (!terminalGapsById.has(gapRecord.id)) terminalGapOrder.push(gapRecord.id);
+      const current = terminalGapsById.get(gapRecord.id);
+      if (!current || (!isRecoverableSourceTerminalGap(current) && isRecoverableSourceTerminalGap(gapRecord))) {
+        terminalGapsById.set(gapRecord.id, gapRecord);
+      }
+    }
+  }
   return {
     ...record,
     groups,
@@ -547,14 +580,12 @@ function normalizeSourceEvidence(value: unknown) {
         })
       : record.nextChecks,
     terminalGaps: Array.isArray(record.terminalGaps)
-      ? record.terminalGaps.flatMap((gap) => {
-          if (typeof gap !== "object" || gap === null) return [gap];
-          const gapRecord = gap as Record<string, unknown>;
-          if (typeof gapRecord.id !== "string") return [gap];
-          if (seenTerminalGapIds.has(gapRecord.id)) return [];
-          seenTerminalGapIds.add(gapRecord.id);
-          return [gapRecord];
-        })
+      ? [
+          ...terminalGapOrder
+            .map((id) => terminalGapsById.get(id))
+            .filter((gap): gap is Record<string, unknown> => Boolean(gap)),
+          ...passthroughTerminalGaps,
+        ]
       : record.terminalGaps,
   };
 }
