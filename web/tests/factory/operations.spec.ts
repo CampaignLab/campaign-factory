@@ -3437,7 +3437,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const curatedId = "6b54225d-afa3-41d1-b053-89741094f153";
   const originalFetch = globalThis.fetch;
   const requestedUrls: string[] = [];
-  const runBody = JSON.stringify({ campaignId: curatedId, batchId: "  ", status: " Complete ", stateVersion: " 88 ", lastSequence: " 900 ", events: [{ eventId: "legacy-large-source-event", sequence: 1 }] });
+  const runBody = JSON.stringify({ campaignId: ` ${curatedId} `, batchId: "  ", status: " Complete ", stateVersion: " 88 ", lastSequence: " 900 ", events: [{ eventId: "legacy-large-source-event", sequence: 1 }] });
   const documents = canonicalOperationsDocuments("Stop the leisure park redevelopment in Barnet");
   documents[0].flags = [
     "Unresolved load-bearing claim: Unresolved source claim 1",
@@ -3508,7 +3508,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   ] as typeof evidence.draftNotes;
   evidence.terminalGaps = [
     { id: "legacy-gap", description: "Stale duplicated terminal gap date is recoverable.", at: "2026-07-17" },
-    { id: "legacy-gap", description: "Legacy&nbsp;terminal\n gap appears once.", at: " 2026-07-17T10:00:00.000Z ", agentRunId: null, step: 0 },
+    { id: "legacy-gap", description: "Legacy&nbsp;terminal\n gap appears once.", at: " 2026-07-17T10:00:00.000Z ", agentRunId: " terminal-agent ", step: " 9 " },
   ];
   const documentsBody = JSON.stringify({ documents, evidence });
 
@@ -3573,7 +3573,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(body.evidence?.nextChecks?.[1]?.id).toBe("legacy-null-optional");
     expect(body.evidence?.nextChecks?.[1]?.claimIds).toBeUndefined();
     expect(body.evidence?.nextChecks?.[1]?.affectedSections).toEqual(["campaign_brief"]);
-    expect(body.evidence?.terminalGaps).toEqual([{ id: "legacy-gap", description: "Legacy terminal gap appears once.", at: "2026-07-17T10:00:00.000Z" }]);
+    expect(body.evidence?.terminalGaps).toEqual([{ id: "legacy-gap", description: "Legacy terminal gap appears once.", at: "2026-07-17T10:00:00.000Z", agentRunId: "terminal-agent", step: 9 }]);
     expect(body.evidence?.draftNotes).toEqual([{ text: "Confirm the council source before using this pack line.", section: "Digital Campaign Pack" }]);
     expect(body.sourceFailureKind).toBeUndefined();
     expect(requestedUrls).toEqual([

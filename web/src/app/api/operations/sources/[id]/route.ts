@@ -460,6 +460,9 @@ function sourceRunHeaderOnly(value: unknown) {
   if (typeof value !== "object" || value === null) return value;
   const header: Record<string, unknown> = { ...(value as Record<string, unknown>), events: [] };
 
+  const campaignId = normalizeSourceReferenceId(header.campaignId);
+  if (campaignId) header.campaignId = campaignId;
+
   const status = normalizeSourceRunStatus(header.status);
   if (status) header.status = status;
 
@@ -600,10 +603,13 @@ function normalizeSourceTerminalGap(value: Record<string, unknown>) {
   if (id) normalized.id = id;
   if (description) normalized.description = description;
   if (at) normalized.at = at;
-  if (normalized.agentRunId !== undefined && typeof normalized.agentRunId !== "string") delete normalized.agentRunId;
+  const agentRunId = normalizeSourceReferenceId(normalized.agentRunId);
+  if (agentRunId) normalized.agentRunId = agentRunId;
+  else if (normalized.agentRunId !== undefined) delete normalized.agentRunId;
   if (normalized.step !== undefined) {
-    const step = normalized.step;
-    if (typeof step !== "number" || !Number.isInteger(step) || step < 1 || step > 10) delete normalized.step;
+    const step = normalizeSourceNonNegativeInteger(normalized.step);
+    if (typeof step === "number" && Number.isInteger(step) && step >= 1 && step <= 10) normalized.step = step;
+    else delete normalized.step;
   }
   return normalized;
 }
