@@ -1413,7 +1413,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   );
   const removedIncompleteAcknowledgedSourceBaseline = Boolean(
     ((state.sourceStateVersion !== null || state.sourceLastSequence !== null || state.sourceAcknowledgedAt) && !state.sourceDocumentSignature) ||
-      (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null)),
+      (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null || !state.sourceAcknowledgedAt)),
   );
   const removedIncompleteSourceRecheckBaseline = Boolean(
     ((state.sourceRecheckStateVersion !== null || state.sourceRecheckLastSequence !== null || state.sourceRecheckVisitedViews.length) && !state.sourceRecheckDocumentSignature) ||
