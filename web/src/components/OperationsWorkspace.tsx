@@ -1761,7 +1761,7 @@ function activityLooksFixtureBound(activity: Activity) {
 }
 
 function activityClaimsExternalOutcome(activity: Activity) {
-  return /\b(?:sent|delivered|opened|clicked|replied|received replies|emailed|mailed|dispatched|posted|published|provider connected|provider delivery|live delivery|contacts imported|imported contacts|contacts uploaded|uploaded contacts|synced to provider|synced to crm|crm synced|scheduled externally|scheduled with provider|scheduled in provider|provider scheduled|production scheduled)\b/i.test(activity.label);
+  return /\b(?:sent|delivered|opened|clicked|replied|received replies|emailed|mailed|dispatched|posted|published|broadcast|distributed|shared on social|submitted to (?:council|committee|planning|authority|mp|mps|provider|crm)|provider connected|provider delivery|live delivery|contacts imported|imported contacts|contacts uploaded|uploaded contacts|synced to provider|synced to crm|crm synced|scheduled externally|scheduled with provider|scheduled in provider|provider scheduled|production scheduled|meeting booked|booked meeting|petition signatures? (?:collected|logged|imported)|signatures? collected)\b/i.test(activity.label);
 }
 
 function activityReferencesOnlyExpectedCampaign(activity: Activity, expectedWorkspaceKey: string) {
