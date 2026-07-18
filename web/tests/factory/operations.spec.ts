@@ -7636,6 +7636,116 @@ Use this current Digital Campaign Pack copy only after phone, fundraising, and p
   expect(stored).not.toContain("false-fundraising-press");
 });
 
+test("operations workbench removes browser-local activity that claims contact list or CSV export outcomes", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 30, lastSequence: 45, events: [] },
+        documents: campaignOperationsDocuments(
+          {
+            title: "Stop the leisure park redevelopment in Barnet",
+            place: "Barnet, London",
+            next: "Check Barnet decision records",
+          },
+          {
+            digital_pack: `Supporter email
+
+Subject: Barnet supporter source update
+
+Use this current Digital Campaign Pack copy only after contact export boundaries are checked.`,
+          },
+        ),
+        evidence: campaignEvidence([{ id: "contact-export-activity-claim", description: "Check Barnet decision records", reason: "Contact export claim guard", affectedSections: ["digital_pack"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const copy = {
+      id: `source:${campaignId}:resource:digital_pack:supporter-email`,
+      campaignId,
+      title: "Supporter email",
+      channel: "Supporter email",
+      sourceDocument: "Digital Campaign Pack",
+      sourceDocumentKey: "digital_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: [],
+      provenance: `Source campaign ${campaignId}; copied Supporter email from Digital Campaign Pack into a browser-local editable copy; this does not change the public source document.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Barnet supporter source update",
+        body: "This valid local source copy should remain while false contact list and CSV export activity is scrubbed.",
+        reviewerNote: "Review before any contact export or provider setup.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_next_check",
+        queuedAt: "2026-07-16T18:02:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: copy.id,
+            title: copy.title,
+            channel: copy.channel,
+            subject: "Barnet supporter source update",
+            body: "This valid local source copy should remain while false contact list and CSV export activity is scrubbed.",
+            reviewerNote: "Review before any contact export or provider setup.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T17:58:30.000Z",
+            sourceWorkingCopy: copy,
+          },
+        ],
+        activeWorkingDraftId: copy.id,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [
+          { id: "false-contact-export", label: "Barnet supporter list exported and contacts downloaded from the local outbox." },
+          { id: "false-csv-extract", label: "CSV exported for Barnet campaign contacts and voter file downloaded." },
+          { id: "valid-local-queue", label: "Placed approved draft into the local demo queue. No provider connection used." },
+        ],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /local queue item/i })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Barnet supporter source update");
+  await expect(page.locator("main")).not.toContainText("supporter list exported");
+  await expect(page.locator("main")).not.toContainText("CSV exported");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain("Barnet supporter source update");
+  expect(stored).toContain('"status":"queued"');
+  expect(stored).toContain("Placed approved draft into the local demo queue. No provider connection used.");
+  expect(stored).not.toContain("supporter list exported");
+  expect(stored).not.toContain("CSV exported");
+  expect(stored).not.toContain("false-contact-export");
+  expect(stored).not.toContain("false-csv-extract");
+});
+
 test("operations workbench removes fixture activity from real campaign state without dropping provenanced local work", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
