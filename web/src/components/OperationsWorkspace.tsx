@@ -1069,6 +1069,7 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
     storedTextIsInvisible(copy.sourceDocument) ||
     !storedTextHasVisibleText(sourceDocumentKey) ||
     !storedTextHasVisibleText(sourceDocument) ||
+    sourceDocumentKey !== canonicalSourceDocumentKey(sourceDocumentKey) ||
     !sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey, sourceDocument) ||
     (typeof copy.id === "string" && !sourceWorkingCopyIdDocumentKeyMatchesSourceKey(copy.id, sourceDocumentKey)) ||
     (typeof copy.id === "string" && !sourceWorkingCopyIdTitleMatchesSourceTitle(copy.id, title)) ||
