@@ -426,13 +426,15 @@ function normalizeSourceDocuments(value: unknown) {
     : value;
 }
 
-function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>) {
+function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fallbackLabel?: string) {
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
   const affectedOutputs = Array.isArray(record.affectedOutputs) ? (uniqueStrings(record.affectedOutputs) as string[]) : record.affectedOutputs;
   const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueStrings(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
+  const label = typeof record.label === "string" && SOURCE_VERIFICATION_LABELS.has(record.label) ? record.label : fallbackLabel;
   return {
     ...record,
+    ...(label ? { label } : {}),
     affectedOutputs,
     contradictsClaimIds: Array.isArray(contradictsClaimIds) && claimIds.size > 0 ? contradictsClaimIds.filter((claimId) => claimId !== record.id && claimIds.has(claimId)) : contradictsClaimIds,
   };
@@ -457,9 +459,9 @@ function normalizeSourceEvidenceGroups(record: Record<string, unknown>, claimIds
     const passthroughClaims: unknown[] = [];
 
     for (const claim of groupRecord.claims as unknown[]) {
-      const normalizedClaim = normalizeSourceEvidenceClaim(claim, claimIds);
+      const normalizedClaim = normalizeSourceEvidenceClaim(claim, claimIds, fallbackGroupLabel);
       const claimRecord = typeof normalizedClaim === "object" && normalizedClaim !== null ? (normalizedClaim as Record<string, unknown>) : undefined;
-      const claimLabel = typeof claimRecord?.label === "string" && SOURCE_VERIFICATION_LABELS.has(claimRecord.label) ? claimRecord.label : fallbackGroupLabel;
+      const claimLabel = typeof claimRecord?.label === "string" && SOURCE_VERIFICATION_LABELS.has(claimRecord.label) ? claimRecord.label : undefined;
       if (claimRecord && typeof claimRecord.id === "string") {
         const claimId = claimRecord.id;
         if (seenClaimIds.has(claimId)) continue;

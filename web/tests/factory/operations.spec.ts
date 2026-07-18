@@ -3510,6 +3510,55 @@ test("operations source API: normalizes recoverable legacy source references bef
   }
 });
 
+test("operations source API: restores legacy group-level claim labels before hydration", async () => {
+  const curatedId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({ campaignId: curatedId, status: "partial", stateVersion: 12, lastSequence: 36, events: [] });
+  const evidence = campaignEvidence(
+    [{ id: "legacy-group-label", description: "Recover a legacy source claim that only carried its verification label at group level.", reason: "Older public source evidence can predate per-claim label persistence.", affectedSections: ["evidence"] }],
+    1,
+  );
+  delete (evidence.groups[0].claims[0] as { label?: string }).label;
+  const documentsBody = JSON.stringify({ documents: canonicalOperationsDocuments("Build 5,000 affordable homes in Tower Hamlets"), evidence });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(runBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(runBody)), "x-matched-path": "/api/factory/runs/[id]" } });
+    }
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}/documents`)) {
+      return new Response(documentsBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(documentsBody)), "x-matched-path": "/api/factory/runs/[id]/documents" } });
+    }
+
+    throw new Error(`Unexpected source request: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(200);
+    expectPublicSourceJsonBoundary(response.headers, "legacy group-level source claim labels");
+
+    const body = (await response.json()) as { evidence?: { groups?: Array<{ label?: string; claims?: Array<{ label?: string }> }>; totals?: { unresolvedLoadBearing?: number } }; sourceFailureKind?: string };
+    expect(body.evidence?.groups).toHaveLength(1);
+    expect(body.evidence?.groups?.[0]?.label).toBe("Verification incomplete");
+    expect(body.evidence?.groups?.[0]?.claims?.[0]?.label).toBe("Verification incomplete");
+    expect(body.evidence?.totals?.unresolvedLoadBearing).toBe(1);
+    expect(body.sourceFailureKind).toBeUndefined();
+    expect(requestedUrls).toEqual([
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,
+      `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}/documents`,
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: explicit identity content-encoding hydrates complete source responses", async () => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
   const originalFetch = globalThis.fetch;
