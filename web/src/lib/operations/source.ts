@@ -569,23 +569,29 @@ function isOperationsDraftNote(value: unknown) {
   return isRecord(value) && isNonEmptyString(value.text) && isNonEmptyString(value.section);
 }
 
-function sameStringArray(left: string[] | undefined, right: string[] | undefined) {
-  if (left === undefined || right === undefined) return left === right;
-  return left.length === right.length && left.every((item, index) => item === right[index]);
+function sameSourceReferenceArray(left: string[] | undefined, right: string[] | undefined) {
+  const leftValues = [...(left ?? [])].sort();
+  const rightValues = [...(right ?? [])].sort();
+  return leftValues.length === rightValues.length && leftValues.every((item, index) => item === rightValues[index]);
+}
+
+function sameOptionalSourceText(left: string | undefined, right: string | undefined) {
+  if (!left || !right) return left === right || (!left && !right);
+  return normaliseSourceInlineText(left) === normaliseSourceInlineText(right);
 }
 
 function matchesOperationsEvidenceClaim(left: EvidenceAndNextChecks["groups"][number]["claims"][number], right: EvidenceAndNextChecks["groups"][number]["claims"][number]) {
   return (
     left.id === right.id &&
-    left.text === right.text &&
-    left.type === right.type &&
-    left.label === right.label &&
+    normaliseSourceInlineText(left.text) === normaliseSourceInlineText(right.text) &&
+    normaliseSourceInlineText(left.type) === normaliseSourceInlineText(right.type) &&
+    normaliseSourceInlineText(left.label) === normaliseSourceInlineText(right.label) &&
     left.loadBearing === right.loadBearing &&
-    left.confidence === right.confidence &&
-    left.excerpt === right.excerpt &&
+    normaliseSourceInlineText(left.confidence) === normaliseSourceInlineText(right.confidence) &&
+    sameOptionalSourceText(left.excerpt, right.excerpt) &&
     left.sourceCount === right.sourceCount &&
-    sameStringArray(left.affectedOutputs, right.affectedOutputs) &&
-    sameStringArray(left.contradictsClaimIds, right.contradictsClaimIds)
+    sameSourceReferenceArray(left.affectedOutputs, right.affectedOutputs) &&
+    sameSourceReferenceArray(left.contradictsClaimIds, right.contradictsClaimIds)
   );
 }
 

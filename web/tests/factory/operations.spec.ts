@@ -14017,7 +14017,14 @@ test("operations workbench: order-only source metadata changes keep the acknowle
       contradictsClaimIds: conflictContradictingIds,
     };
     evidence.groups = [{ label: "Conflicting evidence", count: 1, claims: [conflictClaim] }, ...evidence.groups];
-    evidence.conflicts = [conflictClaim];
+    evidence.conflicts = [
+      {
+        ...conflictClaim,
+        text: sourceEvidenceText("Café appeal-status source conflict remains unresolved — readable\n  boundary."),
+        affectedOutputs: [...conflictAffectedOutputs].reverse(),
+        contradictsClaimIds: [...conflictContradictingIds].reverse(),
+      },
+    ];
     evidence.totals.claims += 1;
     evidence.totals.loadBearing += 1;
     evidence.totals.unresolvedLoadBearing += 1;
