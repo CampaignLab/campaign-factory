@@ -13924,6 +13924,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
     { section: "Evidence", text: "Keep the official appeal-status check visible before approval." },
     { section: "Strategy", text: "Do not escalate until the public decision route is re-checked." },
   ];
+  let documentFlags = ["Unresolved load-bearing claim: Unresolved source claim 1", "Unresolved load-bearing claim: Unresolved source claim 2"];
 
   const sourceEvidence = () => {
     const evidence = campaignEvidence([{ id: "appeal-check", description: "Check Ormskirk appeal records", reason: "Order-only source metadata", affectedSections }], 2);
@@ -13940,7 +13941,9 @@ test("operations workbench: order-only source metadata changes keep the acknowle
       body: JSON.stringify({
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId, status: "partial", stateVersion: 44, lastSequence: 1909, events: [] },
-        documents: campaignOperationsDocuments({ title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", next: "Check Ormskirk appeal records" }),
+        documents: campaignOperationsDocuments({ title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", next: "Check Ormskirk appeal records" }).map((document) =>
+          document.key === "campaign_brief" ? { ...document, flags: documentFlags } : document,
+        ),
         evidence: sourceEvidence(),
       }),
     });
@@ -13958,6 +13961,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   claimIds = [...claimIds].reverse();
   affectedOutputs = [...affectedOutputs].reverse();
   draftNotes = [...draftNotes].reverse();
+  documentFlags = [...documentFlags].reverse();
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();
 

@@ -2037,8 +2037,12 @@ function sourceSignatureText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/[\t ]+/g, " ").trim();
 }
 
+function sourceSignatureCompare(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function sourceSignatureStrings(values: string[] | undefined) {
-  return [...(values ?? [])].sort((left, right) => left.localeCompare(right));
+  return [...(values ?? [])].sort(sourceSignatureCompare);
 }
 
 function sourceDocumentSignature(source: CampaignSource) {
@@ -2046,7 +2050,8 @@ function sourceDocumentSignature(source: CampaignSource) {
   const documentStatuses = source.documents
     .map((doc) => {
       const documentText = sourceSignatureText(`${doc.name}\n${doc.plainText}\n${doc.html}`);
-      return `${doc.key}:${doc.status}:${doc.resourceCount}:${sourceSignatureHash(documentText)}`;
+      const documentFlags = sourceSignatureStrings(doc.flags).join("~");
+      return `${doc.key}:${doc.status}:${doc.resourceCount}:${documentFlags}:${sourceSignatureHash(documentText)}`;
     })
     .sort()
     .join("|");
@@ -2077,7 +2082,9 @@ function sourceDocumentSignature(source: CampaignSource) {
           affectedSections: sourceSignatureStrings(check.affectedSections),
         })),
         terminalGaps: source.evidence.terminalGaps.map((gap) => ({ id: gap.id, description: gap.description, agentRunId: gap.agentRunId ?? null, step: gap.step ?? null, at: gap.at })),
-        draftNotes: source.evidence.draftNotes.map((note) => ({ section: note.section, text: note.text })).sort((left, right) => `${left.section}\u0000${left.text}`.localeCompare(`${right.section}\u0000${right.text}`)),
+        draftNotes: source.evidence.draftNotes
+          .map((note) => ({ section: note.section, text: note.text }))
+          .sort((left, right) => sourceSignatureCompare(`${left.section}\u0000${left.text}`, `${right.section}\u0000${right.text}`)),
       }),
     ),
   );
