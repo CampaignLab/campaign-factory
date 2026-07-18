@@ -1231,6 +1231,10 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     (state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature)) ||
       (state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature)),
   );
+  const removedForeignSourceBaseline = Boolean(
+    (state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey)) ||
+      (state.sourceRecheckDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceRecheckDocumentSignature, expectedWorkspaceKey)),
+  );
   const removedIncompleteSourceBaseline = Boolean(
     ((state.sourceStateVersion !== null || state.sourceLastSequence !== null || state.sourceAcknowledgedAt) && !state.sourceDocumentSignature) ||
       (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null)) ||
@@ -1246,6 +1250,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft || removedOrphanedDraftWorkflowActivity) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
   const resetSourceBaseline =
     removedFixtureSourceBaseline ||
+    removedForeignSourceBaseline ||
     removedIncompleteSourceBaseline ||
     (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
   const unprovenancedActiveDraft = removedUnprovenancedTopLevelReviewState && !state.sourceWorkingCopy ? draftLibrary.find((draft) => draft.id === state.activeDraft) : null;
