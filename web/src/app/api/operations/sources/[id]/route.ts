@@ -672,15 +672,14 @@ function normalizeSourceEvidenceGroups(record: Record<string, unknown>, claimIds
       const normalizedClaim = normalizeSourceEvidenceClaim(claim, claimIds, fallbackGroupLabel);
       const claimRecord = typeof normalizedClaim === "object" && normalizedClaim !== null ? (normalizedClaim as Record<string, unknown>) : undefined;
       const claimLabel = normalizeSourceVerificationLabel(claimRecord?.label);
-      if (claimRecord && typeof claimRecord.id === "string") {
-        const claimId = claimRecord.id;
-        if (seenClaimIds.has(claimId)) continue;
-        seenClaimIds.add(claimId);
-      }
+      const claimId = claimRecord && typeof claimRecord.id === "string" ? claimRecord.id : undefined;
+      const duplicateClaim = claimId ? seenClaimIds.has(claimId) : false;
       if (!claimLabel) {
         passthroughClaims.push(normalizedClaim);
         continue;
       }
+      if (duplicateClaim) continue;
+      if (claimId) seenClaimIds.add(claimId);
       claimsByLabel.set(claimLabel, [...(claimsByLabel.get(claimLabel) ?? []), normalizedClaim]);
     }
 
@@ -703,7 +702,16 @@ function normalizeSourceEvidenceGroups(record: Record<string, unknown>, claimIds
     return group && group.claims.length > 0 ? [{ label: group.label, count: group.claims.length, claims: group.claims }] : [];
   });
   const unknownLabelGroups = Array.from(groupedByLabel.values()).flatMap((group) => (SOURCE_VERIFICATION_LABELS.has(group.label) || group.claims.length === 0 ? [] : [{ label: group.label, count: group.claims.length, claims: group.claims }]));
-  return [...orderedGroups, ...unknownLabelGroups, ...passthroughGroups];
+  const unresolvedPassthroughGroups = passthroughGroups.flatMap((group) => {
+    if (typeof group !== "object" || group === null || !Array.isArray((group as Record<string, unknown>).claims)) return [group];
+    const remainingClaims = ((group as Record<string, unknown>).claims as unknown[]).filter((claim) => {
+      if (typeof claim !== "object" || claim === null) return true;
+      const claimId = normalizeSourceReferenceId((claim as Record<string, unknown>).id);
+      return !claimId || !seenClaimIds.has(claimId);
+    });
+    return remainingClaims.length > 0 ? [{ ...(group as Record<string, unknown>), count: remainingClaims.length, claims: remainingClaims }] : [];
+  });
+  return [...orderedGroups, ...unknownLabelGroups, ...unresolvedPassthroughGroups];
 }
 
 function normalizeSourceEvidenceTotals(record: Record<string, unknown>, groups: unknown) {

@@ -3452,8 +3452,13 @@ test("operations source API: normalizes recoverable legacy source references bef
   evidence.groups[0].count = 7;
   evidence.groups[0].claims.push({ ...evidence.groups[0].claims[0] });
   evidence.groups.push({ label: "Verification incomplete", count: 1, claims: [{ ...evidence.groups[0].claims[1] }] });
+  evidence.groups.unshift({
+    label: "Legacy provisional bucket",
+    count: 1,
+    claims: [{ ...evidence.groups[0].claims[0], id: " claim-1 ", label: "Legacy provisional bucket", text: "Stale duplicate claim shell from an older source build" }],
+  });
   evidence.totals = { claims: 7, loadBearing: 7, verifiedLoadBearing: 5, unresolvedLoadBearing: 2 };
-  const legacyClaim = evidence.groups[0].claims[0] as { id: string; text: string; affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
+  const legacyClaim = evidence.groups[1].claims[0] as { id: string; text: string; affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
   legacyClaim.id = " claim-1 ";
   legacyClaim.text = "Unresolved&nbsp source\n claim 1";
   legacyClaim.excerpt = null;
@@ -3468,7 +3473,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     "evidence base",
   ];
   legacyClaim.contradictsClaimIds = [" claim-2 ", "claim-2", "archived-claim-from-previous-build"];
-  (evidence.groups[0].claims[1] as { contradictsClaimIds?: null }).contradictsClaimIds = null;
+  (evidence.groups[1].claims[1] as { contradictsClaimIds?: null }).contradictsClaimIds = null;
   evidence.conflicts = [legacyClaim, legacyClaim, { ...legacyClaim, id: "archived-claim-from-previous-build", contradictsClaimIds: ["claim-1"] }];
   const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[] | null; affectedSections: string[]; description: string; reason: string };
   const legacyNextCheckReason = legacyNextCheck.reason;
