@@ -452,13 +452,18 @@ function uniqueStrings(values: unknown) {
   return unique;
 }
 
+function normalizeSourceReferenceId(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  const id = value.trim();
+  return id.length > 0 ? id : undefined;
+}
+
 function uniqueSourceReferenceIds(values: unknown) {
   if (!Array.isArray(values)) return values;
   const seen = new Set<string>();
   const unique: string[] = [];
   for (const value of values) {
-    if (typeof value !== "string") continue;
-    const id = value.trim();
+    const id = normalizeSourceReferenceId(value);
     if (!id || seen.has(id)) continue;
     seen.add(id);
     unique.push(id);
@@ -510,6 +515,8 @@ function isRecoverableSourceTerminalGap(value: Record<string, unknown>) {
 
 function normalizeSourceTerminalGap(value: Record<string, unknown>) {
   const normalized = { ...value };
+  const id = normalizeSourceReferenceId(normalized.id);
+  if (id) normalized.id = id;
   if (normalized.agentRunId !== undefined && typeof normalized.agentRunId !== "string") delete normalized.agentRunId;
   if (normalized.step !== undefined) {
     const step = normalized.step;
@@ -533,10 +540,12 @@ function isRecoverableSourceNextCheck(value: Record<string, unknown>) {
 }
 
 function normalizeSourceNextCheck(value: Record<string, unknown>, claimIds: Set<string>): Record<string, unknown> {
+  const id = normalizeSourceReferenceId(value.id);
   const checkClaimIds = Array.isArray(value.claimIds) ? (uniqueSourceReferenceIds(value.claimIds) as string[]) : value.claimIds;
   const affectedSections = normalizeSourceAffectedSectionValues(value.affectedSections);
   return {
     ...value,
+    ...(id ? { id } : {}),
     claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds === null ? undefined : checkClaimIds,
     affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
   };
@@ -605,15 +614,17 @@ function normalizeSourceDocumentEvidenceFlags(documents: unknown, evidence: unkn
 function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fallbackLabel?: string) {
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
+  const id = normalizeSourceReferenceId(record.id);
   const affectedOutputs = normalizeSourceAffectedSectionValues(record.affectedOutputs);
   const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueSourceReferenceIds(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
   const label = normalizeSourceVerificationLabel(record.label) ?? fallbackLabel;
   return {
     ...record,
+    ...(id ? { id } : {}),
     ...(label ? { label } : {}),
     ...(record.excerpt === null ? { excerpt: undefined } : {}),
     affectedOutputs,
-    contradictsClaimIds: Array.isArray(contradictsClaimIds) && claimIds.size > 0 ? contradictsClaimIds.filter((claimId) => claimId !== record.id && claimIds.has(claimId)) : contradictsClaimIds === null ? undefined : contradictsClaimIds,
+    contradictsClaimIds: Array.isArray(contradictsClaimIds) && claimIds.size > 0 ? contradictsClaimIds.filter((claimId) => claimId !== id && claimIds.has(claimId)) : contradictsClaimIds === null ? undefined : contradictsClaimIds,
   };
 }
 
@@ -743,7 +754,9 @@ function normalizeSourceEvidence(value: unknown) {
     for (const group of record.groups) {
       if (typeof group !== "object" || group === null || !Array.isArray((group as Record<string, unknown>).claims)) continue;
       for (const claim of (group as Record<string, unknown>).claims as unknown[]) {
-        if (typeof claim === "object" && claim !== null && typeof (claim as Record<string, unknown>).id === "string") claimIds.add((claim as Record<string, unknown>).id as string);
+        if (typeof claim !== "object" || claim === null) continue;
+        const claimId = normalizeSourceReferenceId((claim as Record<string, unknown>).id);
+        if (claimId) claimIds.add(claimId);
       }
     }
   }

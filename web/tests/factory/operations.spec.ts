@@ -3453,7 +3453,8 @@ test("operations source API: normalizes recoverable legacy source references bef
   evidence.groups[0].claims.push({ ...evidence.groups[0].claims[0] });
   evidence.groups.push({ label: "Verification incomplete", count: 1, claims: [{ ...evidence.groups[0].claims[1] }] });
   evidence.totals = { claims: 7, loadBearing: 7, verifiedLoadBearing: 5, unresolvedLoadBearing: 2 };
-  const legacyClaim = evidence.groups[0].claims[0] as { affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
+  const legacyClaim = evidence.groups[0].claims[0] as { id: string; affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
+  legacyClaim.id = " claim-1 ";
   legacyClaim.excerpt = null;
   legacyClaim.affectedOutputs = [
     "Campaign&nbsp;Brief document",
@@ -3510,12 +3511,13 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(response.status).toBe(200);
     expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
 
-    const body = (await response.json()) as { run?: { batchId?: unknown }; documents?: Array<{ flags?: string[] }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
+    const body = (await response.json()) as { run?: { batchId?: unknown }; documents?: Array<{ flags?: string[] }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ id?: string; affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
     expect(body.run).not.toHaveProperty("batchId");
     expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1"]);
     expect(body.evidence?.groups).toHaveLength(1);
     expect(body.evidence?.groups?.[0]?.count).toBe(2);
     expect(body.evidence?.totals).toEqual({ claims: 2, loadBearing: 2, verifiedLoadBearing: 0, unresolvedLoadBearing: 2 });
+    expect(body.evidence?.groups?.[0]?.claims?.[0]?.id).toBe("claim-1");
     expect(body.evidence?.groups?.[0]?.claims?.[0]?.affectedOutputs).toEqual(["campaign_brief", "objective_theory_of_change", "power_stakeholder_map", "digital_pack", "evidence"]);
     expect(body.evidence?.groups?.[0]?.claims?.[0]?.excerpt).toBeUndefined();
     expect(body.evidence?.groups?.[0]?.claims?.[0]?.contradictsClaimIds).toEqual(["claim-2"]);
