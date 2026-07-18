@@ -11944,6 +11944,113 @@ test("operations workbench: legacy fixture top-level drafts are reset for real c
   expect(storedState).not.toContain("local fixture contacts");
 });
 
+test("operations workbench: malformed browser-local timestamps are healed in a real workspace", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 53, lastSequence: 2060, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Keep KFC Out of Ormskirk",
+          place: "Ormskirk, Lancashire",
+          next: "Check Ormskirk appeal records",
+        }),
+        evidence: campaignEvidence([{ id: "appeal-check", description: "Check Ormskirk appeal records", reason: "Malformed local timestamp guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: "not-a-real-date",
+        selectedSegment: "source_primary",
+        subject: "Local Ormskirk source copy",
+        body: "A browser-local queue item copied from the Ormskirk read-only source.",
+        reviewerNote: "Timestamp should be healed, not rendered as a date.",
+        status: "queued",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: "also-not-a-date",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${id}:local-copy:meeting-request`,
+            title: "Meeting request copied from Ormskirk source",
+            channel: "Email",
+            subject: "Ormskirk meeting request",
+            body: "Please discuss the Ormskirk evidence boundary.",
+            reviewerNote: "Working-draft timestamp should be healed too.",
+            status: "queued",
+            queuedAt: "bad-working-draft-date",
+            createdAt: "bad-created-at",
+            updatedAt: "bad-updated-at",
+            sourceWorkingCopy: {
+              id: `source:${id}:local-copy:meeting-request`,
+              campaignId: id,
+              title: "Meeting request copied from Ormskirk source",
+              channel: "Email",
+              sourceDocument: "Lobbying Pack",
+              sourceDocumentKey: "lobbying_pack",
+              createdAt: "bad-copy-created-at",
+              warnings: [],
+              provenance: `Source campaign ${id}; copied from Lobbying Pack into browser-local operations.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${id}:local-copy:meeting-request`,
+        sourceWorkingCopy: {
+          id: `source:${id}:top-level-copy`,
+          campaignId: id,
+          title: "Top-level Ormskirk source copy",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "digital_campaign_pack",
+          createdAt: "bad-top-level-created-at",
+          warnings: [],
+          provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+        },
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "timestamp-legacy", label: "Queued local Ormskirk copy with malformed browser timestamp." }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByText("Local Ormskirk source copy")).toBeVisible();
+  await expect(page.getByText("Ormskirk meeting request")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Invalid Date");
+  await expect(page.locator("main")).not.toContainText("not-a-real-date");
+
+  await expect
+    .poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId))
+    .not.toContain("not-a-real-date");
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).not.toContain("also-not-a-date");
+  expect(storedState).not.toContain("bad-working-draft-date");
+  expect(storedState).not.toContain("bad-created-at");
+  expect(storedState).not.toContain("bad-updated-at");
+  expect(storedState).not.toContain("bad-copy-created-at");
+  expect(storedState).not.toContain("bad-top-level-created-at");
+});
+
 test("operations workbench: source updates without local work refresh the baseline without a re-check lock", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

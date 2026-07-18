@@ -928,7 +928,7 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
     channel: typeof copy.channel === "string" && copy.channel ? copy.channel : "Source draft",
     sourceDocument: copy.sourceDocument,
     sourceDocumentKey: typeof copy.sourceDocumentKey === "string" && copy.sourceDocumentKey ? copy.sourceDocumentKey : "source_document",
-    createdAt: typeof copy.createdAt === "string" && copy.createdAt ? copy.createdAt : new Date().toISOString(),
+    createdAt: normaliseStoredTimestamp(copy.createdAt) ?? new Date().toISOString(),
     warnings: Array.isArray(copy.warnings) ? copy.warnings : [],
     provenance: typeof copy.provenance === "string" && copy.provenance ? copy.provenance : "Copied from a read-only Campaign Factory source document into this browser-local workspace.",
   };
@@ -972,6 +972,14 @@ function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey:
   return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedWorkspaceKey);
 }
 
+function isValidStoredTimestamp(value: string) {
+  return Number.isFinite(new Date(value).getTime());
+}
+
+function normaliseStoredTimestamp(value: unknown) {
+  return typeof value === "string" && value && isValidStoredTimestamp(value) ? value : null;
+}
+
 function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>): WorkingDraft[] {
   const drafts = Array.isArray(value) ? value : [];
   const normalised = drafts
@@ -980,7 +988,7 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
       const sourceWorkingCopy = normaliseSourceWorkingCopy(draft.sourceWorkingCopy);
       if (!sourceWorkingCopy || typeof draft.id !== "string" || !draft.id || typeof draft.title !== "string" || !draft.title) return null;
       const malformed = workingDraftHasMalformedField(draft);
-      const createdAt = typeof draft.createdAt === "string" && draft.createdAt ? draft.createdAt : sourceWorkingCopy.createdAt;
+      const createdAt = normaliseStoredTimestamp(draft.createdAt) ?? sourceWorkingCopy.createdAt;
       return {
         id: draft.id,
         title: malformed ? INVALID_LOCAL_DRAFT_SUBJECT : draft.title,
@@ -989,9 +997,9 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
         body: malformed ? INVALID_LOCAL_DRAFT_BODY : typeof draft.body === "string" && draft.body ? draft.body : "",
         reviewerNote: malformed ? "" : typeof draft.reviewerNote === "string" ? draft.reviewerNote : "",
         status: malformed ? "draft" : draft.status === "draft" || draft.status === "review" || draft.status === "approved" || draft.status === "queued" ? draft.status : "draft",
-        queuedAt: malformed ? null : typeof draft.queuedAt === "string" ? draft.queuedAt : null,
+        queuedAt: malformed ? null : normaliseStoredTimestamp(draft.queuedAt),
         createdAt,
-        updatedAt: typeof draft.updatedAt === "string" && draft.updatedAt ? draft.updatedAt : createdAt,
+        updatedAt: normaliseStoredTimestamp(draft.updatedAt) ?? createdAt,
         sourceWorkingCopy,
       } satisfies WorkingDraft;
     })
@@ -1007,7 +1015,7 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
       body: typeof legacyState.body === "string" && legacyState.body ? legacyState.body : "",
       reviewerNote: typeof legacyState.reviewerNote === "string" ? legacyState.reviewerNote : "",
       status: legacyState.status === "review" || legacyState.status === "approved" || legacyState.status === "queued" ? legacyState.status : "draft",
-      queuedAt: typeof legacyState.queuedAt === "string" ? legacyState.queuedAt : null,
+      queuedAt: normaliseStoredTimestamp(legacyState.queuedAt),
       createdAt: legacyCopy.createdAt,
       updatedAt: legacyCopy.createdAt,
       sourceWorkingCopy: legacyCopy,
@@ -1054,7 +1062,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     sourceStateVersion: normaliseOptionalSourceSequence(parsed.sourceStateVersion),
     sourceLastSequence: normaliseOptionalSourceSequence(parsed.sourceLastSequence),
     sourceDocumentSignature: typeof parsed.sourceDocumentSignature === "string" ? parsed.sourceDocumentSignature : null,
-    sourceAcknowledgedAt: typeof parsed.sourceAcknowledgedAt === "string" && parsed.sourceAcknowledgedAt ? parsed.sourceAcknowledgedAt : null,
+    sourceAcknowledgedAt: normaliseStoredTimestamp(parsed.sourceAcknowledgedAt),
     sourceRecheckStateVersion: normaliseOptionalSourceSequence(parsed.sourceRecheckStateVersion),
     sourceRecheckLastSequence: normaliseOptionalSourceSequence(parsed.sourceRecheckLastSequence),
     sourceRecheckDocumentSignature: typeof parsed.sourceRecheckDocumentSignature === "string" ? parsed.sourceRecheckDocumentSignature : null,
@@ -1073,7 +1081,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
         : ["after_approval", "tomorrow_morning", "after_next_check"].includes(parsed.scheduleIntent || "")
           ? (parsed.scheduleIntent as DemoState["scheduleIntent"])
           : initialState.scheduleIntent,
-    queuedAt: typeof parsed.queuedAt === "string" ? parsed.queuedAt : null,
+    queuedAt: normaliseStoredTimestamp(parsed.queuedAt),
     localActions: normaliseLocalActions(parsed.localActions),
     workingDrafts,
     activeWorkingDraftId,
@@ -2308,7 +2316,7 @@ function record(label: string): Activity {
 }
 
 function formatQueuedTime(value: string | null) {
-  if (!value) return "Not queued";
+  if (!value || !isValidStoredTimestamp(value)) return "Not queued";
   return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
