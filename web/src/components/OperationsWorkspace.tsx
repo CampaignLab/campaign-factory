@@ -1301,7 +1301,12 @@ function stateHasOlderSourceResourceBaseline(state: DemoState, source: CampaignS
 function localActionMatchesCurrentSourceAction(action: LocalAction, source: CampaignSource) {
   if (action.id === `source:${source.campaignId}:primary-source-check`) {
     const primaryCheck = source.evidence.nextChecks[0];
-    return Boolean(primaryCheck && normaliseOperationsSourceInlineText(action.title) === normaliseOperationsSourceInlineText(sourceCheckActionTitle(source, primaryCheck, 0)));
+    const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
+    return Boolean(
+      primaryCheck &&
+        normaliseOperationsSourceInlineText(action.title) === normaliseOperationsSourceInlineText(sourceCheckActionTitle(source, primaryCheck, 0)) &&
+        provenance.includes(`derived from next check ${normaliseOperationsSourceInlineText(sourceCheckActionProvenanceKey(primaryCheck, 0)).toLowerCase()}`),
+    );
   }
 
   const currentCheckAction = source.evidence.nextChecks
@@ -2464,6 +2469,10 @@ function sourceCheckActionLocalKey(check: EvidenceAndNextChecks["nextChecks"][nu
   if (/^[a-z0-9_-]{1,80}$/.test(check.id)) return check.id;
   const slug = sourceResourceTitleSlug(check.id || check.description).slice(0, 64) || "source-check";
   return `check-${index + 1}-${slug}`.slice(0, 80);
+}
+
+function sourceCheckActionProvenanceKey(check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
+  return index === 0 ? check.id || String(index + 1) : sourceCheckActionLocalKey(check, index);
 }
 
 function sourceCheckActionId(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
@@ -4251,7 +4260,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       timing: index === 0 ? "Before phase change or stronger public claims" : shortText(check.reason || "Before related copy or tactics move forward", 120),
       priority: index === 0 ? "High" : "Medium",
       status: "next",
-      provenance: `Source campaign ${source.campaignId}; derived from next check ${index === 0 ? check.id || index + 1 : sourceCheckActionLocalKey(check, index)}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`,
+      provenance: `Source campaign ${source.campaignId}; derived from next check ${sourceCheckActionProvenanceKey(check, index)}${check.claimIds?.length ? ` touching ${check.claimIds.length} source claim${check.claimIds.length === 1 ? "" : "s"}` : ""}; stored only in this browser.`,
     });
   };
 
