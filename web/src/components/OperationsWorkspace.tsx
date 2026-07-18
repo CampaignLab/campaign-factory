@@ -3056,7 +3056,16 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
   const [hasStoredLocalState, setHasStoredLocalState] = useState(false);
   const [sourceRetryCount, setSourceRetryCount] = useState(0);
   const storageKey = useMemo(() => localStorageKeyFor(campaignId), [campaignId]);
-  const source = sourceState.status === "ready" ? sourceState.source : null;
+  const sourceStateCampaignId = sourceState.status === "ready" ? sourceState.source.campaignId : "campaignId" in sourceState ? sourceState.campaignId : undefined;
+  const sourceStateMatchesCampaign = !campaignId || sourceState.status === "fixture" || sourceStateCampaignId === campaignId;
+  const renderedSourceState: SourceState = sourceStateMatchesCampaign
+    ? sourceState
+    : campaignId && UUID_RE.test(campaignId)
+      ? { status: "loading", campaignId }
+      : campaignId
+        ? { status: "invalid", campaignId }
+        : { status: "fixture" };
+  const source = renderedSourceState.status === "ready" ? renderedSourceState.source : null;
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -3166,12 +3175,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     if (!hydrated) return;
     const expectedWorkspaceKey = campaignId ?? "fixture";
     if (state.workspaceKey !== expectedWorkspaceKey) return;
-    if (campaignId && !hasStoredLocalState && sourceState.status !== "ready") return;
+    if (campaignId && !hasStoredLocalState && renderedSourceState.status !== "ready") return;
     if (campaignId && source && !hasStoredLocalState && state.activity[0]?.id !== `source-${source.campaignId}`) return;
     if (!campaignId && !hasStoredLocalState && state === initialState) return;
     localStorage.setItem(storageKey, JSON.stringify(state));
     if (!campaignId) LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-  }, [campaignId, hasStoredLocalState, hydrated, source, sourceState.status, state, storageKey]);
+  }, [campaignId, hasStoredLocalState, hydrated, renderedSourceState.status, source, state, storageKey]);
 
   useEffect(() => {
     if (!campaignId || !UUID_RE.test(campaignId)) return;
@@ -5799,8 +5808,8 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     responses: renderResponses(),
   };
 
-  if (sourceState.status !== "fixture" && sourceState.status !== "ready") {
-    return <SourceStateShell state={sourceState} onRetry={() => setSourceRetryCount((count) => count + 1)} />;
+  if (renderedSourceState.status !== "fixture" && renderedSourceState.status !== "ready") {
+    return <SourceStateShell state={renderedSourceState} onRetry={() => setSourceRetryCount((count) => count + 1)} />;
   }
 
   return (

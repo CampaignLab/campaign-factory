@@ -4418,6 +4418,46 @@ test("operations workbench: resetting one real campaign leaves other campaign-lo
   await expect(page.getByText("Actions: 1 local item")).toBeVisible();
 });
 
+test("operations workbench shows a loading state instead of stale source while switching campaigns", async ({ page }) => {
+  const ormskirkId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const towerHamletsId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const campaigns: Record<string, { title: string; place: string; status: "partial" | "completed"; next: string }> = {
+    [ormskirkId]: { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", status: "partial", next: "Check Ormskirk appeal status" },
+    [towerHamletsId]: { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London", status: "partial", next: "Check Tower Hamlets housing target" },
+    [barnetId]: { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", status: "completed", next: "Check Barnet committee records" },
+  };
+  let releaseBarnetSource: (() => void) | undefined;
+  const barnetSourceGate = new Promise<void>((resolve) => {
+    releaseBarnetSource = resolve;
+  });
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? ormskirkId;
+    if (id === barnetId) await barnetSourceGate;
+    const campaign = campaigns[id] ?? campaigns[ormskirkId];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: campaign.status, stateVersion: 8, lastSequence: 21, events: [] },
+        documents: campaignOperationsDocuments(campaign),
+        evidence: campaignEvidence([{ id: `switch-${id}`, description: campaign.next, reason: "Campaign switch stale-source regression", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${ormskirkId}`);
+  await expect(page.getByRole("heading", { name: "Keep KFC Out of Ormskirk" })).toBeVisible();
+
+  await page.locator(`a[href="/operations?campaignId=${barnetId}&view=overview"]`).click();
+  await expect(page.getByRole("heading", { name: "Loading campaign source" })).toBeVisible();
+  await expect(page.getByText("Keep KFC Out of Ormskirk", { exact: true })).toHaveCount(0);
+
+  releaseBarnetSource?.();
+  await expect(page.getByRole("heading", { name: "Stop the leisure park redevelopment in Barnet" })).toBeVisible();
+});
+
 test("operations portfolio: one failed source does not blank usable campaigns", async ({ page }) => {
   const campaigns = {
     "69f257b6-9913-4395-94f7-5c25b4b5fe95": {
