@@ -12,6 +12,7 @@ import {
   normaliseOperationsSourcePresentationText,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
+import { DOCUMENT_STATUSES } from "@/lib/factory/contracts/documents";
 import { VERIFICATION_LABELS } from "@/lib/pipeline/labels";
 
 export const runtime = "nodejs";
@@ -102,6 +103,7 @@ const SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT = new Map<string, string>(VERIFI
 const SOURCE_UNRESOLVED_LABELS = new Set(["Conflicting evidence", "Verification incomplete", "External information unavailable"]);
 const SOURCE_CLAIM_TYPES = new Set(["authority", "process", "deadline", "officeholder", "policy", "stakeholder_position", "number", "context", "other"]);
 const SOURCE_CLAIM_CONFIDENCES = new Set(["high", "medium", "low"]);
+const SOURCE_DOCUMENT_STATUSES = new Set<string>(DOCUMENT_STATUSES);
 const SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM = "Unresolved load-bearing claim: ";
 const SOURCE_DOCUMENT_FLAG_NEEDS_VERIFICATION = "A source section is flagged needs verification.";
 const SOURCE_DOCUMENT_FLAG_PLACEHOLDERS = "Contains explicit verification placeholders.";
@@ -705,6 +707,11 @@ function normalizeSourceDocumentResourceCount(value: unknown) {
   return normalizeSourceNonNegativeInteger(value);
 }
 
+function normalizeSourceDocumentStatus(value: unknown) {
+  const normalized = normalizeSourceVisibleText(value)?.toLowerCase();
+  return normalized && SOURCE_DOCUMENT_STATUSES.has(normalized) ? normalized : value;
+}
+
 function normalizeSourceDocuments(value: unknown) {
   return Array.isArray(value)
     ? value.map((document) => {
@@ -712,6 +719,7 @@ function normalizeSourceDocuments(value: unknown) {
         const normalizedDocument = {
           ...(document as Record<string, unknown>),
           plainText: normalizeSourceDocumentPlainText((document as Record<string, unknown>).plainText),
+          status: normalizeSourceDocumentStatus((document as Record<string, unknown>).status),
           sectionKeys: normalizeSourceDocumentSectionKeys((document as Record<string, unknown>).sectionKeys, (document as Record<string, unknown>).key),
           resourceCount: normalizeSourceDocumentResourceCount((document as Record<string, unknown>).resourceCount),
         };
