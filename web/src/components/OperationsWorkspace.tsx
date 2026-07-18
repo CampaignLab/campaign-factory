@@ -1381,9 +1381,13 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   const visibleSubject = subject && storedTextHasVisibleText(subject) ? subject : "";
   const visibleBody = body && storedTextHasVisibleText(body) ? body : "";
   const parsedSourceRecheckVisitedViews = Array.isArray(parsed.sourceRecheckVisitedViews) ? parsed.sourceRecheckVisitedViews : [];
-  const sourceRecheckVisitedViews = Array.from(new Set(parsedSourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId))));
+  const parsedRequiredSourceRecheckViews = parsedSourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
+  const parsedRequiredSourceRecheckViewSet = new Set(parsedRequiredSourceRecheckViews);
+  const sourceRecheckVisitedViews = SOURCE_RECHECK_REQUIRED_VIEWS.filter((view) => parsedRequiredSourceRecheckViewSet.has(view));
   const scrubbedSourceRecheckVisitedViews =
-    parsedSourceRecheckVisitedViews.length !== sourceRecheckVisitedViews.length || parsedSourceRecheckVisitedViews.some((view) => !SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
+    parsedSourceRecheckVisitedViews.length !== sourceRecheckVisitedViews.length ||
+    parsedSourceRecheckVisitedViews.some((view) => !SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId)) ||
+    parsedRequiredSourceRecheckViews.some((view, index) => sourceRecheckVisitedViews[index] !== view);
   const normalizedActivity = staleQueueTimestamp || topLevelQueuePrecedesSourceCopy ? normaliseActivity(parsed.activity).filter((item) => !activityLooksLikeQueueWorkflow(item)) : normaliseActivity(parsed.activity);
   return {
     ...initialState,
