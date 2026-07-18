@@ -947,12 +947,28 @@ function normaliseLocalActions(actions: unknown): LocalAction[] {
     });
 }
 
+function sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey: string, sourceDocument: string) {
+  const key = sourceDocumentKey.trim().toLowerCase();
+  const document = sourceDocument.trim().toLowerCase();
+  if (key === "lobbying_pack") return document === "lobbying pack";
+  if (key === "digital_pack" || key === "digital_campaign_pack") return document === "digital campaign pack";
+  if (key === "media_pack") return document === "media pack";
+  return false;
+}
+
 function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingCopy>) {
   const createdAt = copy.createdAt;
+  const sourceDocument = typeof copy.sourceDocument === "string" ? copy.sourceDocument.trim() : "";
+  const sourceDocumentKey = typeof copy.sourceDocumentKey === "string" ? copy.sourceDocumentKey.trim() : "";
   return ["channel", "sourceDocumentKey", "provenance"].some((field) => {
     const value = copy[field as keyof SourceWorkingCopy];
     return value !== undefined && typeof value !== "string";
-  }) || typeof createdAt !== "string" || !isValidStoredTimestamp(createdAt) || (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
+  }) ||
+    !sourceDocumentKey ||
+    !sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey, sourceDocument) ||
+    typeof createdAt !== "string" ||
+    !isValidStoredTimestamp(createdAt) ||
+    (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
 }
 
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {

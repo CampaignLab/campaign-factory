@@ -9416,6 +9416,114 @@ test("operations workbench rejects malformed source-working-copy optional fields
   expect(stored).not.toContain("Barnet source provenance briefing queued locally from malformed optional source copy fields");
 });
 
+test("operations workbench rejects source copies with mismatched source document keys", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([{ id: "mismatched-source-doc-key", description: "Check Barnet decision records", reason: "Mismatched source document key guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${campaignId}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet mismatched source document copy",
+        body: "This queued browser-local copy claims a Lobbying Pack key while naming a Digital Campaign Pack source document, so it must be reset before outbox or export can trust it.",
+        reviewerNote: "Do not keep this mismatched source key note.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-16T18:04:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${campaignId}:resource:lobbying_pack:mismatched-document-key`,
+            title: "Barnet mismatched source key briefing",
+            channel: "Briefing note",
+            subject: "Mismatched document-key draft should be removed",
+            body: "This Barnet working draft has source provenance fields that disagree and should not remain trusted local work.",
+            reviewerNote: "Mismatched key review note.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T18:02:30.000Z",
+            sourceWorkingCopy: {
+              id: `source:${campaignId}:resource:lobbying_pack:mismatched-document-key`,
+              campaignId,
+              title: "Barnet mismatched source key briefing",
+              channel: "Briefing note",
+              sourceDocument: "Digital Campaign Pack",
+              sourceDocumentKey: "lobbying_pack",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              warnings: ["Confirm the current Barnet decision record before any external use."],
+              provenance: `Source campaign ${campaignId}; copied from Digital Campaign Pack into this browser-local workspace.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${campaignId}:resource:lobbying_pack:mismatched-document-key`,
+        sourceWorkingCopy: {
+          id: `source:${campaignId}:resource:lobbying_pack:mismatched-top-level-key`,
+          campaignId,
+          title: "Barnet mismatched top-level source key",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "lobbying_pack",
+          createdAt: "2026-07-16T17:52:30.000Z",
+          warnings: ["Confirm the current Barnet decision record before any external use."],
+          provenance: `Source campaign ${campaignId}; copied from Digital Campaign Pack into this browser-local workspace.`,
+        },
+        activity: [
+          { id: "mismatched-source-key-draft", label: "Barnet mismatched source key briefing queued locally." },
+          { id: "mismatched-source-key-top-level", label: "Barnet top-level source copy queued locally with mismatched source key." },
+        ],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet mismatched source key briefing");
+  await expect(page.locator("main")).not.toContainText("Barnet top-level source copy queued locally with mismatched source key");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.locator("main")).not.toContainText("Mismatched document-key draft should be removed");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"sourceWorkingCopy":null');
+  expect(stored).toContain('"subject":"Local source draft reset"');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("Mismatched document-key draft should be removed");
+  expect(stored).not.toContain("mismatched-document-key");
+  expect(stored).not.toContain("mismatched source key");
+});
+
 test("operations workbench rejects source copies and drafts missing canonical saved timestamps", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
