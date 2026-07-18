@@ -1295,7 +1295,10 @@ function sourceWorkingCopyMatchesCurrentSourceResource(copy: SourceWorkingCopy, 
 function stateHasOlderSourceResourceBaseline(state: DemoState, source: CampaignSource, currentDocumentSignature: string) {
   if (!state.sourceDocumentSignature || state.sourceStateVersion === null || state.sourceLastSequence === null || !state.sourceAcknowledgedAt) return false;
   if (!sourceBaselineSignatureMatchesWorkspace(state.sourceDocumentSignature, source.campaignId)) return false;
-  return state.sourceStateVersion !== source.stateVersion || state.sourceLastSequence !== source.lastSequence || state.sourceDocumentSignature !== currentDocumentSignature;
+  const baselinePrecedesCurrentSource =
+    state.sourceStateVersion < source.stateVersion ||
+    (state.sourceStateVersion === source.stateVersion && state.sourceLastSequence < source.lastSequence);
+  return baselinePrecedesCurrentSource && state.sourceDocumentSignature !== currentDocumentSignature;
 }
 
 function localActionMatchesCurrentSourceAction(action: LocalAction, source: CampaignSource) {
@@ -1327,10 +1330,11 @@ function localActionMatchesCurrentSourceAction(action: LocalAction, source: Camp
 function sanitizeStateForCurrentSourceResources(state: DemoState, source: CampaignSource, resources: SourceResource[], currentDocumentSignature: string): DemoState {
   if (state.workspaceKey !== source.campaignId) return state;
   if (stateHasOlderSourceResourceBaseline(state, source, currentDocumentSignature)) return state;
+  const resetCurrentSourceBaseline = Boolean(state.sourceDocumentSignature && state.sourceDocumentSignature !== currentDocumentSignature);
   const sourceWorkingCopy = state.sourceWorkingCopy && sourceWorkingCopyMatchesCurrentSourceResource(state.sourceWorkingCopy, resources) ? state.sourceWorkingCopy : null;
   const workingDrafts = state.workingDrafts.filter((draft) => sourceWorkingCopyMatchesCurrentSourceResource(draft.sourceWorkingCopy, resources));
   const localActions = state.localActions.filter((action) => localActionMatchesCurrentSourceAction(action, source));
-  if (sourceWorkingCopy === state.sourceWorkingCopy && workingDrafts.length === state.workingDrafts.length && localActions.length === state.localActions.length) return state;
+  if (sourceWorkingCopy === state.sourceWorkingCopy && workingDrafts.length === state.workingDrafts.length && localActions.length === state.localActions.length && !resetCurrentSourceBaseline) return state;
 
   const removedReferences = [
     ...state.localActions
@@ -1376,6 +1380,14 @@ function sanitizeStateForCurrentSourceResources(state: DemoState, source: Campai
   );
   return {
     ...state,
+    sourceStateVersion: resetCurrentSourceBaseline ? null : state.sourceStateVersion,
+    sourceLastSequence: resetCurrentSourceBaseline ? null : state.sourceLastSequence,
+    sourceDocumentSignature: resetCurrentSourceBaseline ? null : state.sourceDocumentSignature,
+    sourceAcknowledgedAt: resetCurrentSourceBaseline ? null : state.sourceAcknowledgedAt,
+    sourceRecheckStateVersion: resetCurrentSourceBaseline ? null : state.sourceRecheckStateVersion,
+    sourceRecheckLastSequence: resetCurrentSourceBaseline ? null : state.sourceRecheckLastSequence,
+    sourceRecheckDocumentSignature: resetCurrentSourceBaseline ? null : state.sourceRecheckDocumentSignature,
+    sourceRecheckVisitedViews: resetCurrentSourceBaseline ? [] : state.sourceRecheckVisitedViews,
     sourceWorkingCopy,
     workingDrafts,
     localActions,

@@ -10275,6 +10275,88 @@ test("operations portfolio rejects source working drafts whose heading is not in
   expect(stored).not.toContain("portfolio-missing-source-resource");
 });
 
+test("operations portfolio rejects forged current source baselines before preserving local work", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", status: "partial" },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London", status: "partial" },
+    [barnetId]: { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", status: "completed" },
+  };
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    const campaign = campaignTitles[requestedCampaignId] ?? campaignTitles[barnetId];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: campaign.status, stateVersion: 18, lastSequence: 32, events: [] },
+        documents: campaignOperationsDocuments({ title: campaign.title, place: campaign.place, next: `Check ${campaign.place} source records` }),
+        evidence: campaignEvidence([{ id: "current-source-check", description: `Check ${campaign.place} source records`, reason: "Current baseline guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 18,
+        sourceLastSequence: 32,
+        sourceDocumentSignature: `source:${campaignId}:forged-current-sequence-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:52:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local portfolio state claims a current source baseline that does not match the current source signature.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${campaignId}:next-check:shadow-current-sequence-record`,
+            title: "Check: Shadow current sequence record",
+            source: "Campaign source · Evidence & checks",
+            owner: "Reviewer",
+            timing: "Before related copy or tactics move forward",
+            priority: "Medium",
+            status: "next",
+            provenance: `Source campaign ${campaignId}; derived from next check shadow-current-sequence-record; stored only in this browser.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "shadow-current-sequence-action", label: "Created local action: Check: Shadow current sequence record." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto("/operations");
+  const barnetRow = page.locator("article").filter({ hasText: "Stop the leisure park redevelopment in Barnet" });
+  await expect(barnetRow).toContainText("Local signals: no browser-local operations work yet for this campaign.");
+  await expect(barnetRow).not.toContainText("1 source re-check required");
+  await expect(barnetRow).not.toContainText("1 action");
+  await expect(barnetRow).not.toContainText("Shadow current sequence record");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"localActions":[]');
+  expect(stored).toContain('"sourceDocumentSignature":null');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("shadow-current-sequence-record");
+});
+
 test("operations workbench rejects source next-check actions absent from current source checks", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
