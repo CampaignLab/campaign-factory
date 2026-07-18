@@ -1066,9 +1066,15 @@ function sourceWorkingCopyIdTitleMatchesWorkspaceTitle(copyId: string, title: st
   );
 }
 
+function sourceWorkingCopyTitleChannelMatchesResourcePattern(title: string, channel: string) {
+  const match = matchSourceResourceHeading(title);
+  return Boolean(match && normaliseOperationsSourceInlineText(channel).toLowerCase() === match.channel.toLowerCase());
+}
+
 function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingCopy>) {
   const createdAt = copy.createdAt;
   const title = typeof copy.title === "string" ? copy.title.trim() : "";
+  const channel = typeof copy.channel === "string" ? copy.channel.trim() : "";
   const sourceDocument = typeof copy.sourceDocument === "string" ? copy.sourceDocument.trim() : "";
   const sourceDocumentKey = typeof copy.sourceDocumentKey === "string" ? copy.sourceDocumentKey.trim() : "";
   return storedCampaignIdIsMalformed(copy.campaignId) || ["channel", "sourceDocumentKey", "provenance"].some((field) => {
@@ -1086,6 +1092,7 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
     !storedTextHasVisibleText(sourceDocument) ||
     sourceDocumentKey !== canonicalSourceDocumentKey(sourceDocumentKey) ||
     !sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey, sourceDocument) ||
+    !sourceWorkingCopyTitleChannelMatchesResourcePattern(title, channel) ||
     (typeof copy.id === "string" && !sourceWorkingCopyIdDocumentKeyMatchesSourceKey(copy.id, sourceDocumentKey)) ||
     (typeof copy.id === "string" && !sourceWorkingCopyIdTitleMatchesSourceTitle(copy.id, title)) ||
     typeof createdAt !== "string" ||
