@@ -61,6 +61,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isCanonicalNonEmptySourceId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim() && value === value.normalize("NFC");
+}
+
 function normaliseSourcePresentationText(value: string) {
   return decodeOperationsSourceTextEntities(value)
     .normalize("NFC")
@@ -371,7 +375,7 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
   if (!isRecord(value) || !isRecord(value.payload)) return false;
   const payload = value.payload;
   return (
-    isNonEmptyString(value.eventId) &&
+    isCanonicalNonEmptySourceId(value.eventId) &&
     isPositiveInteger(value.sequence) &&
     value.campaignId === campaignId &&
     isOptionalString(value.batchId) &&
