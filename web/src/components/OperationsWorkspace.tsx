@@ -1212,6 +1212,10 @@ function activityLooksLikeDraftWorkflow(activity: Activity) {
   );
 }
 
+function activityLooksLikeQueueWorkflow(activity: Activity) {
+  return /\b(placed approved draft|local demo queue|queued local draft|queued\b.{0,80}\blocally)\b/i.test(activity.label);
+}
+
 function activityLooksLikeLocalActionWorkflow(activity: Activity) {
   return /\b(created action|added action|updated action|action status|marked action|moved action|completed action|blocked action)\b/i.test(activity.label);
 }
@@ -1241,8 +1245,12 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
   const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksMalformed(action) && !localActionLooksFixtureBound(action));
-  const workingDrafts = state.workingDrafts.filter(
+  const workspaceWorkingDrafts = state.workingDrafts.filter(
     (draft) => workingDraftMatchesWorkspace(draft, expectedWorkspaceKey) && !workingDraftLooksMalformed(draft) && !workingDraftLooksFixtureBound(draft),
+  );
+  const demotedWorkingDraftQueueState = workspaceWorkingDrafts.some((draft) => draft.status === "queued" && !draft.queuedAt);
+  const workingDrafts = workspaceWorkingDrafts.map((draft) =>
+    draft.status === "queued" && !draft.queuedAt ? { ...draft, status: "approved" as const, updatedAt: new Date().toISOString() } : draft,
   );
   const sourceWorkingCopyCandidate = state.sourceWorkingCopy && sourceWorkingCopyMatchesWorkspace(state.sourceWorkingCopy, expectedWorkspaceKey) && !sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy) ? state.sourceWorkingCopy : null;
   const removedLocalWorkReferences = [
@@ -1291,6 +1299,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedForeignTopLevelCopy = !topLevelDraftLooksAlreadyReset(state) && !topLevelDraftReferencesOnlyExpectedCampaign(state, expectedWorkspaceKey);
   const removedUnprovenancedTopLevelReviewState = !sourceWorkingCopy && topLevelDraftHasUnprovenancedLocalCopy(state);
   const removedResetTopLevelWorkflowState = !sourceWorkingCopy && topLevelDraftResetRetainsWorkflowState(state);
+  const demotedTopLevelQueueState = Boolean(sourceWorkingCopy && state.status === "queued" && !state.queuedAt);
   const removedFixtureAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature));
   const removedFixtureSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature));
   const removedForeignAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey));
@@ -1315,8 +1324,9 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedOrphanedDraftWorkflowActivity = !hasRetainedLocalWork && state.activity.some(activityLooksLikeDraftWorkflow);
   const removedQueuedWorkingDraft = state.workingDrafts.some((draft) => draft.status === "queued" && !workingDrafts.some((keptDraft) => keptDraft.id === draft.id));
   const hasQueuedWorkingDraft = workingDrafts.some((draft) => draft.status === "queued");
-  const hasQueuedTopLevelSourceCopy = Boolean(sourceWorkingCopy && state.status === "queued");
-  const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft || removedOrphanedDraftWorkflowActivity) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
+  const hasQueuedTopLevelSourceCopy = Boolean(sourceWorkingCopy && state.status === "queued" && state.queuedAt);
+  const demotedQueuedLocalWork = demotedWorkingDraftQueueState || demotedTopLevelQueueState;
+  const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft || removedOrphanedDraftWorkflowActivity || demotedQueuedLocalWork) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
   const resetAcknowledgedSourceBaseline =
     removedFixtureAcknowledgedSourceBaseline ||
     removedForeignAcknowledgedSourceBaseline ||
@@ -1349,6 +1359,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
       !activityLooksTiedToRemovedLocalWork(item, [...removedLocalWorkReferences, ...topLevelDraftResetReferences]) &&
       !(removedTopLevelDraftWorkflowActivity && activityLooksLikeTopLevelDraftWorkflow(item)) &&
       !(removedOrphanedDraftWorkflowActivity && activityLooksLikeDraftWorkflow(item)) &&
+      !(demotedQueuedLocalWork && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy && activityLooksLikeQueueWorkflow(item)) &&
       !(removedMismatchedLocalWork && activityLooksLikeLocalActionWorkflow(item)),
   );
   const removedFixtureActivity = activity.length !== state.activity.length;
@@ -1366,6 +1377,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     !removedUnprovenancedTopLevelReviewState &&
     !removedResetTopLevelWorkflowState &&
     !removedDuplicatedTopLevelSourceCopy &&
+    !demotedQueuedLocalWork &&
     !removedOrphanedDraftWorkflowActivity &&
     !resetAcknowledgedSourceBaseline &&
     !resetSourceRecheckBaseline &&
@@ -1400,15 +1412,15 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
               : "This browser-local draft was reset because it still contained fixture campaign copy or fixture-bound provenance. Use this real campaign's source material before review or local queueing."
       : state.body,
     reviewerNote: resetTopLevelDraft ? "" : state.reviewerNote,
-    status: resetTopLevelDraft ? "draft" : state.status,
-    queuedAt: resetTopLevelDraft ? null : state.queuedAt,
+    status: resetTopLevelDraft ? "draft" : demotedTopLevelQueueState ? "approved" : state.status,
+    queuedAt: resetTopLevelDraft || demotedTopLevelQueueState ? null : state.queuedAt,
     scheduleIntent: resetScheduleIntent ? initialState.scheduleIntent : state.scheduleIntent,
     localActions,
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
     activity:
-      removedMismatchedLocalWork || resetTopLevelDraft || removedOrphanedDraftWorkflowActivity || resetAcknowledgedSourceBaseline || resetSourceRecheckBaseline || removedFixtureActivity
+      removedMismatchedLocalWork || resetTopLevelDraft || demotedQueuedLocalWork || removedOrphanedDraftWorkflowActivity || resetAcknowledgedSourceBaseline || resetSourceRecheckBaseline || removedFixtureActivity
         ? withWorkspaceSanitizedActivity(activity)
         : state.activity,
   };
