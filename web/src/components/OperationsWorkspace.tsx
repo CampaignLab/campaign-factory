@@ -898,6 +898,13 @@ function normaliseLocalActions(actions: unknown): LocalAction[] {
     });
 }
 
+function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingCopy>) {
+  return ["channel", "sourceDocumentKey", "createdAt", "provenance"].some((field) => {
+    const value = copy[field as keyof SourceWorkingCopy];
+    return value !== undefined && typeof value !== "string";
+  }) || (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
+}
+
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
   if (!value || typeof value !== "object") return null;
   const copy = value as Partial<SourceWorkingCopy>;
@@ -909,7 +916,8 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
     typeof copy.sourceDocument !== "string" ||
     !copy.sourceDocument ||
     typeof copy.campaignId !== "string" ||
-    !copy.campaignId
+    !copy.campaignId ||
+    sourceWorkingCopyHasMalformedOptionalField(copy)
   ) {
     return null;
   }
@@ -921,7 +929,7 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
     sourceDocument: copy.sourceDocument,
     sourceDocumentKey: typeof copy.sourceDocumentKey === "string" && copy.sourceDocumentKey ? copy.sourceDocumentKey : "source_document",
     createdAt: typeof copy.createdAt === "string" && copy.createdAt ? copy.createdAt : new Date().toISOString(),
-    warnings: Array.isArray(copy.warnings) ? copy.warnings.filter((warning): warning is string => typeof warning === "string") : [],
+    warnings: Array.isArray(copy.warnings) ? copy.warnings : [],
     provenance: typeof copy.provenance === "string" && copy.provenance ? copy.provenance : "Copied from a read-only Campaign Factory source document into this browser-local workspace.",
   };
 }
