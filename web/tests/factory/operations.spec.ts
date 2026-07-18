@@ -18241,6 +18241,83 @@ test("operations portfolio sanitizes malformed browser-local state before local 
   expect(storedState).not.toContain("portfolio-malformed-action");
 });
 
+test("operations workbench rejects primary source-check actions with non-primary restored titles", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: barnetId, status: "completed", stateVersion: 81, lastSequence: 2310, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([{ id: "primary-check-title-drift", description: "Check Barnet decision records", reason: "Primary source-check title scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local primary source-check action should be sanitized before source provenance is trusted.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:primary-source-check`,
+            title: "Check: Shadow planning route",
+            source: "Campaign source · Evidence & checks",
+            owner: "Reviewer",
+            timing: "Before phase change or stronger public claims",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; derived from next check primary-check-title-drift; stored only in this browser.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "primary-check-title-drift", label: "Created action: Check: Shadow planning route." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.getByText("No local actions yet. Create the primary source-check action to turn the campaign boundary into owned work.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Check: Shadow planning route");
+  await expect(page.locator("main")).not.toContainText("primary-check-title-drift");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).not.toContain("Check: Shadow planning route");
+  expect(storedState).not.toContain("primary-check-title-drift");
+});
+
 test("operations workbench rejects source actions whose id kind disagrees with stored provenance", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

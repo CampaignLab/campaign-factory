@@ -1219,14 +1219,24 @@ function localActionNextCheckMatchesStoredSourceId(actionId: string, title: stri
   );
 }
 
+function localActionPrimarySourceCheckMatchesStoredSourceId(title: string, source: string, provenance: string) {
+  return Boolean(
+    source.includes("evidence & checks") &&
+      provenance.includes("derived from next check") &&
+      /^(confirm|verify)\b/.test(title) &&
+      !title.startsWith("check:") &&
+      !source.includes("tactics and timeline") &&
+      !provenance.includes("tactic target"),
+  );
+}
+
 function localActionSourceMatchesStoredSourceId(action: LocalAction) {
   const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
   const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
   const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
-  const describesNextCheck = source.includes("evidence & checks") && provenance.includes("next check");
 
   if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id)) {
-    return describesNextCheck;
+    return localActionPrimarySourceCheckMatchesStoredSourceId(title, source, provenance);
   }
   if (/^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) return localActionNextCheckMatchesStoredSourceId(action.id, title, source, provenance);
   if (/^source:[0-9a-f-]{36}:incomplete:/i.test(action.id)) {
