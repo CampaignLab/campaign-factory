@@ -1113,7 +1113,7 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
     .filter((draft): draft is WorkingDraft => Boolean(draft));
 
   const legacyCopy = normaliseSourceWorkingCopy(legacyState.sourceWorkingCopy);
-  if (legacyCopy && !normalised.some((draft) => draft.id === legacyCopy.id)) {
+  if (legacyCopy && !normalised.some((draft) => stableLowercase(draft.id) === stableLowercase(legacyCopy.id))) {
     const parsedQueuedAt = normaliseStoredTimestamp(legacyState.queuedAt);
     const status = normaliseQueuedStatus(legacyState.status, parsedQueuedAt);
     normalised.unshift({
@@ -1372,7 +1372,11 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === state.activeWorkingDraftId)
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
-  const removedDuplicatedTopLevelSourceCopy = Boolean(sourceWorkingCopyCandidate && workingDrafts.some((draft) => draft.id === sourceWorkingCopyCandidate.id));
+  const removedDuplicatedTopLevelSourceCopy = Boolean(
+    sourceWorkingCopyCandidate &&
+      (workingDrafts.some((draft) => stableLowercase(draft.id) === stableLowercase(sourceWorkingCopyCandidate.id)) ||
+        state.workingDrafts.some((draft) => stableLowercase(draft.id) === stableLowercase(sourceWorkingCopyCandidate.id))),
+  );
   const sourceWorkingCopy = removedDuplicatedTopLevelSourceCopy ? null : sourceWorkingCopyCandidate;
   const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;
   const removedFixtureSourceWorkingCopy = Boolean(state.sourceWorkingCopy && sourceWorkingCopyLooksFixtureBound(state.sourceWorkingCopy));
