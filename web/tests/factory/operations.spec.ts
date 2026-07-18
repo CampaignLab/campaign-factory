@@ -14703,6 +14703,22 @@ test("operations workbench: source updates preserve browser-local work and requi
   await page.getByRole("button", { name: /Reviews & approvals/ }).first().click();
   await page.getByRole("button", { name: "Mark ready for review" }).click();
   await expect(page.getByRole("button", { name: "Approve as human reviewer" })).toBeEnabled();
+  await page.getByRole("button", { name: /Outbox & schedule/ }).first().click();
+  const [reviewJsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  const reviewJsonPath = await reviewJsonDownload.path();
+  expect(reviewJsonPath).toBeTruthy();
+  const reviewPack = JSON.parse(await readFile(reviewJsonPath!, "utf8")) as { drafts: Array<{ title: string; status: string; source: string }>; outbox: { queuedCount: number } };
+  expect(reviewPack.outbox.queuedCount).toBe(0);
+  expect(reviewPack.drafts).toContainEqual(
+    expect.objectContaining({
+      title: "Supporter email",
+      status: "review",
+      source: "Browser-local source workspace draft",
+    }),
+  );
 
   sourceVersion = 45;
   lastSequence = 1918;

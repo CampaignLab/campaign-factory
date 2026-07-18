@@ -3838,8 +3838,9 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
     : "Reset clears only the explicit demo fixture state stored in this browser; it does not affect any real campaign source.";
 
   const buildOperationsPack = () => {
-    const queuedDrafts = [
-      ...(hasRecordedLocalQueue(state.status, state.queuedAt)
+    const includeTopLevelDraft = state.status !== "draft" || Boolean(state.sourceWorkingCopy);
+    const localDrafts = [
+      ...(includeTopLevelDraft
         ? [
             {
               id: "seeded-supporter-email",
@@ -3967,7 +3968,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
           }
         : null,
       actions: state.localActions.map((action) => ({ ...action, statusLabel: localActionStatusCopy[action.status] })),
-      drafts: queuedDrafts,
+      drafts: localDrafts,
       outbox: {
         queuedCount: queuedItemCount,
         scheduleIntent: scheduleCopy[state.scheduleIntent],
