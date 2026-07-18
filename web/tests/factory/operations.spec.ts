@@ -3528,7 +3528,8 @@ test("operations source API: normalizes recoverable legacy source references bef
   legacyClaim.type = " Stakeholder&nbsp;position ";
   legacyClaim.confidence = " Medium ";
   legacyClaim.loadBearing = " true ";
-  legacyClaim.sourceCount = " 1 ";
+  delete legacyClaim.sourceCount;
+  (legacyClaim as { sourceIds?: unknown }).sourceIds = [" source-1 ", "source-1", "", null];
   legacyClaim.excerpt = null;
   legacyClaim.affectedOutputs = [
     "Campaign&nbsp;Brief document",

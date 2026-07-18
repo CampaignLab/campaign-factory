@@ -784,6 +784,14 @@ function normalizeSourceDocumentResourceCount(value: unknown) {
   return normalizeSourceNonNegativeInteger(value);
 }
 
+function normalizeSourceClaimSourceCount(record: Record<string, unknown>) {
+  const sourceCount = normalizeSourceNonNegativeInteger(record.sourceCount);
+  if (typeof sourceCount === "number") return sourceCount;
+  if (!Array.isArray(record.sourceIds)) return sourceCount;
+  const sourceIds = uniqueSourceReferenceIds(record.sourceIds);
+  return Array.isArray(sourceIds) ? sourceIds.length : sourceCount;
+}
+
 function normalizeSourceDocumentStatus(value: unknown) {
   const normalized = normalizeSourceStatusText(value);
   return normalized ? (SOURCE_DOCUMENT_STATUS_BY_VISIBLE_TEXT.get(normalized) ?? value) : value;
@@ -903,7 +911,7 @@ function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fal
   const type = normalizeSourceClaimType(record.type);
   const confidence = normalizeSourceClaimConfidence(record.confidence);
   const loadBearing = normalizeSourceBoolean(record.loadBearing);
-  const sourceCount = normalizeSourceNonNegativeInteger(record.sourceCount);
+  const sourceCount = normalizeSourceClaimSourceCount(record);
   return {
     ...record,
     ...(id ? { id } : {}),
