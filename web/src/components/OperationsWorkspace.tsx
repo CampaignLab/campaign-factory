@@ -3742,12 +3742,16 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
             totals: source.evidence.totals,
             nextChecks: source.evidence.nextChecks.slice(0, 8).map((check) => ({ id: check.id, description: check.description, reason: check.reason, affectedSections: check.affectedSections })),
             conflicts: source.evidence.conflicts.slice(0, 8).map((claim) => ({ id: claim.id, text: claim.text, label: claim.label, contradictsClaimIds: claim.contradictsClaimIds ?? [] })),
+            terminalGaps: source.evidence.terminalGaps.slice(0, 8).map((gap) => ({ id: gap.id, description: gap.description, agentRunId: gap.agentRunId ?? null, step: gap.step ?? null, at: gap.at })),
+            draftNotes: source.evidence.draftNotes.slice(0, 8).map((note) => ({ section: note.section, text: note.text })),
             incompleteDocuments: source.incompleteDocuments.map((doc) => ({ key: doc.key, name: doc.name, status: doc.status, resourceCount: doc.resourceCount })),
           }
         : {
             totals: { unresolvedLoadBearing: 2 },
             nextChecks: ["Verify council order status", "Keep media escalation blocked until checked"],
             conflicts: [],
+            terminalGaps: [],
+            draftNotes: [],
             incompleteDocuments: [],
           },
       sourceDocuments: source
@@ -3847,6 +3851,12 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         ...(pack.evidence.conflicts.length
           ? pack.evidence.conflicts.map((claim) => `- Source conflict: ${claim.text}${claim.contradictsClaimIds.length ? ` (contradicts ${claim.contradictsClaimIds.join(", ")})` : ""}`)
           : ["- Source conflicts: none exposed by typed source"]),
+        ...(pack.evidence.terminalGaps.length
+          ? pack.evidence.terminalGaps.map((gap) => `- Terminal source gap: ${gap.description}${gap.step ? ` (journey step ${gap.step})` : ""}${gap.agentRunId ? ` · run ${gap.agentRunId}` : ""}`)
+          : ["- Terminal source gaps: none exposed by typed source"]),
+        ...(pack.evidence.draftNotes.length
+          ? pack.evidence.draftNotes.map((note) => `- Draft verification note: ${note.section} — ${note.text}`)
+          : ["- Draft verification notes: none exposed by typed source"]),
         ...pack.evidence.incompleteDocuments.map((doc) => `- Incomplete source document: ${doc.name} (${doc.status}, ${doc.resourceCount} resources)`),
         "",
         "## Source documents",

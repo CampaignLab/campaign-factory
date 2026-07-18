@@ -14579,10 +14579,23 @@ test("operations workbench: all real campaign routes export source-specific loca
           organising_plan: `ORGANISING PLAN\n\nResidents and campaign supporters for ${campaign.place} are source audience clues only.`,
           digital_pack: `DIGITAL CAMPAIGN PACK\n\nSupporter email — ${campaign.title}\n\nSubject: Source update for ${campaign.place}\n\nUse verified source boundaries before outreach.`,
         }),
-        evidence: campaignEvidence(
-          [{ id: "next", description: campaign.next, reason: "Export should carry source-specific evidence gates", affectedSections: ["evidence"] }],
-          campaign.unresolved,
-        ),
+        evidence: (() => {
+          const evidence = campaignEvidence(
+            [{ id: "next", description: campaign.next, reason: "Export should carry source-specific evidence gates", affectedSections: ["evidence"] }],
+            campaign.unresolved,
+          );
+          evidence.terminalGaps = [
+            {
+              id: `terminal-gap-${id}`,
+              description: `Export should carry the source terminal gap for ${campaign.title}`,
+              agentRunId: `agent-${id.slice(0, 8)}`,
+              step: 6,
+              at: "2026-07-18T05:40:00Z",
+            },
+          ];
+          evidence.draftNotes = [{ section: "Digital Campaign Pack", text: `Verify draft boundaries for ${campaign.place} before outreach.` }];
+          return evidence;
+        })(),
       }),
     });
   });
@@ -14603,7 +14616,12 @@ test("operations workbench: all real campaign routes export source-specific loca
     const pack = JSON.parse(await readFile(jsonPath!, "utf8")) as {
       campaign: { id: string; title: string; place: string; sourceOrigin: string; runStatus: string };
       boundary: { sourceWriteBack: string; contactImport: string; providerSending: string; responsesOrResults: string };
-      evidence: { totals: { unresolvedLoadBearing: number }; nextChecks: Array<{ description: string }> };
+      evidence: {
+        totals: { unresolvedLoadBearing: number };
+        nextChecks: Array<{ description: string }>;
+        terminalGaps: Array<{ id: string; description: string; agentRunId: string | null; step: number | null; at: string }>;
+        draftNotes: Array<{ section: string; text: string }>;
+      };
       sourceResources: Array<{ title: string; channel: string; sourceDocumentKey: string; subject: string; preview: string; warnings: string[] }>;
     };
 
@@ -14620,6 +14638,13 @@ test("operations workbench: all real campaign routes export source-specific loca
     expect(pack.boundary.responsesOrResults).toContain("no delivery or outcome is claimed");
     expect(pack.evidence.totals.unresolvedLoadBearing).toBe(campaign.unresolved);
     expect(pack.evidence.nextChecks[0].description).toBe(campaign.next);
+    expect(pack.evidence.terminalGaps[0]).toMatchObject({
+      id: `terminal-gap-${id}`,
+      description: `Export should carry the source terminal gap for ${campaign.title}`,
+      agentRunId: `agent-${id.slice(0, 8)}`,
+      step: 6,
+    });
+    expect(pack.evidence.draftNotes[0]).toMatchObject({ section: "Digital Campaign Pack", text: `Verify draft boundaries for ${campaign.place} before outreach.` });
     expect(pack.sourceResources[0]).toMatchObject({
       title: `Supporter email — ${campaign.title}`,
       channel: "Supporter email",
@@ -14629,6 +14654,18 @@ test("operations workbench: all real campaign routes export source-specific loca
     expect(pack.sourceResources[0].preview).toContain("Use verified source boundaries before outreach");
     expect(JSON.stringify(pack)).not.toContain("St John the Baptist");
     expect(JSON.stringify(pack)).not.toContain("demo-fixture");
+
+    if (id === "69f257b6-9913-4395-94f7-5c25b4b5fe95") {
+      const [markdownDownload] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: "Download Markdown" }).click(),
+      ]);
+      const markdownPath = await markdownDownload.path();
+      expect(markdownPath).toBeTruthy();
+      const markdown = await readFile(markdownPath!, "utf8");
+      expect(markdown).toContain("Terminal source gap: Export should carry the source terminal gap for Keep KFC Out of Ormskirk (journey step 6) · run agent-69f257b6");
+      expect(markdown).toContain("Draft verification note: Digital Campaign Pack — Verify draft boundaries for Ormskirk, Lancashire before outreach.");
+    }
   }
 });
 
