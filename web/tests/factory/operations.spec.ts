@@ -19202,6 +19202,7 @@ test("operations workbench rejects non-required source re-check visited views fr
   const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
   expect(storedState.localActions).toHaveLength(1);
   expect(storedState.sourceRecheckVisitedViews).toEqual(["evidence", "strategy", "drafts"]);
+  expect(storedState.activity[0].id).toBe("workspace-sanitized");
   expect(JSON.stringify(storedState)).not.toContain("actions");
   expect(JSON.stringify(storedState)).not.toContain("contacts");
 });

@@ -1378,6 +1378,10 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   const body = typeof parsed.body === "string" ? parsed.body.trim() : "";
   const visibleSubject = subject && storedTextHasVisibleText(subject) ? subject : "";
   const visibleBody = body && storedTextHasVisibleText(body) ? body : "";
+  const parsedSourceRecheckVisitedViews = Array.isArray(parsed.sourceRecheckVisitedViews) ? parsed.sourceRecheckVisitedViews : [];
+  const sourceRecheckVisitedViews = Array.from(new Set(parsedSourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId))));
+  const removedInvalidSourceRecheckVisitedView = parsedSourceRecheckVisitedViews.some((view) => !SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
+  const normalizedActivity = staleQueueTimestamp || topLevelQueuePrecedesSourceCopy ? normaliseActivity(parsed.activity).filter((item) => !activityLooksLikeQueueWorkflow(item)) : normaliseActivity(parsed.activity);
   return {
     ...initialState,
     ...parsed,
@@ -1396,9 +1400,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     sourceRecheckStateVersion: normaliseOptionalSourceSequence(parsed.sourceRecheckStateVersion),
     sourceRecheckLastSequence: normaliseOptionalSourceSequence(parsed.sourceRecheckLastSequence),
     sourceRecheckDocumentSignature: typeof parsed.sourceRecheckDocumentSignature === "string" ? parsed.sourceRecheckDocumentSignature : null,
-    sourceRecheckVisitedViews: Array.isArray(parsed.sourceRecheckVisitedViews)
-      ? Array.from(new Set(parsed.sourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId))))
-      : [],
+    sourceRecheckVisitedViews,
     reviewerNote: typeof parsed.reviewerNote === "string" && storedTextHasVisibleText(parsed.reviewerNote) ? parsed.reviewerNote.trim() : "",
     activeView: viewIds.includes(parsed.activeView as ViewId) ? (parsed.activeView as ViewId) : "overview",
     contactFilter: parsed.contactFilter === "all" || isSegmentId(parsed.contactFilter) ? parsed.contactFilter : initialState.contactFilter,
@@ -1417,7 +1419,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
-    activity: staleQueueTimestamp || topLevelQueuePrecedesSourceCopy ? normaliseActivity(parsed.activity).filter((item) => !activityLooksLikeQueueWorkflow(item)) : normaliseActivity(parsed.activity),
+    activity: removedInvalidSourceRecheckVisitedView ? withWorkspaceSanitizedActivity(normalizedActivity) : normalizedActivity,
     mode: parsed.mode === "preview" ? "preview" : "compose",
   };
 }
