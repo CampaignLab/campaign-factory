@@ -216,6 +216,10 @@ function hasRenderedText(value: unknown): value is string {
   return isNonEmptyString(value) && visibleRenderedText(value).length > 0;
 }
 
+function isOptionalRenderedText(value: unknown): value is string | undefined {
+  return value === undefined || hasRenderedText(value);
+}
+
 function hasCompiledDocumentDisclaimer(value: Pick<CompiledDocument, "html" | "plainText">) {
   return sourceTextIncludes(value.plainText, DOCUMENT_DISCLAIMER) && sourceTextIncludes(visibleRenderedText(value.html), DOCUMENT_DISCLAIMER);
 }
@@ -519,7 +523,7 @@ function isOperationsEvidenceClaimView(value: unknown) {
   if (!isRecord(value)) return false;
   return (
     isNonEmptyString(value.id) &&
-    isNonEmptyString(value.text) &&
+    hasRenderedText(value.text) &&
     typeof value.type === "string" &&
     OPERATIONS_CLAIM_TYPES.has(value.type) &&
     typeof value.label === "string" &&
@@ -527,7 +531,7 @@ function isOperationsEvidenceClaimView(value: unknown) {
     typeof value.loadBearing === "boolean" &&
     typeof value.confidence === "string" &&
     OPERATIONS_CLAIM_CONFIDENCES.has(value.confidence) &&
-    isOptionalString(value.excerpt) &&
+    isOptionalRenderedText(value.excerpt) &&
     isNonNegativeInteger(value.sourceCount) &&
     isOperationsAffectedOutputArray(value.affectedOutputs) &&
     isOptionalUniqueNonEmptyStringArray(value.contradictsClaimIds)
@@ -587,8 +591,8 @@ function isOperationsNextCheck(value: unknown) {
   return (
     isRecord(value) &&
     isNonEmptyString(value.id) &&
-    isNonEmptyString(value.description) &&
-    isNonEmptyString(value.reason) &&
+    hasRenderedText(value.description) &&
+    hasRenderedText(value.reason) &&
     isOptionalUniqueNonEmptyStringArray(claimIds) &&
     isOperationsAffectedSectionArray(value.affectedSections)
   );
@@ -599,7 +603,7 @@ function isOperationsTerminalGap(value: unknown) {
   return (
     isRecord(value) &&
     isNonEmptyString(value.id) &&
-    isNonEmptyString(value.description) &&
+    hasRenderedText(value.description) &&
     isOptionalString(value.agentRunId) &&
     isOptionalJourneyStep(value.step) &&
     isIsoDateTimeString(at) &&
@@ -608,7 +612,7 @@ function isOperationsTerminalGap(value: unknown) {
 }
 
 function isOperationsDraftNote(value: unknown) {
-  return isRecord(value) && isNonEmptyString(value.text) && isNonEmptyString(value.section);
+  return isRecord(value) && hasRenderedText(value.text) && hasRenderedText(value.section);
 }
 
 function sameSourceReferenceArray(left: string[] | undefined, right: string[] | undefined) {
