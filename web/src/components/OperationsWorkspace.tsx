@@ -2047,8 +2047,37 @@ function sourceDocumentSignature(source: CampaignSource) {
     .sort()
     .join("|");
   const evidenceTotals = source.evidence.totals;
-  const nextChecks = source.evidence.nextChecks.map((check) => `${check.id}:${check.description}`).join("|");
-  return `source:${source.campaignId}:${sourceIdentity}::${documentStatuses}::${evidenceTotals.claims}/${evidenceTotals.loadBearing}/${evidenceTotals.verifiedLoadBearing}/${evidenceTotals.unresolvedLoadBearing}::${nextChecks}`;
+  const evidenceSignature = sourceSignatureHash(
+    sourceSignatureText(
+      JSON.stringify({
+        groups: source.evidence.groups.map((group) => ({
+          label: group.label,
+          claims: group.claims.map((claim) => ({
+            id: claim.id,
+            text: claim.text,
+            type: claim.type,
+            label: claim.label,
+            loadBearing: claim.loadBearing,
+            confidence: claim.confidence,
+            excerpt: claim.excerpt ?? null,
+            sourceCount: claim.sourceCount,
+            affectedOutputs: claim.affectedOutputs,
+            contradictsClaimIds: claim.contradictsClaimIds ?? [],
+          })),
+        })),
+        nextChecks: source.evidence.nextChecks.map((check) => ({
+          id: check.id,
+          description: check.description,
+          reason: check.reason,
+          claimIds: check.claimIds ?? [],
+          affectedSections: check.affectedSections,
+        })),
+        terminalGaps: source.evidence.terminalGaps.map((gap) => ({ id: gap.id, description: gap.description, agentRunId: gap.agentRunId ?? null, step: gap.step ?? null, at: gap.at })),
+        draftNotes: source.evidence.draftNotes.map((note) => ({ section: note.section, text: note.text })),
+      }),
+    ),
+  );
+  return `source:${source.campaignId}:${sourceIdentity}::${documentStatuses}::${evidenceTotals.claims}/${evidenceTotals.loadBearing}/${evidenceTotals.verifiedLoadBearing}/${evidenceTotals.unresolvedLoadBearing}::${evidenceSignature}`;
 }
 
 function buildInitialStateForSource(source: CampaignSource): DemoState {
