@@ -1397,7 +1397,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     sourceRecheckLastSequence: normaliseOptionalSourceSequence(parsed.sourceRecheckLastSequence),
     sourceRecheckDocumentSignature: typeof parsed.sourceRecheckDocumentSignature === "string" ? parsed.sourceRecheckDocumentSignature : null,
     sourceRecheckVisitedViews: Array.isArray(parsed.sourceRecheckVisitedViews)
-      ? Array.from(new Set(parsed.sourceRecheckVisitedViews.filter((view): view is ViewId => viewIds.includes(view as ViewId))))
+      ? Array.from(new Set(parsed.sourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId))))
       : [],
     reviewerNote: typeof parsed.reviewerNote === "string" && storedTextHasVisibleText(parsed.reviewerNote) ? parsed.reviewerNote.trim() : "",
     activeView: viewIds.includes(parsed.activeView as ViewId) ? (parsed.activeView as ViewId) : "overview",

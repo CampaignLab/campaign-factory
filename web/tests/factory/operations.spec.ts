@@ -19134,6 +19134,78 @@ test("operations workbench rejects padded source acknowledgement signatures befo
   expect(JSON.stringify(storedState)).not.toContain("previous-read-only-baseline ");
 });
 
+test("operations workbench rejects non-required source re-check visited views from browser-local state", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 72, lastSequence: 2220, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning records" }),
+        evidence: campaignEvidence([{ id: "non-required-recheck-views", description: "Check Barnet planning records", reason: "Re-check visited view scope guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 71,
+        sourceLastSequence: 2210,
+        sourceDocumentSignature: `source:${id}:previous-read-only-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local workspace has valid local action work and stale non-required source re-check view markers.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:next-check:non-required-recheck-views`,
+            title: "Check Barnet planning records",
+            source: "Campaign source · Evidence & checks",
+            owner: "Campaigner",
+            timing: "Next",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${id}; derived from next check non-required-recheck-views; stored only in this browser.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: 72,
+        sourceRecheckLastSequence: 2220,
+        sourceRecheckDocumentSignature: `source:${id}:current-read-only-baseline`,
+        sourceRecheckVisitedViews: ["evidence", "actions", "contacts", "strategy", "drafts"],
+        activity: [{ id: "non-required-recheck-view-action", label: "Created action: Check Barnet planning records" }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=overview`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("1 local item needs source re-check");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.localActions).toHaveLength(1);
+  expect(storedState.sourceRecheckVisitedViews).toEqual(["evidence", "strategy", "drafts"]);
+  expect(JSON.stringify(storedState)).not.toContain("actions");
+  expect(JSON.stringify(storedState)).not.toContain("contacts");
+});
+
 test("operations workbench: source updates without local work refresh the baseline without a re-check lock", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
