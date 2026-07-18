@@ -19943,7 +19943,7 @@ test("operations workbench: content-only source title changes preserve local wor
   await expect(page.getByRole("button", { name: "Mark ready for review" })).toBeEnabled();
 });
 
-test("operations workbench trims blank browser-local activity before export", async ({ page }) => {
+test("operations workbench rejects padded browser-local activity before export", async ({ page }) => {
   const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
 
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
@@ -19992,7 +19992,9 @@ test("operations workbench trims blank browser-local activity before export", as
         activity: [
           { id: "   ", label: "Whitespace-only activity id must not survive." },
           { id: "blank-label", label: "   " },
-          { id: "  trimmed-activity  ", label: "  Reviewed Barnet local workspace boundary.  " },
+          { id: "  padded-activity-id  ", label: "Reviewed Barnet local workspace boundary should not survive padding." },
+          { id: "padded-activity-label", label: "  Reviewed Barnet local workspace boundary should not survive label padding.  " },
+          { id: "barnet-visible-activity", label: "Reviewed Barnet local workspace boundary." },
         ],
       }),
     );
@@ -20011,13 +20013,17 @@ test("operations workbench trims blank browser-local activity before export", as
   expect(pack.activity).toContain("Browser-local state was sanitized for this real campaign workspace; public source data was not changed.");
   expect(pack.activity).toContain("Reviewed Barnet local workspace boundary.");
   expect(pack.activity).not.toContain("Whitespace-only activity id must not survive.");
+  expect(pack.activity).not.toContain("Reviewed Barnet local workspace boundary should not survive padding.");
+  expect(pack.activity).not.toContain("Reviewed Barnet local workspace boundary should not survive label padding.");
   expect(pack.activity).not.toContain("   ");
 
   const stored = await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId);
-  expect(stored).toContain('"id":"trimmed-activity"');
+  expect(stored).toContain('"id":"barnet-visible-activity"');
   expect(stored).toContain('"label":"Reviewed Barnet local workspace boundary."');
   expect(stored).not.toContain("Whitespace-only activity id must not survive");
   expect(stored).not.toContain("blank-label");
+  expect(stored).not.toContain("padded-activity-id");
+  expect(stored).not.toContain("padded-activity-label");
 });
 
 test("operations workbench rejects invisible and padded source-scoped browser-local activity before export", async ({ page }) => {

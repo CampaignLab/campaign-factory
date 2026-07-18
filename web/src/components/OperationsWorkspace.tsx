@@ -905,7 +905,15 @@ function normaliseActivity(activity: unknown): Activity[] {
     const rawLabel = candidate.label;
     const id = typeof rawId === "string" ? rawId.trim() : "";
     const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
-    if (!id || !label || !storedTextHasVisibleText(id) || !storedTextHasVisibleText(label) || storedSourceScopedIdIsMalformed(rawId)) continue;
+    if (
+      !id ||
+      !label ||
+      !storedTextHasVisibleText(id) ||
+      !storedTextHasVisibleText(label) ||
+      storedSourceMetadataTextIsMalformed(rawId) ||
+      storedSourceMetadataTextIsMalformed(rawLabel) ||
+      storedSourceScopedIdIsMalformed(rawId)
+    ) continue;
     const idKey = id.toLowerCase();
     if (seenIds.has(idKey)) continue;
     seenIds.add(idKey);
