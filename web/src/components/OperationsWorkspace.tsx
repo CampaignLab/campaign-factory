@@ -987,8 +987,16 @@ function sourceWorkingCopyIdDocumentKeyMatchesSourceKey(copyId: string, sourceDo
   return false;
 }
 
+function sourceWorkingCopyIdTitleMatchesSourceTitle(copyId: string, title: string) {
+  const sourceTitleMatch = copyId.match(/^source:[0-9a-f-]{36}:resource:[^:]+:(.+)$/i);
+  const directTitleMatch = copyId.match(/^[0-9a-f-]{36}:[^:]+:(.+)$/i);
+  const storedTitle = sourceTitleMatch?.[1] ?? directTitleMatch?.[1] ?? "";
+  return Boolean(storedTitle && normaliseOperationsSourceInlineText(storedTitle) === normaliseOperationsSourceInlineText(title));
+}
+
 function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingCopy>) {
   const createdAt = copy.createdAt;
+  const title = typeof copy.title === "string" ? copy.title.trim() : "";
   const sourceDocument = typeof copy.sourceDocument === "string" ? copy.sourceDocument.trim() : "";
   const sourceDocumentKey = typeof copy.sourceDocumentKey === "string" ? copy.sourceDocumentKey.trim() : "";
   return ["channel", "sourceDocumentKey", "provenance"].some((field) => {
@@ -1004,6 +1012,7 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
     !storedTextHasVisibleText(sourceDocument) ||
     !sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey, sourceDocument) ||
     (typeof copy.id === "string" && !sourceWorkingCopyIdDocumentKeyMatchesSourceKey(copy.id, sourceDocumentKey)) ||
+    (typeof copy.id === "string" && !sourceWorkingCopyIdTitleMatchesSourceTitle(copy.id, title)) ||
     typeof createdAt !== "string" ||
     !isValidStoredTimestamp(createdAt) ||
     (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string" || storedTextIsInvisible(warning))));
@@ -3892,16 +3901,19 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
 
   const queue = () => {
     if (!canQueueCommunication) return;
-    setState((current) => ({
-      ...current,
-      status: current.activeWorkingDraftId ? current.status : "queued",
-      activeView: "outbox",
-      queuedAt: current.activeWorkingDraftId ? current.queuedAt : new Date().toISOString(),
-      workingDrafts: current.activeWorkingDraftId
-        ? current.workingDrafts.map((draft) => (draft.id === current.activeWorkingDraftId ? { ...draft, status: "queued", queuedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : draft))
-        : current.workingDrafts,
-      activity: [record("Placed approved draft into the local demo queue. No provider connection used."), ...current.activity].slice(0, 7),
-    }));
+    setState((current) => {
+      const queuedAt = new Date().toISOString();
+      return {
+        ...current,
+        status: current.activeWorkingDraftId ? current.status : "queued",
+        activeView: "outbox",
+        queuedAt: current.activeWorkingDraftId ? current.queuedAt : queuedAt,
+        workingDrafts: current.activeWorkingDraftId
+          ? current.workingDrafts.map((draft) => (draft.id === current.activeWorkingDraftId ? { ...draft, status: "queued", queuedAt, updatedAt: queuedAt } : draft))
+          : current.workingDrafts,
+        activity: [record("Placed approved draft into the local demo queue. No provider connection used."), ...current.activity].slice(0, 7),
+      };
+    });
   };
 
   const createLocalAction = (action: LocalAction) => {
