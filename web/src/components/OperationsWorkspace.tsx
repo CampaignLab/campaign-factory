@@ -990,6 +990,12 @@ function textFieldsReferenceOnlyExpectedCampaign(values: string[], expectedWorks
   return values.every((value) => textReferencesOnlyExpectedCampaign(value, expectedWorkspaceKey));
 }
 
+function sourceBaselineSignatureMatchesWorkspace(value: string, expectedWorkspaceKey: string) {
+  const expectedKey = expectedWorkspaceKey.toLowerCase();
+  const match = value.match(/^source:([0-9a-f-]{36})(?::|$)/i);
+  return Boolean(match && match[1]?.toLowerCase() === expectedKey && textReferencesOnlyExpectedCampaign(value, expectedKey));
+}
+
 function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: string) {
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
   const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
@@ -1362,6 +1368,12 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedFixtureSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature));
   const removedForeignAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey));
   const removedForeignSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceRecheckDocumentSignature, expectedWorkspaceKey));
+  const removedMalformedAcknowledgedSourceBaseline = Boolean(
+    state.sourceDocumentSignature && !removedFixtureAcknowledgedSourceBaseline && !removedForeignAcknowledgedSourceBaseline && !sourceBaselineSignatureMatchesWorkspace(state.sourceDocumentSignature, expectedWorkspaceKey),
+  );
+  const removedMalformedSourceRecheckBaseline = Boolean(
+    state.sourceRecheckDocumentSignature && !removedFixtureSourceRecheckBaseline && !removedForeignSourceRecheckBaseline && !sourceBaselineSignatureMatchesWorkspace(state.sourceRecheckDocumentSignature, expectedWorkspaceKey),
+  );
   const removedIncompleteAcknowledgedSourceBaseline = Boolean(
     ((state.sourceStateVersion !== null || state.sourceLastSequence !== null || state.sourceAcknowledgedAt) && !state.sourceDocumentSignature) ||
       (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null)),
@@ -1389,10 +1401,11 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const resetAcknowledgedSourceBaseline =
     removedFixtureAcknowledgedSourceBaseline ||
     removedForeignAcknowledgedSourceBaseline ||
+    removedMalformedAcknowledgedSourceBaseline ||
     removedIncompleteAcknowledgedSourceBaseline ||
     (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
   const resetSourceRecheckBaseline =
-    resetAcknowledgedSourceBaseline || removedFixtureSourceRecheckBaseline || removedForeignSourceRecheckBaseline || removedIncompleteSourceRecheckBaseline;
+    resetAcknowledgedSourceBaseline || removedFixtureSourceRecheckBaseline || removedForeignSourceRecheckBaseline || removedMalformedSourceRecheckBaseline || removedIncompleteSourceRecheckBaseline;
   const unprovenancedActiveDraft = removedUnprovenancedTopLevelReviewState && !state.sourceWorkingCopy ? draftLibrary.find((draft) => draft.id === state.activeDraft) : null;
   const topLevelDraftResetReferences = resetTopLevelDraft
     ? [
