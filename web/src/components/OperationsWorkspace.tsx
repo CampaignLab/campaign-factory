@@ -16,6 +16,7 @@ import {
   isOperationsCompiledDocumentList,
   isOperationsEvidenceAndNextChecks,
   isOperationsRunReadModel,
+  normaliseOperationsSourceInlineText,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -913,10 +914,18 @@ function withWorkspaceSanitizedActivity(activity: Activity[]) {
 const INVALID_LOCAL_ACTION_TITLE = "Local action unavailable";
 const INVALID_LOCAL_ACTION_SOURCE = "Malformed browser-local action";
 
+function storedTextHasVisibleText(value: string) {
+  return normaliseOperationsSourceInlineText(value).length > 0;
+}
+
+function storedTextIsInvisible(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 && !storedTextHasVisibleText(value);
+}
+
 function localActionHasMalformedField(action: Record<string, unknown>) {
   return ["id", "title", "source", "owner", "timing", "provenance", "priority", "status"].some((field) => {
     const value = action[field];
-    return value !== undefined && typeof value !== "string";
+    return (value !== undefined && typeof value !== "string") || storedTextIsInvisible(value);
   }) ||
     (action.priority !== undefined && action.priority !== "High" && action.priority !== "Medium" && action.priority !== "Low") ||
     (action.status !== undefined && action.status !== "next" && action.status !== "in_progress" && action.status !== "blocked" && action.status !== "done");
@@ -962,13 +971,18 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
   const sourceDocumentKey = typeof copy.sourceDocumentKey === "string" ? copy.sourceDocumentKey.trim() : "";
   return ["channel", "sourceDocumentKey", "provenance"].some((field) => {
     const value = copy[field as keyof SourceWorkingCopy];
-    return value !== undefined && typeof value !== "string";
+    return (value !== undefined && typeof value !== "string") || storedTextIsInvisible(value);
   }) ||
     !sourceDocumentKey ||
+    storedTextIsInvisible(copy.id) ||
+    storedTextIsInvisible(copy.title) ||
+    storedTextIsInvisible(copy.sourceDocument) ||
+    !storedTextHasVisibleText(sourceDocumentKey) ||
+    !storedTextHasVisibleText(sourceDocument) ||
     !sourceWorkingCopyDocumentKeyMatchesSourceDocument(sourceDocumentKey, sourceDocument) ||
     typeof createdAt !== "string" ||
     !isValidStoredTimestamp(createdAt) ||
-    (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
+    (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string" || storedTextIsInvisible(warning))));
 }
 
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
@@ -986,6 +1000,9 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
     !title ||
     !sourceDocument ||
     !campaignId ||
+    !storedTextHasVisibleText(id) ||
+    !storedTextHasVisibleText(title) ||
+    !storedTextHasVisibleText(sourceDocument) ||
     sourceWorkingCopyHasMalformedOptionalField(copy)
   ) {
     return null;
@@ -1115,7 +1132,7 @@ function normaliseStoredCampaignId(value: unknown) {
 function legacyTopLevelDraftHasMalformedField(state: Partial<DemoState>) {
   return ["subject", "body", "reviewerNote", "status"].some((field) => {
     const value = state[field as keyof DemoState];
-    return value !== undefined && typeof value !== "string";
+    return (value !== undefined && typeof value !== "string") || storedTextIsInvisible(value);
   }) || (state.queuedAt !== undefined && state.queuedAt !== null && typeof state.queuedAt !== "string");
 }
 
@@ -1131,7 +1148,7 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
       const subject = typeof draft.subject === "string" ? draft.subject.trim() : "";
       const body = typeof draft.body === "string" ? draft.body.trim() : "";
       const reviewerNote = typeof draft.reviewerNote === "string" ? draft.reviewerNote.trim() : "";
-      if (!sourceWorkingCopy || !id || !title) return null;
+      if (!sourceWorkingCopy || !id || !title || !storedTextHasVisibleText(id) || !storedTextHasVisibleText(title)) return null;
       const malformed = workingDraftHasMalformedField(draft);
       const createdAt = normaliseStoredTimestamp(draft.createdAt) ?? sourceWorkingCopy.createdAt;
       const parsedQueuedAt = malformed ? null : normaliseStoredTimestamp(draft.queuedAt);
@@ -1189,7 +1206,7 @@ function storedTimestampIsBefore(left: string, right: string) {
 function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
   return ["channel", "subject", "body", "reviewerNote", "status", "createdAt", "updatedAt"].some((field) => {
     const value = draft[field as keyof WorkingDraft];
-    return value !== undefined && typeof value !== "string";
+    return (value !== undefined && typeof value !== "string") || storedTextIsInvisible(value);
   }) ||
     typeof draft.createdAt !== "string" ||
     !isValidStoredTimestamp(draft.createdAt) ||
@@ -1222,12 +1239,14 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
       : null;
   const subject = typeof parsed.subject === "string" ? parsed.subject.trim() : "";
   const body = typeof parsed.body === "string" ? parsed.body.trim() : "";
+  const visibleSubject = subject && storedTextHasVisibleText(subject) ? subject : "";
+  const visibleBody = body && storedTextHasVisibleText(body) ? body : "";
   return {
     ...initialState,
     ...parsed,
     selectedSegment: isSegmentId(parsed.selectedSegment) ? parsed.selectedSegment : initialState.selectedSegment,
-    subject: subject || INVALID_LOCAL_DRAFT_SUBJECT,
-    body: body || INVALID_LOCAL_DRAFT_BODY,
+    subject: visibleSubject || INVALID_LOCAL_DRAFT_SUBJECT,
+    body: visibleBody || INVALID_LOCAL_DRAFT_BODY,
     status: restoredStatus,
     activeDraft: draftLibrary.some((draft) => draft.id === parsed.activeDraft)
       ? (parsed.activeDraft as DraftId)
@@ -1243,7 +1262,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     sourceRecheckVisitedViews: Array.isArray(parsed.sourceRecheckVisitedViews)
       ? Array.from(new Set(parsed.sourceRecheckVisitedViews.filter((view): view is ViewId => viewIds.includes(view as ViewId))))
       : [],
-    reviewerNote: typeof parsed.reviewerNote === "string" ? parsed.reviewerNote.trim() : "",
+    reviewerNote: typeof parsed.reviewerNote === "string" && storedTextHasVisibleText(parsed.reviewerNote) ? parsed.reviewerNote.trim() : "",
     activeView: viewIds.includes(parsed.activeView as ViewId) ? (parsed.activeView as ViewId) : "overview",
     contactFilter: parsed.contactFilter === "all" || isSegmentId(parsed.contactFilter) ? parsed.contactFilter : initialState.contactFilter,
     contactReadinessFilter: ["all", "ready", "review", "blocked"].includes(parsed.contactReadinessFilter || "")
