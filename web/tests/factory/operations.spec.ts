@@ -3472,6 +3472,11 @@ test("operations source API: normalizes recoverable legacy source references bef
   legacyNextCheck.affectedSections = ["documents", "Lobbying Pack document", "lobbying_pack", "Media Pack document", "Tactics & Timeline document", "evidence base"];
   evidence.nextChecks.push({ ...legacyNextCheck, description: "Duplicate legacy source check should be ignored." });
   evidence.nextChecks.push({ id: "legacy-null-optional", description: "Legacy source check drops null optional claim ids.", reason: "Older builds sometimes serialised missing optional arrays as null.", claimIds: null, affectedSections: ["Campaign Brief document"] });
+  evidence.draftNotes = [
+    null,
+    { text: "Confirm the council source before using this pack line.", section: "Digital Campaign Pack" },
+    { text: "Confirm the council source before using this pack line.", section: "Digital Campaign Pack" },
+  ] as typeof evidence.draftNotes;
   evidence.terminalGaps = [
     { id: "legacy-gap", description: "Stale duplicated terminal gap date is recoverable.", at: "2026-07-17" },
     { id: "legacy-gap", description: "Legacy terminal gap appears once.", at: "2026-07-17T10:00:00.000Z", agentRunId: null, step: 0 },
@@ -3500,7 +3505,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(response.status).toBe(200);
     expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
 
-    const body = (await response.json()) as { run?: { batchId?: unknown }; documents?: Array<{ flags?: string[] }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string }> }; sourceFailureKind?: string };
+    const body = (await response.json()) as { run?: { batchId?: unknown }; documents?: Array<{ flags?: string[] }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
     expect(body.run).not.toHaveProperty("batchId");
     expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1"]);
     expect(body.evidence?.groups).toHaveLength(1);
@@ -3518,6 +3523,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(body.evidence?.nextChecks?.[1]?.claimIds).toBeUndefined();
     expect(body.evidence?.nextChecks?.[1]?.affectedSections).toEqual(["campaign_brief"]);
     expect(body.evidence?.terminalGaps).toEqual([{ id: "legacy-gap", description: "Legacy terminal gap appears once.", at: "2026-07-17T10:00:00.000Z" }]);
+    expect(body.evidence?.draftNotes).toEqual([{ text: "Confirm the council source before using this pack line.", section: "Digital Campaign Pack" }]);
     expect(body.sourceFailureKind).toBeUndefined();
     expect(requestedUrls).toEqual([
       `https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`,

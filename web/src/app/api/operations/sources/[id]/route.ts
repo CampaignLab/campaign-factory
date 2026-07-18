@@ -627,6 +627,34 @@ function normalizeSourceEvidenceTotals(record: Record<string, unknown>, groups: 
   };
 }
 
+function normalizeSourceDraftNotes(value: unknown) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) return value;
+  const seen = new Set<string>();
+  const notes: unknown[] = [];
+  for (const note of value) {
+    if (note === undefined || note === null) continue;
+    if (typeof note !== "object") {
+      notes.push(note);
+      continue;
+    }
+    const record = note as Record<string, unknown>;
+    if (typeof record.text !== "string" || record.text.trim().length === 0 || typeof record.section !== "string" || record.section.trim().length === 0) {
+      notes.push(note);
+      continue;
+    }
+    const key = `${record.section}\u0000${record.text}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    notes.push(record);
+  }
+  return notes;
+}
+
+function normalizeSourceEvidenceArray(value: unknown) {
+  return value === undefined || value === null ? [] : value;
+}
+
 function normalizeSourceEvidence(value: unknown) {
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
@@ -693,7 +721,7 @@ function normalizeSourceEvidence(value: unknown) {
             affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
           }];
         })
-      : record.nextChecks,
+      : normalizeSourceEvidenceArray(record.nextChecks),
     terminalGaps: Array.isArray(record.terminalGaps)
       ? [
           ...terminalGapOrder
@@ -701,7 +729,8 @@ function normalizeSourceEvidence(value: unknown) {
             .filter((gap): gap is Record<string, unknown> => Boolean(gap)),
           ...passthroughTerminalGaps,
         ]
-      : record.terminalGaps,
+      : normalizeSourceEvidenceArray(record.terminalGaps),
+    draftNotes: normalizeSourceDraftNotes(record.draftNotes),
   };
 }
 
