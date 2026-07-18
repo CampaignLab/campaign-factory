@@ -1380,7 +1380,8 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   const visibleBody = body && storedTextHasVisibleText(body) ? body : "";
   const parsedSourceRecheckVisitedViews = Array.isArray(parsed.sourceRecheckVisitedViews) ? parsed.sourceRecheckVisitedViews : [];
   const sourceRecheckVisitedViews = Array.from(new Set(parsedSourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId))));
-  const removedInvalidSourceRecheckVisitedView = parsedSourceRecheckVisitedViews.some((view) => !SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
+  const scrubbedSourceRecheckVisitedViews =
+    parsedSourceRecheckVisitedViews.length !== sourceRecheckVisitedViews.length || parsedSourceRecheckVisitedViews.some((view) => !SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
   const normalizedActivity = staleQueueTimestamp || topLevelQueuePrecedesSourceCopy ? normaliseActivity(parsed.activity).filter((item) => !activityLooksLikeQueueWorkflow(item)) : normaliseActivity(parsed.activity);
   return {
     ...initialState,
@@ -1419,7 +1420,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
-    activity: removedInvalidSourceRecheckVisitedView ? withWorkspaceSanitizedActivity(normalizedActivity) : normalizedActivity,
+    activity: scrubbedSourceRecheckVisitedViews ? withWorkspaceSanitizedActivity(normalizedActivity) : normalizedActivity,
     mode: parsed.mode === "preview" ? "preview" : "compose",
   };
 }
