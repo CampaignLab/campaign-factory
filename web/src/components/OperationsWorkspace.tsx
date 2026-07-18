@@ -2042,7 +2042,7 @@ function sourceSignatureHash(value: string) {
 }
 
 function sourceSignatureText(value: string) {
-  return value.normalize("NFC").replace(/\r\n?/g, "\n").replace(/[\t ]+/g, " ").trim();
+  return value.normalize("NFC").replace(/[\u00ad\u200b\ufeff]/g, "").replace(/\r\n?/g, "\n").replace(/[\t ]+/g, " ").trim();
 }
 
 function sourceSignaturePlainText(value: string) {

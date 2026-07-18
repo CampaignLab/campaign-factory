@@ -13977,6 +13977,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let wrapCampaignBriefHtml = false;
   let reflowCampaignBriefPlainText = false;
   let useComposedSourceAccents = false;
+  let includeInvisibleSourceBreakHints = false;
 
   const sourceEvidence = () => {
     const evidence = campaignEvidence(nextChecks, 2);
@@ -14021,8 +14022,16 @@ test("operations workbench: order-only source metadata changes keep the acknowle
             ? {
                 ...document,
                 flags: documentFlags,
-                plainText: reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText,
-                html: wrapCampaignBriefHtml ? `<section class="source-shell" data-route="campaign-brief">${document.html}</section>` : document.html,
+                plainText: (reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText).replace(
+                  "same readable source boundary",
+                  includeInvisibleSourceBreakHints ? "same read\u00adable source\u200b boundary" : "same readable source boundary",
+                ),
+                html: wrapCampaignBriefHtml
+                  ? `<section class="source-shell" data-route="campaign-brief">${document.html.replace(
+                      "same readable source boundary",
+                      includeInvisibleSourceBreakHints ? "same read&shy;able source&#8203; boundary" : "same readable source boundary",
+                    )}</section>`
+                  : document.html,
               }
             : document,
         ),
@@ -14051,6 +14060,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   wrapCampaignBriefHtml = true;
   reflowCampaignBriefPlainText = true;
   useComposedSourceAccents = true;
+  includeInvisibleSourceBreakHints = true;
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();
 
