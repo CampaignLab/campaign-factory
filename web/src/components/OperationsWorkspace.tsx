@@ -1020,7 +1020,7 @@ function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWork
   if (!textFieldsReferenceOnlyExpectedCampaign([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings], expectedCampaignId)) return false;
   const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
   if (provenanceCampaignId && provenanceCampaignId !== expectedCampaignId) return false;
-  return true;
+  return provenanceCampaignId === expectedCampaignId;
 }
 
 function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey: string) {
