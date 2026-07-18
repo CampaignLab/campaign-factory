@@ -1129,6 +1129,8 @@ function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWork
 function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey: string) {
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
   if (draft.id !== draft.sourceWorkingCopy.id || !sourceScopedLocalIdMatchesWorkspace(draft.id, expectedCampaignId)) return false;
+  if (normaliseOperationsSourceInlineText(draft.title) !== normaliseOperationsSourceInlineText(draft.sourceWorkingCopy.title)) return false;
+  if (normaliseOperationsSourceInlineText(draft.channel) !== normaliseOperationsSourceInlineText(draft.sourceWorkingCopy.channel)) return false;
   if (!textFieldsReferenceOnlyExpectedCampaign([draft.id, draft.title, draft.channel, draft.subject, draft.body, draft.reviewerNote], expectedCampaignId)) return false;
   return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedCampaignId);
 }
