@@ -889,6 +889,8 @@ function downloadClientFile(filename: string, content: string, type: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
+const ACTIVITY_LIMIT = 7;
+
 const workspaceSanitizedActivity: Activity = {
   id: "workspace-sanitized",
   label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed.",
@@ -919,11 +921,11 @@ function normaliseActivity(activity: unknown): Activity[] {
     seenIds.add(idKey);
     normalised.push({ id, label });
   }
-  return normalised;
+  return normalised.slice(0, ACTIVITY_LIMIT);
 }
 
 function withWorkspaceSanitizedActivity(activity: Activity[]) {
-  return [workspaceSanitizedActivity, ...activity.filter((item) => item.id.toLowerCase() !== workspaceSanitizedActivity.id)].slice(0, 7);
+  return [workspaceSanitizedActivity, ...activity.filter((item) => item.id.toLowerCase() !== workspaceSanitizedActivity.id)].slice(0, ACTIVITY_LIMIT);
 }
 
 const INVALID_LOCAL_ACTION_TITLE = "Local action unavailable";

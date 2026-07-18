@@ -16625,6 +16625,63 @@ test("operations workbench deduplicates browser-local activity ids for real camp
   expect(storedState).not.toContain("Case-only duplicate Ormskirk local note should be removed before rendering");
 });
 
+test("operations workbench caps restored browser-local activity history", async ({ page }) => {
+  await page.goto("/operations?demo=fixture&view=overview");
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street permanent/ })).toBeVisible();
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "cf_operations_demo_v3",
+      JSON.stringify({
+        workspaceKey: "fixture",
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        selectedSegment: "school_gates",
+        subject: "Make the St John the Baptist school street permanent",
+        body: "Hello,\n\nWe are asking Leicester City Council to make the school street outside St John the Baptist CofE Primary permanent, with clear enforcement before the experimental order lapses.\n\nThe campaign is focused on safer school-run streets, cleaner air at the gates, and a decision route parents can follow. If you support the permanent order, please add your name to the campaign update and share one local reason this matters to your family.\n\nBefore any provider connection is used, a campaigner should check the council timing, the wording of the order, and whether this message fits your contact consent records.\n\nThank you,\nCampaign Factory demo workspace",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: Array.from({ length: 10 }, (_, index) => ({
+          id: `restored-local-note-${index + 1}`,
+          label: `Restored local note ${index + 1}.`,
+        })),
+      }),
+    );
+  });
+
+  await page.goto("/operations?demo=fixture&view=overview");
+  await expect(page.getByText("Restored local note 1.")).toBeVisible();
+  await expect(page.getByText("Restored local note 8.")).toHaveCount(0);
+
+  const storedState = JSON.parse((await page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"))) ?? "{}") as { activity: Array<{ id: string; label: string }> };
+  expect(storedState.activity).toHaveLength(7);
+  expect(storedState.activity.map((item) => item.id)).toEqual([
+    "restored-local-note-1",
+    "restored-local-note-2",
+    "restored-local-note-3",
+    "restored-local-note-4",
+    "restored-local-note-5",
+    "restored-local-note-6",
+    "restored-local-note-7",
+  ]);
+});
+
 test("operations workbench trims and drops blank restored local action fields", async ({ page }) => {
   const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
 
