@@ -14024,12 +14024,12 @@ test("operations workbench: order-only source metadata changes keep the acknowle
                 flags: documentFlags,
                 plainText: (reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText).replace(
                   "same readable source boundary",
-                  includeInvisibleSourceBreakHints ? "same read\u00adable source\u200b boundary" : "same readable source boundary",
+                  includeInvisibleSourceBreakHints ? "same read\u00adable source\u200b \u200c\u200d\u2060boundary" : "same readable source boundary",
                 ),
                 html: wrapCampaignBriefHtml
                   ? `<section class="source-shell" data-route="campaign-brief">${document.html.replace(
                       "same readable source boundary",
-                      includeInvisibleSourceBreakHints ? "same read&shy;able source&#8203; boundary" : "same readable source boundary",
+                      includeInvisibleSourceBreakHints ? "same read&shy;able source&#8203; &#8204;&#8205;&#8288;boundary" : "same readable source boundary",
                     )}</section>`
                   : document.html,
               }
