@@ -3437,7 +3437,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const curatedId = "6b54225d-afa3-41d1-b053-89741094f153";
   const originalFetch = globalThis.fetch;
   const requestedUrls: string[] = [];
-  const runBody = JSON.stringify({ campaignId: curatedId, batchId: null, status: "completed", stateVersion: 88, lastSequence: 900, events: [] });
+  const runBody = JSON.stringify({ campaignId: curatedId, batchId: "  ", status: " Completed ", stateVersion: " 88 ", lastSequence: " 900 ", events: [{ eventId: "legacy-large-source-event", sequence: 1 }] });
   const documents = canonicalOperationsDocuments("Stop the leisure park redevelopment in Barnet");
   documents[0].flags = [
     "Unresolved load-bearing claim: Unresolved source claim 1",
@@ -3531,7 +3531,8 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(response.status).toBe(200);
     expectPublicSourceJsonBoundary(response.headers, "normalized legacy source references");
 
-    const body = (await response.json()) as { run?: { batchId?: unknown }; documents?: Array<{ flags?: string[]; plainText?: string; sectionKeys?: string[]; resourceCount?: number }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ id?: string; text?: string; type?: string; confidence?: string; loadBearing?: boolean; sourceCount?: number; affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; description?: string; reason?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string; description?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
+    const body = (await response.json()) as { run?: { batchId?: unknown; status?: string; stateVersion?: number; lastSequence?: number; events?: unknown[] }; documents?: Array<{ flags?: string[]; plainText?: string; sectionKeys?: string[]; resourceCount?: number }>; evidence?: { groups?: Array<{ count?: number; claims?: Array<{ id?: string; text?: string; type?: string; confidence?: string; loadBearing?: boolean; sourceCount?: number; affectedOutputs?: string[]; contradictsClaimIds?: string[]; excerpt?: unknown }> }>; totals?: { claims?: number; loadBearing?: number; verifiedLoadBearing?: number; unresolvedLoadBearing?: number }; conflicts?: Array<{ id?: string; contradictsClaimIds?: string[] }>; nextChecks?: Array<{ id?: string; description?: string; reason?: string; claimIds?: string[]; affectedSections?: string[] }>; terminalGaps?: Array<{ id?: string; description?: string }>; draftNotes?: Array<{ text?: string; section?: string }> }; sourceFailureKind?: string };
+    expect(body.run).toMatchObject({ status: "completed", stateVersion: 88, lastSequence: 900, events: [] });
     expect(body.run).not.toHaveProperty("batchId");
     expect(body.documents?.[0]?.flags).toEqual(["Unresolved load-bearing claim: Unresolved source claim 1", "A source section is flagged needs verification."]);
     expect(body.documents?.[8]?.plainText).toContain("Supporter email");

@@ -445,7 +445,23 @@ function hasExplicitEmptyBody(response: Response) {
 function sourceRunHeaderOnly(value: unknown) {
   if (typeof value !== "object" || value === null) return value;
   const header: Record<string, unknown> = { ...(value as Record<string, unknown>), events: [] };
-  if (header.batchId !== undefined && typeof header.batchId !== "string") delete header.batchId;
+
+  const status = normalizeSourceVisibleText(header.status)?.toLowerCase();
+  if (status) header.status = status;
+
+  const stateVersion = normalizeSourceNonNegativeInteger(header.stateVersion);
+  if (stateVersion !== header.stateVersion) header.stateVersion = stateVersion;
+
+  const lastSequence = normalizeSourceNonNegativeInteger(header.lastSequence);
+  if (lastSequence !== header.lastSequence) header.lastSequence = lastSequence;
+
+  if (typeof header.batchId === "string") {
+    const batchId = header.batchId.trim();
+    if (batchId) header.batchId = batchId;
+    else delete header.batchId;
+  } else if (header.batchId !== undefined) {
+    delete header.batchId;
+  }
   return header;
 }
 
