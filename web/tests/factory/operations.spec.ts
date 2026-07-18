@@ -8327,6 +8327,48 @@ test("operations workbench rejects malformed top-level draft fields from real ca
   expect(stored).not.toContain("Placed approved draft into the local demo queue with malformed fields");
 });
 
+test("operations workbench demotes queued fixture draft state without a recorded queue timestamp", async ({ page }) => {
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "cf_operations_demo_v3",
+      JSON.stringify({
+        selectedSegment: "families",
+        subject: "Fixture supporter update ready for review",
+        body: "Hi — can you help keep the school street conversation moving this week?",
+        reviewerNote: "Approved earlier, but the stored local queue timestamp was lost.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "families",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: [{ id: "fixture-missing-queue-time", label: "Placed approved draft into the local demo queue without a timestamp." }],
+      }),
+    );
+  });
+
+  await page.goto("/operations?demo=fixture&view=outbox");
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.getByText("Approve the draft before it can enter the local demo queue.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Queued for demo");
+
+  await page.goto("/operations?demo=fixture&view=reviews");
+  await expect(page.getByRole("heading", { name: "Approved by human" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Queue locally for demo" })).toBeEnabled();
+
+  const stored = await page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"));
+  expect(stored).toContain('"status":"approved"');
+  expect(stored).toContain('"queuedAt":null');
+  expect(stored).not.toContain('"status":"queued"');
+});
+
 test("operations workbench removes duplicated top-level source copy from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

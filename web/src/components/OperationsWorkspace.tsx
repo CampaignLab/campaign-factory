@@ -1021,6 +1021,12 @@ function hasRecordedLocalQueue(status: DraftStatus, queuedAt: string | null) {
   return status === "queued" && Boolean(queuedAt && isValidStoredTimestamp(queuedAt));
 }
 
+function normaliseQueuedStatus(status: unknown, queuedAt: string | null): DraftStatus {
+  if (status === "draft" || status === "review" || status === "approved") return status;
+  if (status === "queued") return queuedAt ? "queued" : "approved";
+  return "draft";
+}
+
 function normaliseStoredTimestamp(value: unknown) {
   return typeof value === "string" && value && isValidStoredTimestamp(value) ? value : null;
 }
@@ -1086,6 +1092,7 @@ function normaliseOptionalSourceSequence(value: unknown) {
 
 function normaliseState(parsed: Partial<DemoState>): DemoState {
   const workingDrafts = normaliseWorkingDrafts(parsed.workingDrafts, parsed);
+  const queuedAt = normaliseStoredTimestamp(parsed.queuedAt);
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === parsed.activeWorkingDraftId)
     ? parsed.activeWorkingDraftId ?? null
     : parsed.sourceWorkingCopy && workingDrafts[0]
@@ -1097,9 +1104,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     selectedSegment: isSegmentId(parsed.selectedSegment) ? parsed.selectedSegment : initialState.selectedSegment,
     subject: typeof parsed.subject === "string" && parsed.subject ? parsed.subject : INVALID_LOCAL_DRAFT_SUBJECT,
     body: typeof parsed.body === "string" && parsed.body ? parsed.body : INVALID_LOCAL_DRAFT_BODY,
-    status: ["draft", "review", "approved", "queued"].includes(parsed.status || "")
-      ? (parsed.status as DraftStatus)
-      : initialState.status,
+    status: normaliseQueuedStatus(parsed.status, queuedAt),
     activeDraft: draftLibrary.some((draft) => draft.id === parsed.activeDraft)
       ? (parsed.activeDraft as DraftId)
       : initialState.activeDraft,
@@ -1126,7 +1131,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
         : ["after_approval", "tomorrow_morning", "after_next_check"].includes(parsed.scheduleIntent || "")
           ? (parsed.scheduleIntent as DemoState["scheduleIntent"])
           : initialState.scheduleIntent,
-    queuedAt: normaliseStoredTimestamp(parsed.queuedAt),
+    queuedAt,
     localActions: normaliseLocalActions(parsed.localActions),
     workingDrafts,
     activeWorkingDraftId,
