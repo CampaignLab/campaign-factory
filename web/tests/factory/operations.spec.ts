@@ -3548,6 +3548,7 @@ test("operations source API: restores legacy group-level claim labels before hyd
     [{ id: "legacy-group-label", description: "Recover a legacy source claim that only carried its verification label at group level.", reason: "Older public source evidence can predate per-claim label persistence.", affectedSections: ["evidence"] }],
     1,
   );
+  evidence.groups[0].label = "Verification&nbsp;incomplete";
   delete (evidence.groups[0].claims[0] as { label?: string }).label;
   const documentsBody = JSON.stringify({ documents: canonicalOperationsDocuments("Build 5,000 affordable homes in Tower Hamlets"), evidence });
 

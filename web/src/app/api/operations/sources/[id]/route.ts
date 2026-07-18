@@ -95,6 +95,7 @@ const SOURCE_AFFECTED_SECTION_ALIASES: Record<string, string> = {
   digitalpackdocument: "digital_pack",
 };
 const SOURCE_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
+const SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT = new Map<string, string>(VERIFICATION_LABELS.map((label) => [normaliseOperationsSourceInlineText(label), label]));
 const SOURCE_UNRESOLVED_LABELS = new Set(["Conflicting evidence", "Verification incomplete", "External information unavailable"]);
 const SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM = "Unresolved load-bearing claim: ";
 // Operations only needs the source run header; request an event-free polling
@@ -451,6 +452,11 @@ function uniqueStrings(values: unknown) {
   return unique;
 }
 
+function normalizeSourceVerificationLabel(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  return SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normaliseOperationsSourceInlineText(value));
+}
+
 function normalizeSourceAffectedSectionKey(value: string) {
   const visibleValue = normaliseOperationsSourceInlineText(value);
   if (SOURCE_AFFECTED_SECTION_KEYS.has(visibleValue)) return visibleValue;
@@ -587,7 +593,7 @@ function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fal
   const record = value as Record<string, unknown>;
   const affectedOutputs = normalizeSourceAffectedSectionValues(record.affectedOutputs);
   const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueStrings(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
-  const label = typeof record.label === "string" && SOURCE_VERIFICATION_LABELS.has(record.label) ? record.label : fallbackLabel;
+  const label = normalizeSourceVerificationLabel(record.label) ?? fallbackLabel;
   return {
     ...record,
     ...(label ? { label } : {}),
@@ -611,14 +617,14 @@ function normalizeSourceEvidenceGroups(record: Record<string, unknown>, claimIds
     }
 
     const groupRecord = group as Record<string, unknown>;
-    const fallbackGroupLabel = typeof groupRecord.label === "string" && SOURCE_VERIFICATION_LABELS.has(groupRecord.label) ? groupRecord.label : undefined;
+    const fallbackGroupLabel = normalizeSourceVerificationLabel(groupRecord.label);
     const claimsByLabel = new Map<string, unknown[]>();
     const passthroughClaims: unknown[] = [];
 
     for (const claim of groupRecord.claims as unknown[]) {
       const normalizedClaim = normalizeSourceEvidenceClaim(claim, claimIds, fallbackGroupLabel);
       const claimRecord = typeof normalizedClaim === "object" && normalizedClaim !== null ? (normalizedClaim as Record<string, unknown>) : undefined;
-      const claimLabel = typeof claimRecord?.label === "string" && SOURCE_VERIFICATION_LABELS.has(claimRecord.label) ? claimRecord.label : undefined;
+      const claimLabel = normalizeSourceVerificationLabel(claimRecord?.label);
       if (claimRecord && typeof claimRecord.id === "string") {
         const claimId = claimRecord.id;
         if (seenClaimIds.has(claimId)) continue;
