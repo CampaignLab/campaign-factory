@@ -271,8 +271,8 @@ const OPERATIONS_CLAIM_TYPES = new Set<string>([
   "other",
 ]);
 
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === "string";
+function isOptionalRenderedSourceText(value: unknown): value is string | undefined {
+  return value === undefined || hasRenderedText(value);
 }
 
 function isOptionalCanonicalNonEmptySourceId(value: unknown): value is string | undefined {
@@ -399,9 +399,9 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     typeof value.visibility === "string" &&
     OPERATIONS_EVENT_VISIBILITIES.has(value.visibility) &&
     hasRenderedText(payload.summary) &&
-    isOptionalString(payload.verb) &&
-    isOptionalString(payload.agentKey) &&
-    isOptionalString(payload.agentDisplayName) &&
+    isOptionalRenderedSourceText(payload.verb) &&
+    isOptionalRenderedSourceText(payload.agentKey) &&
+    isOptionalRenderedSourceText(payload.agentDisplayName) &&
     isOptionalUniqueCanonicalSourceIdArray(payload.sourceIds) &&
     isOptionalUniqueCanonicalSourceIdArray(payload.claimIds) &&
     isOptionalCanonicalNonEmptySourceId(payload.proposalId) &&
