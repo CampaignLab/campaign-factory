@@ -1145,7 +1145,7 @@ function sourceBaselineSignatureMatchesWorkspace(value: string, expectedWorkspac
   if (!storedTextHasVisibleText(value) || storedSourceMetadataTextIsMalformed(value)) return false;
   const expectedKey = expectedWorkspaceKey.toLowerCase();
   const match = value.match(/^source:([0-9a-f-]{36})(?::|$)/i);
-  return Boolean(match && match[1]?.toLowerCase() === expectedKey && textReferencesOnlyExpectedCampaign(value, expectedKey));
+  return Boolean(match && match[1] === expectedKey && textReferencesOnlyExpectedCampaign(value, expectedKey));
 }
 
 function sourceScopedLocalIdMatchesWorkspace(value: string, expectedWorkspaceKey: string) {
