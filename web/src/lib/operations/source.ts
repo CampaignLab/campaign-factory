@@ -384,7 +384,7 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     isOptionalNonNegativeInteger(value.stateVersion) &&
     typeof value.visibility === "string" &&
     OPERATIONS_EVENT_VISIBILITIES.has(value.visibility) &&
-    isNonEmptyString(payload.summary) &&
+    hasRenderedText(payload.summary) &&
     isOptionalString(payload.verb) &&
     isOptionalString(payload.agentKey) &&
     isOptionalString(payload.agentDisplayName) &&
