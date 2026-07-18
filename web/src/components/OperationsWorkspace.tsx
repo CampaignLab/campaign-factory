@@ -49,6 +49,11 @@ const CURATED_CAMPAIGN_TEXT_GUARDS: Record<string, RegExp[]> = {
     /\bBarnet\b/i,
   ],
 };
+const CURATED_CAMPAIGN_TITLE_SLUG_PREFIXES: Record<string, string[]> = {
+  "69f257b6-9913-4395-94f7-5c25b4b5fe95": ["ormskirk", "keep-kfc-out-of-ormskirk"],
+  "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": ["tower-hamlets", "build-5-000-affordable-houses-in-tower-hamlets-in-the-next-3-years"],
+  "6b54225d-afa3-41d1-b053-89741094f153": ["barnet", "stop-the-leisure-park-redevelopment-in-barnet"],
+};
 const SOURCE_CLIENT_TIMEOUT_MS = 15_000;
 const SOURCE_CLIENT_FETCH_HEADERS = {
   accept: "application/json",
@@ -1013,16 +1018,36 @@ function sourceResourceTitleSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function sourceWorkingCopyIdTitleMatchesSourceTitle(copyId: string, title: string) {
+function sourceWorkingCopyIdStoredTitleSlug(copyId: string) {
   const sourceTitleMatch = copyId.match(/^source:[0-9a-f-]{36}:resource:[^:]+:(.+)$/i);
   const directTitleMatch = copyId.match(/^[0-9a-f-]{36}:[^:]+:(.+)$/i);
   const storedTitle = sourceTitleMatch?.[1] ?? directTitleMatch?.[1] ?? "";
-  const storedTitleSlug = sourceResourceTitleSlug(storedTitle);
+  return sourceResourceTitleSlug(storedTitle);
+}
+
+function slugMatchesWithAllowedCampaignPrefix(longerSlug: string, shorterSlug: string, campaignId: string) {
+  if (!longerSlug || !shorterSlug || !longerSlug.endsWith(`-${shorterSlug}`)) return false;
+  const prefix = longerSlug.slice(0, -(shorterSlug.length + 1));
+  return (CURATED_CAMPAIGN_TITLE_SLUG_PREFIXES[campaignId] ?? []).includes(prefix);
+}
+
+function sourceWorkingCopyIdTitleMatchesSourceTitle(copyId: string, title: string) {
+  const storedTitleSlug = sourceWorkingCopyIdStoredTitleSlug(copyId);
   const visibleTitleSlug = sourceResourceTitleSlug(title);
   return Boolean(
     storedTitleSlug &&
       visibleTitleSlug &&
       (storedTitleSlug === visibleTitleSlug || visibleTitleSlug.endsWith(`-${storedTitleSlug}`) || storedTitleSlug.endsWith(`-${visibleTitleSlug}`)),
+  );
+}
+
+function sourceWorkingCopyIdTitleMatchesWorkspaceTitle(copyId: string, title: string, campaignId: string) {
+  const storedTitleSlug = sourceWorkingCopyIdStoredTitleSlug(copyId);
+  const visibleTitleSlug = sourceResourceTitleSlug(title);
+  return Boolean(
+    storedTitleSlug &&
+      visibleTitleSlug &&
+      (storedTitleSlug === visibleTitleSlug || slugMatchesWithAllowedCampaignPrefix(visibleTitleSlug, storedTitleSlug, campaignId) || slugMatchesWithAllowedCampaignPrefix(storedTitleSlug, visibleTitleSlug, campaignId)),
   );
 }
 
@@ -1154,6 +1179,7 @@ function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWork
   const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
   if (copy.campaignId !== expectedCampaignId) return false;
   if (!sourceScopedLocalIdMatchesWorkspace(copy.id, expectedCampaignId)) return false;
+  if (!sourceWorkingCopyIdTitleMatchesWorkspaceTitle(copy.id, copy.title, expectedCampaignId)) return false;
   if (!referencedCampaignIds(copy.provenance).some((campaignId) => campaignId.toLowerCase() === expectedCampaignId)) return false;
   if (!textFieldsReferenceOnlyExpectedCampaign([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings], expectedCampaignId)) return false;
   const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
