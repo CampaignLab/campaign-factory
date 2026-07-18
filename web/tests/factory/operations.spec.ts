@@ -8502,6 +8502,7 @@ test("operations workbench removes foreign source baseline metadata from real ca
   expect(stored).toContain('"sourceStateVersion":14');
   expect(stored).toContain('"sourceLastSequence":25');
   expect(stored).toContain('"sourceDocumentSignature":"source:');
+  expect(stored).toContain(`"sourceDocumentSignature":"source:${barnetId}:`);
   expect(stored).not.toContain(ormskirkId);
   expect(stored).not.toContain('"sourceAcknowledgedAt":"2026-07-16T17:54:30.000Z"');
   expect(stored).not.toContain('"sourceRecheckVisitedViews":["evidence","strategy"]');
@@ -11913,6 +11914,7 @@ test("operations workbench: source updates without local work refresh the baseli
   expect(storedState.sourceStateVersion).toBe(52);
   expect(storedState.sourceLastSequence).toBe(2052);
   expect(storedState.sourceDocumentSignature).not.toBe("source:previous-read-only-baseline");
+  expect(storedState.sourceDocumentSignature).toContain(`source:${campaignId}:`);
   expect(storedState.sourceRecheckVisitedViews).toEqual([]);
   expect(JSON.stringify(storedState)).not.toContain("source update pause");
 });

@@ -1900,7 +1900,7 @@ function sourceDocumentSignature(source: CampaignSource) {
     .join("|");
   const evidenceTotals = source.evidence.totals;
   const nextChecks = source.evidence.nextChecks.map((check) => `${check.id}:${check.description}`).join("|");
-  return `source:${sourceIdentity}::${documentStatuses}::${evidenceTotals.claims}/${evidenceTotals.loadBearing}/${evidenceTotals.verifiedLoadBearing}/${evidenceTotals.unresolvedLoadBearing}::${nextChecks}`;
+  return `source:${source.campaignId}:${sourceIdentity}::${documentStatuses}::${evidenceTotals.claims}/${evidenceTotals.loadBearing}/${evidenceTotals.verifiedLoadBearing}/${evidenceTotals.unresolvedLoadBearing}::${nextChecks}`;
 }
 
 function buildInitialStateForSource(source: CampaignSource): DemoState {
