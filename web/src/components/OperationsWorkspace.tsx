@@ -4519,7 +4519,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
       ...(includeTopLevelDraft
         ? [
             {
-              id: "seeded-supporter-email",
+              id: state.sourceWorkingCopy?.id ?? "seeded-supporter-email",
               title: state.sourceWorkingCopy?.title ?? "Supporter email",
               subject: state.subject,
               status: state.status,

@@ -8956,6 +8956,97 @@ Use this current Digital Campaign Pack copy only after petition form boundaries 
   expect(stored).not.toContain("false-petition-form-submissions");
 });
 
+test("operations workbench exports source-scoped provenance ids for legacy top-level drafts", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 41, lastSequence: 56, events: [] },
+        documents: campaignOperationsDocuments(
+          {
+            title: "Stop the leisure park redevelopment in Barnet",
+            place: "Barnet, London",
+            next: "Check Barnet decision records",
+          },
+          {
+            digital_pack: `Supporter email
+
+Subject: Barnet supporter source update
+
+Use this current Digital Campaign Pack copy only after export provenance boundaries are checked.`,
+          },
+        ),
+        evidence: campaignEvidence([{ id: "export-provenance-id-check", description: "Check Barnet decision records", reason: "Export provenance id guard", affectedSections: ["digital_pack"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const copy = {
+      id: `source:${campaignId}:resource:digital_pack:supporter-email`,
+      campaignId,
+      title: "Supporter email",
+      channel: "Supporter email",
+      sourceDocument: "Digital Campaign Pack",
+      sourceDocumentKey: "digital_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: [],
+      provenance: `Source campaign ${campaignId}; copied Supporter email from Digital Campaign Pack into a browser-local editable copy; this does not change the public source document.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Barnet supporter source update",
+        body: "This legacy top-level local source copy should export with its source-scoped id.",
+        reviewerNote: "Review export provenance before any provider setup.",
+        status: "review",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_next_check",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: copy,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "valid-local-review", label: "Marked the draft ready for human review." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  const jsonPath = await jsonDownload.path();
+  expect(jsonPath).toBeTruthy();
+  const pack = JSON.parse(await readFile(jsonPath!, "utf8")) as { drafts: Array<{ id: string; provenance?: string; source: string }> };
+  expect(pack.drafts[0]?.id).toBe(`source:${barnetId}:resource:digital_pack:supporter-email`);
+  expect(pack.drafts[0]?.id).not.toBe("seeded-supporter-email");
+  expect(pack.drafts[0]?.source).toBe("Digital Campaign Pack (digital_pack)");
+  expect(pack.drafts[0]?.provenance).toContain(`Source campaign ${barnetId}; copied Supporter email from Digital Campaign Pack`);
+});
+
 test("operations workbench removes fixture activity from real campaign state without dropping provenanced local work", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
