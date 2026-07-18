@@ -13948,6 +13948,108 @@ test("operations portfolio case-folds browser-local source provenance before loc
   expect(storedState.workingDrafts.map((draft: { sourceWorkingCopy: { campaignId: string } }) => draft.sourceWorkingCopy.campaignId)).toEqual([campaignId, campaignId]);
 });
 
+test("operations portfolio migrates uppercase browser-local campaign storage keys", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const uppercaseCampaignId = campaignId.toUpperCase();
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 61, lastSequence: 2130, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet committee records" }),
+        evidence: campaignEvidence([{ id: "portfolio-uppercase-storage-key", description: "Check Barnet committee records", reason: "Portfolio uppercase localStorage key migration guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ id, upperId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${upperId}`,
+        JSON.stringify({
+          workspaceKey: upperId,
+          sourceStateVersion: 61,
+          sourceLastSequence: 2130,
+          sourceDocumentSignature: `source:${upperId}:completed:current-baseline`,
+          sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+          selectedSegment: "source_primary",
+          subject: "Barnet source draft saved under uppercase key",
+          body: "This browser-local state was saved under an uppercase campaign storage key by an older workspace route.",
+          reviewerNote: "Review this Barnet source copy before local queueing.",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "overview",
+          contactFilter: "source_primary",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${id}:portfolio-uppercase-storage-action`,
+              title: "Check Barnet committee records",
+              source: "Campaign source · Evidence & checks",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${id}; created from Evidence & checks.`,
+            },
+          ],
+          workingDrafts: [
+            {
+              id: `source:${id}:draft:uppercase-storage-key`,
+              title: "Barnet committee update",
+              channel: "Email",
+              subject: "Barnet committee update",
+              body: "This browser-local working draft should migrate from the uppercase localStorage key.",
+              reviewerNote: "Review this source-bound copy before local queueing.",
+              status: "review",
+              queuedAt: null,
+              createdAt: "2026-07-17T19:45:00.000Z",
+              updatedAt: "2026-07-17T19:45:00.000Z",
+              sourceWorkingCopy: {
+                id: `source:${id}:draft:uppercase-storage-key`,
+                campaignId: id,
+                title: "Barnet committee update",
+                channel: "Email",
+                sourceDocument: "Digital Campaign Pack",
+                sourceDocumentKey: "digital_pack",
+                createdAt: "2026-07-17T19:45:00.000Z",
+                warnings: [],
+                provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+              },
+            },
+          ],
+          activeWorkingDraftId: `source:${id}:draft:uppercase-storage-key`,
+          sourceWorkingCopy: null,
+          sourceRecheckStateVersion: null,
+          sourceRecheckLastSequence: null,
+          sourceRecheckDocumentSignature: null,
+          sourceRecheckVisitedViews: [],
+          activity: [{ id: "portfolio-uppercase-storage-action", label: "Created action: Check Barnet committee records" }],
+        }),
+      );
+    },
+    { id: campaignId, upperId: uppercaseCampaignId },
+  );
+
+  await page.goto("/operations");
+  await expect(page.getByRole("heading", { name: "Stop the leisure park redevelopment in Barnet" })).toBeVisible();
+  const barnetRow = page.locator("article").filter({ hasText: "Stop the leisure park redevelopment in Barnet" });
+  await expect(barnetRow).toContainText("1 action · 1 working draft · 1 review");
+  await expect(barnetRow).not.toContainText("no browser-local operations work yet");
+
+  await expect.poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id.toUpperCase()}`), campaignId)).toBeNull();
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.workspaceKey).toBe(campaignId);
+  expect(storedState.localActions).toHaveLength(1);
+  expect(storedState.workingDrafts).toHaveLength(1);
+});
+
 test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";

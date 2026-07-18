@@ -1509,18 +1509,23 @@ const emptyPortfolioLocalCounts = (): PortfolioLocalCounts => ({ actions: 0, dra
 function loadSanitizedWorkspaceState(campaignId: string, persistSanitized = false): DemoState | null {
   if (typeof window === "undefined") return null;
   const storageKey = localStorageKeyFor(campaignId);
-  const raw = localStorage.getItem(storageKey);
-  const loaded = loadState(storageKey);
-  if (loaded.workspaceKey !== campaignId) {
-    if (persistSanitized && raw) localStorage.removeItem(storageKey);
-    return null;
+  for (const candidateKey of localStorageKeysForCampaign(campaignId)) {
+    const raw = localStorage.getItem(candidateKey);
+    if (!raw) continue;
+    const loaded = loadState(candidateKey);
+    if (loaded.workspaceKey !== campaignId) {
+      if (persistSanitized) localStorage.removeItem(candidateKey);
+      continue;
+    }
+    const state = sanitizeStateForWorkspace(loaded, campaignId);
+    if (persistSanitized) {
+      const sanitizedRaw = JSON.stringify(state);
+      if (candidateKey !== storageKey || sanitizedRaw !== raw) localStorage.setItem(storageKey, sanitizedRaw);
+      if (candidateKey !== storageKey) localStorage.removeItem(candidateKey);
+    }
+    return state;
   }
-  const state = sanitizeStateForWorkspace(loaded, campaignId);
-  if (persistSanitized && raw) {
-    const sanitizedRaw = JSON.stringify(state);
-    if (sanitizedRaw !== raw) localStorage.setItem(storageKey, sanitizedRaw);
-  }
-  return state;
+  return null;
 }
 
 function portfolioLocalCounts(campaignId: string, persistSanitized = false): PortfolioLocalCounts {
@@ -1577,7 +1582,21 @@ function initialCampaignSwitcherItems(): CampaignSwitcherItem[] {
 }
 
 function localStorageKeyFor(campaignId?: string) {
-  return campaignId ? `${STORAGE_KEY}:${campaignId}` : STORAGE_KEY;
+  return campaignId ? `${STORAGE_KEY}:${campaignId.toLowerCase()}` : STORAGE_KEY;
+}
+
+function localStorageKeysForCampaign(campaignId: string) {
+  if (typeof window === "undefined") return [];
+  const canonicalKey = localStorageKeyFor(campaignId);
+  const prefix = `${STORAGE_KEY}:`;
+  const keys = [canonicalKey];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key || key === canonicalKey || !key.startsWith(prefix)) continue;
+    const storedCampaignId = normaliseStoredCampaignId(key.slice(prefix.length));
+    if (storedCampaignId === campaignId) keys.push(key);
+  }
+  return keys;
 }
 
 function firstNonEmptyLine(value?: string) {
