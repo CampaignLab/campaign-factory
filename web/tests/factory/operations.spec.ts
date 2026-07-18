@@ -8626,6 +8626,116 @@ Use this current Digital Campaign Pack copy only after decision-maker lobbying b
   expect(stored).not.toContain("false-decision-maker-lobbying");
 });
 
+test("operations workbench removes browser-local activity that claims newsletter blast outcomes", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 38, lastSequence: 53, events: [] },
+        documents: campaignOperationsDocuments(
+          {
+            title: "Stop the leisure park redevelopment in Barnet",
+            place: "Barnet, London",
+            next: "Check Barnet decision records",
+          },
+          {
+            digital_pack: `Supporter email
+
+Subject: Barnet supporter source update
+
+Use this current Digital Campaign Pack copy only after newsletter and mailout boundaries are checked.`,
+          },
+        ),
+        evidence: campaignEvidence([{ id: "newsletter-blast-activity-claim", description: "Check Barnet decision records", reason: "Newsletter went-out activity guard", affectedSections: ["digital_pack"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const copy = {
+      id: `source:${campaignId}:resource:digital_pack:supporter-email`,
+      campaignId,
+      title: "Supporter email",
+      channel: "Supporter email",
+      sourceDocument: "Digital Campaign Pack",
+      sourceDocumentKey: "digital_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: [],
+      provenance: `Source campaign ${campaignId}; copied Supporter email from Digital Campaign Pack into a browser-local editable copy; this does not change the public source document.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Barnet supporter source update",
+        body: "This valid local source copy should remain while false newsletter-blast activity is scrubbed.",
+        reviewerNote: "Review before any newsletter or mailout claims.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_next_check",
+        queuedAt: "2026-07-16T18:02:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: copy.id,
+            title: copy.title,
+            channel: copy.channel,
+            subject: "Barnet supporter source update",
+            body: "This valid local source copy should remain while false newsletter-blast activity is scrubbed.",
+            reviewerNote: "Review before any newsletter or mailout claims.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T17:58:30.000Z",
+            sourceWorkingCopy: copy,
+          },
+        ],
+        activeWorkingDraftId: copy.id,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [
+          { id: "false-newsletter-went-out", label: "Barnet supporter newsletter went out to the mailing list." },
+          { id: "false-email-blast-live", label: "Campaign update email blast went live for Barnet supporters." },
+          { id: "valid-local-queue", label: "Placed approved draft into the local demo queue. No provider connection used." },
+        ],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /local queue item/i })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Barnet supporter source update");
+  await expect(page.locator("main")).not.toContainText("newsletter went out");
+  await expect(page.locator("main")).not.toContainText("email blast went live");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain("Barnet supporter source update");
+  expect(stored).toContain('"status":"queued"');
+  expect(stored).toContain("Placed approved draft into the local demo queue. No provider connection used.");
+  expect(stored).not.toContain("newsletter went out");
+  expect(stored).not.toContain("email blast went live");
+  expect(stored).not.toContain("false-newsletter-went-out");
+  expect(stored).not.toContain("false-email-blast-live");
+});
+
 test("operations workbench removes fixture activity from real campaign state without dropping provenanced local work", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
