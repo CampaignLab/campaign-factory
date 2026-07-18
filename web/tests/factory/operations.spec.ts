@@ -7113,7 +7113,7 @@ test("operations workbench removes unprovenanced top-level review state from rea
         workingDrafts: [],
         activeWorkingDraftId: null,
         sourceWorkingCopy: null,
-        activity: [{ id: "legacy", label: "Barnet local update queued locally." }],
+        activity: [{ id: "legacy", label: "Queued supporter_email locally from a legacy top-level draft without source-copy provenance." }],
       }),
     );
   }, barnetId);
@@ -7129,11 +7129,13 @@ test("operations workbench removes unprovenanced top-level review state from rea
   await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
   await expect(page.locator("main")).not.toContainText("Legacy reviewer note without source-copy provenance");
+  await expect(page.locator("main")).not.toContainText("Queued supporter_email locally");
 
   const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
   expect(stored).toContain('"status":"draft"');
   expect(stored).toContain("did not retain source-resource provenance");
   expect(stored).not.toContain("Legacy reviewer note without source-copy provenance");
+  expect(stored).not.toContain("Queued supporter_email locally");
   expect(stored).not.toContain('"queuedAt":"2026-07-16T17:58:30.000Z"');
 });
 

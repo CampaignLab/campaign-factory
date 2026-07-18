@@ -1115,6 +1115,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     removedFixtureSourceBaseline ||
     removedIncompleteSourceBaseline ||
     (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
+  const unprovenancedActiveDraft = removedUnprovenancedTopLevelReviewState && !state.sourceWorkingCopy ? draftLibrary.find((draft) => draft.id === state.activeDraft) : null;
   const topLevelDraftResetReferences = resetTopLevelDraft
     ? [
         state.subject,
@@ -1126,6 +1127,9 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
         state.sourceWorkingCopy?.title,
         state.sourceWorkingCopy?.sourceDocument,
         state.sourceWorkingCopy?.sourceDocumentKey,
+        unprovenancedActiveDraft?.id,
+        unprovenancedActiveDraft?.title,
+        unprovenancedActiveDraft?.channel,
       ].filter((reference): reference is string => typeof reference === "string" && reference.length > 0)
     : [];
   const activity = state.activity.filter(
