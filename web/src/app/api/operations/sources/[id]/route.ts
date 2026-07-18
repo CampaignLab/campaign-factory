@@ -7,6 +7,7 @@ import {
   isOperationsEvidenceAndNextChecks,
   isOperationsPublicCampaignId,
   isOperationsRunReadModel,
+  normaliseOperationsSourceInlineText,
   normaliseOperationsSourceOrigin,
   type OperationsSourcePayload,
 } from "@/lib/operations/source";
@@ -520,9 +521,34 @@ function normalizeSourceNextCheck(value: Record<string, unknown>, claimIds: Set<
   };
 }
 
+function canonicalSourceDocumentFlag(value: unknown) {
+  if (typeof value !== "string") return value;
+  const normalized = normaliseOperationsSourceInlineText(value);
+  if (normalized === SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM.trim()) return value;
+  if (normalized.startsWith(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM)) {
+    const claimText = normalized.slice(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
+    return claimText ? `${SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM}${claimText}` : value;
+  }
+  return normalized || value;
+}
+
+function uniqueSourceDocumentFlags(values: unknown) {
+  if (!Array.isArray(values)) return values;
+  const seen = new Set<string>();
+  const flags: unknown[] = [];
+  for (const value of values) {
+    const flag = canonicalSourceDocumentFlag(value);
+    const key = typeof flag === "string" ? normaliseOperationsSourceInlineText(flag) : undefined;
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    flags.push(flag);
+  }
+  return flags;
+}
+
 function normalizeSourceDocuments(value: unknown) {
   return Array.isArray(value)
-    ? value.map((document) => (typeof document === "object" && document !== null ? { ...(document as Record<string, unknown>), flags: uniqueStrings((document as Record<string, unknown>).flags) } : document))
+    ? value.map((document) => (typeof document === "object" && document !== null ? { ...(document as Record<string, unknown>), flags: uniqueSourceDocumentFlags((document as Record<string, unknown>).flags) } : document))
     : value;
 }
 
@@ -536,7 +562,7 @@ function normalizeSourceDocumentEvidenceFlags(documents: unknown, evidence: unkn
       if (typeof claim !== "object" || claim === null) continue;
       const claimRecord = claim as Record<string, unknown>;
       if (claimRecord.loadBearing === true && typeof claimRecord.label === "string" && SOURCE_UNRESOLVED_LABELS.has(claimRecord.label) && typeof claimRecord.text === "string") {
-        unresolvedLoadBearingClaimTexts.add(claimRecord.text);
+        unresolvedLoadBearingClaimTexts.add(normaliseOperationsSourceInlineText(claimRecord.text));
       }
     }
   }
@@ -544,11 +570,14 @@ function normalizeSourceDocumentEvidenceFlags(documents: unknown, evidence: unkn
   return documents.map((document) => {
     if (typeof document !== "object" || document === null || !Array.isArray((document as Record<string, unknown>).flags)) return document;
     const flags = ((document as Record<string, unknown>).flags as unknown[]).flatMap((flag) => {
-      if (typeof flag !== "string" || !flag.startsWith(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM)) return [flag];
-      const claimText = flag.slice(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
+      const canonicalFlag = canonicalSourceDocumentFlag(flag);
+      if (typeof canonicalFlag !== "string") return [canonicalFlag];
+      const normalizedFlag = normaliseOperationsSourceInlineText(canonicalFlag);
+      if (!normalizedFlag.startsWith(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM)) return [canonicalFlag];
+      const claimText = normalizedFlag.slice(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
       return unresolvedLoadBearingClaimTexts.has(claimText) ? [`${SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM}${claimText}`] : [];
     });
-    return { ...(document as Record<string, unknown>), flags: uniqueStrings(flags) };
+    return { ...(document as Record<string, unknown>), flags: uniqueSourceDocumentFlags(flags) };
   });
 }
 

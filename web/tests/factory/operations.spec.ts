@@ -3441,7 +3441,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const documents = canonicalOperationsDocuments("Stop the leisure park redevelopment in Barnet");
   documents[0].flags = [
     "Unresolved load-bearing claim: Unresolved source claim 1",
-    "Unresolved load-bearing claim: Unresolved source claim 1",
+    "Unresolved load-bearing\u00a0claim: Unresolved source&nbsp;claim 1",
     "Unresolved load-bearing claim: Archived source claim from an older build",
   ];
   const evidence = campaignEvidence(
