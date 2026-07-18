@@ -2045,6 +2045,10 @@ function sourceSignatureText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/[\t ]+/g, " ").trim();
 }
 
+function sourceSignaturePlainText(value: string) {
+  return sourceSignatureText(value.replace(/\s+/g, " "));
+}
+
 function sourceSignatureHtmlText(value: string) {
   return sourceSignatureText(
     value
@@ -2104,7 +2108,7 @@ function sourceDocumentSignature(source: CampaignSource) {
   const sourceIdentity = sourceSignatureHash(sourceSignatureText(`${source.title}\n${source.place ?? ""}`));
   const documentStatuses = source.documents
     .map((doc) => {
-      const documentText = sourceSignatureText(`${doc.name}\n${doc.plainText}\n${sourceSignatureHtmlText(doc.html)}`);
+      const documentText = sourceSignatureText(`${doc.name}\n${sourceSignaturePlainText(doc.plainText)}\n${sourceSignatureHtmlText(doc.html)}`);
       const documentFlags = sourceSignatureStrings(doc.flags).join("~");
       return `${doc.key}:${doc.status}:${doc.resourceCount}:${documentFlags}:${sourceSignatureHash(documentText)}`;
     })

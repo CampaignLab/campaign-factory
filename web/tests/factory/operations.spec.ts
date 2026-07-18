@@ -13975,6 +13975,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let conflictContradictingIds = ["claim-2", "claim-1"];
   let documentFlags = ["Unresolved load-bearing claim: Unresolved source claim 1", "Unresolved load-bearing claim: Unresolved source claim 2"];
   let wrapCampaignBriefHtml = false;
+  let reflowCampaignBriefPlainText = false;
 
   const sourceEvidence = () => {
     const evidence = campaignEvidence(nextChecks, 2);
@@ -14014,6 +14015,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
             ? {
                 ...document,
                 flags: documentFlags,
+                plainText: reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText,
                 html: wrapCampaignBriefHtml ? `<section class="source-shell" data-route="campaign-brief">${document.html}</section>` : document.html,
               }
             : document,
@@ -14041,6 +14043,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   conflictContradictingIds = [...conflictContradictingIds].reverse();
   documentFlags = [...documentFlags].reverse();
   wrapCampaignBriefHtml = true;
+  reflowCampaignBriefPlainText = true;
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();
 
