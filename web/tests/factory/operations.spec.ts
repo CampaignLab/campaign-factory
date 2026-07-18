@@ -12541,6 +12541,103 @@ test("operations workbench resets top-level drafts that mention another curated 
   expect(storedState).not.toContain("Tower Hamlets");
 });
 
+test("operations workbench scrubs shorthand curated campaign phrases from queued drafts before outbox and export", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 63, lastSequence: 2130, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Keep KFC Out of Ormskirk",
+          place: "Ormskirk, Lancashire",
+          next: "Check Ormskirk appeal records before public escalation",
+        }),
+        evidence: campaignEvidence([{ id: "shorthand-curated-scrub", description: "Check Ormskirk appeal records", reason: "Queued draft export scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 63,
+        sourceLastSequence: 2130,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This top-level copy is already reset and should not create an outbox row.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${id}:leisure-park-stale-draft`,
+            title: "Leisure park redevelopment queue note",
+            channel: "Email",
+            subject: "Stop the leisure park redevelopment update",
+            body: "This stale queued draft only carries a shorthand Barnet source phrase, not the full Barnet title.",
+            reviewerNote: "Queue after the leisure park redevelopment decision is checked.",
+            status: "queued",
+            queuedAt: "2026-07-17T21:00:00.000Z",
+            createdAt: "2026-07-17T20:05:00.000Z",
+            updatedAt: "2026-07-17T20:10:00.000Z",
+            sourceWorkingCopy: {
+              id: `source:${id}:digital-pack`,
+              campaignId: id,
+              title: "Ormskirk supporter email from source",
+              channel: "Email",
+              sourceDocument: "Digital Campaign Pack",
+              sourceDocumentKey: "digital_campaign_pack",
+              createdAt: "2026-07-17T20:05:00.000Z",
+              warnings: ["Confirm Ormskirk appeal records before stronger claims."],
+              provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${id}:leisure-park-stale-draft`,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "leisure-park-queued", label: "Queued leisure park redevelopment draft locally." }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("leisure park redevelopment");
+
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download JSON" }).click(),
+  ]);
+  const jsonPath = await jsonDownload.path();
+  expect(jsonPath).toBeTruthy();
+  const packText = await readFile(jsonPath!, "utf8");
+  expect(packText).not.toContain("leisure park redevelopment");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).not.toContain("leisure park redevelopment");
+});
+
 test("operations portfolio sanitizes malformed browser-local state before local counts", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {

@@ -29,15 +29,18 @@ const CURATED_CAMPAIGN_TEXT_GUARDS: Record<string, RegExp[]> = {
   "69f257b6-9913-4395-94f7-5c25b4b5fe95": [
     /\bKeep KFC Out of Ormskirk\b/i,
     /\bKFC (?:being built|appeal|out) in Ormskirk\b/i,
+    /\b(?:Ormskirk\b.{0,80}\bKFC|KFC\b.{0,80}\bOrmskirk)\b/i,
     /\bOrmskirk, Lancashire\b/i,
   ],
   "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": [
     /\bBuild 5,000 affordable (?:homes|houses) in Tower Hamlets\b/i,
+    /\b5,000 affordable (?:homes|houses)\b/i,
     /\bTower Hamlets (?:affordable housing|housing targets?|café outreach)\b/i,
     /\bTower Hamlets, London\b/i,
   ],
   "6b54225d-afa3-41d1-b053-89741094f153": [
     /\bStop the leisure park redevelopment in Barnet\b/i,
+    /\bleisure park redevelopment\b/i,
     /\bBarnet (?:Council committee|decision records?|GLA|leisure park)\b/i,
     /\bBarnet, London\b/i,
   ],
