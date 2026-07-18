@@ -14674,6 +14674,8 @@ test("operations workbench: all real campaign routes export source-specific loca
       const markdownPath = await markdownDownload.path();
       expect(markdownPath).toBeTruthy();
       const markdown = await readFile(markdownPath!, "utf8");
+      expect(markdown).toContain("Source brief: https://campaign-factory.vercel.app/factory/c/69f257b6-9913-4395-94f7-5c25b4b5fe95");
+      expect(markdown).toContain("Canonical source origin: https://campaign-factory.vercel.app");
       expect(markdown).toContain("Terminal source gap: Export should carry the source terminal gap for Keep KFC Out of Ormskirk (journey step 6) · run agent-69f257b6");
       expect(markdown).toContain("Draft verification note: Digital Campaign Pack — Verify draft boundaries for Ormskirk, Lancashire before outreach.");
     }

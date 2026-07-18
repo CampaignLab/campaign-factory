@@ -3855,6 +3855,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         "",
         `Exported: ${pack.exportedAt}`,
         campaign.sourceHref ? `Source brief: ${campaign.sourceHref}` : `Source: ${campaign.sourceOrigin}`,
+        `Canonical source origin: ${campaign.sourceOrigin}`,
         `Status: ${campaign.runStatus}`,
         ...(source
           ? [
