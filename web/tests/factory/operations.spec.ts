@@ -13974,6 +13974,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let conflictAffectedOutputs = ["campaign_strategy", "digital_pack"];
   let conflictContradictingIds = ["claim-2", "claim-1"];
   let documentFlags = ["Unresolved load-bearing claim: Unresolved source claim 1", "Unresolved load-bearing claim: Unresolved source claim 2"];
+  let wrapCampaignBriefHtml = false;
 
   const sourceEvidence = () => {
     const evidence = campaignEvidence(nextChecks, 2);
@@ -14009,7 +14010,13 @@ test("operations workbench: order-only source metadata changes keep the acknowle
         sourceOrigin: "https://campaign-factory.vercel.app",
         run: { campaignId, status: "partial", stateVersion: 44, lastSequence: 1909, events: [] },
         documents: campaignOperationsDocuments({ title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", next: "Check Ormskirk appeal records" }).map((document) =>
-          document.key === "campaign_brief" ? { ...document, flags: documentFlags } : document,
+          document.key === "campaign_brief"
+            ? {
+                ...document,
+                flags: documentFlags,
+                html: wrapCampaignBriefHtml ? `<section class="source-shell" data-route="campaign-brief">${document.html}</section>` : document.html,
+              }
+            : document,
         ),
         evidence: sourceEvidence(),
       }),
@@ -14033,6 +14040,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   conflictAffectedOutputs = [...conflictAffectedOutputs].reverse();
   conflictContradictingIds = [...conflictContradictingIds].reverse();
   documentFlags = [...documentFlags].reverse();
+  wrapCampaignBriefHtml = true;
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();
 
