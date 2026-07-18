@@ -55,6 +55,38 @@ const SOURCE_AFFECTED_SECTION_KEYS = new Set([
   "media_pack",
   "digital_pack",
 ]);
+const SOURCE_AFFECTED_SECTION_ALIASES: Record<string, string> = {
+  problemstatement: "problem",
+  theproblem: "problem",
+  researchandevidence: "evidence",
+  evidencebase: "evidence",
+  research: "evidence",
+  objectiveandtheoryofchange: "objective",
+  objectivetheoryofchange: "objective",
+  theoryofchange: "objective",
+  thedecisionroute: "decision_route",
+  powerandstakeholders: "power",
+  powerstakeholdermap: "power",
+  powerandstakeholdermap: "power",
+  stakeholdermap: "power",
+  pressureanalysis: "pressure",
+  campaignstrategy: "strategy",
+  tacticsandsequencing: "tactics",
+  tacticsandtimeline: "tactics",
+  tacticstimeline: "tactics",
+  organisingplan: "organising",
+  campaignbrief: "campaign_brief",
+  brief: "campaign_brief",
+  objectiveandtheoryofchangedocument: "objective_theory_of_change",
+  powerandstakeholdermapdocument: "power_stakeholder_map",
+  campaignstrategydocument: "campaign_strategy",
+  tacticsandtimelinedocument: "tactics_timeline",
+  organisingplandocument: "organising_plan",
+  lobbyingpack: "lobbying_pack",
+  mediapack: "media_pack",
+  digitalcampaignpack: "digital_pack",
+  digitalpack: "digital_pack",
+};
 const SOURCE_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const SOURCE_UNRESOLVED_LABELS = new Set(["Conflicting evidence", "Verification incomplete", "External information unavailable"]);
 // Operations only needs the source run header; request an event-free polling
@@ -408,6 +440,26 @@ function uniqueStrings(values: unknown) {
   return unique;
 }
 
+function normalizeSourceAffectedSectionKey(value: string) {
+  if (SOURCE_AFFECTED_SECTION_KEYS.has(value)) return value;
+  const folded = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return SOURCE_AFFECTED_SECTION_ALIASES[folded] ?? value;
+}
+
+function normalizeSourceAffectedSectionValues(values: unknown) {
+  if (!Array.isArray(values)) return values;
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const section = normalizeSourceAffectedSectionKey(value);
+    if (seen.has(section)) continue;
+    seen.add(section);
+    normalized.push(section);
+  }
+  return normalized;
+}
+
 function isRecoverableSourceTerminalGap(value: Record<string, unknown>) {
   return (
     typeof value.id === "string" &&
@@ -429,7 +481,7 @@ function normalizeSourceDocuments(value: unknown) {
 function normalizeSourceEvidenceClaim(value: unknown, claimIds: Set<string>, fallbackLabel?: string) {
   if (typeof value !== "object" || value === null) return value;
   const record = value as Record<string, unknown>;
-  const affectedOutputs = Array.isArray(record.affectedOutputs) ? (uniqueStrings(record.affectedOutputs) as string[]) : record.affectedOutputs;
+  const affectedOutputs = normalizeSourceAffectedSectionValues(record.affectedOutputs);
   const contradictsClaimIds = Array.isArray(record.contradictsClaimIds) ? (uniqueStrings(record.contradictsClaimIds) as string[]) : record.contradictsClaimIds;
   const label = typeof record.label === "string" && SOURCE_VERIFICATION_LABELS.has(record.label) ? record.label : fallbackLabel;
   return {
@@ -583,7 +635,7 @@ function normalizeSourceEvidence(value: unknown) {
             seenNextCheckIds.add(checkRecord.id);
           }
           const checkClaimIds = Array.isArray(checkRecord.claimIds) ? (uniqueStrings(checkRecord.claimIds) as string[]) : checkRecord.claimIds;
-          const affectedSections = Array.isArray(checkRecord.affectedSections) ? (uniqueStrings(checkRecord.affectedSections) as string[]) : checkRecord.affectedSections;
+          const affectedSections = normalizeSourceAffectedSectionValues(checkRecord.affectedSections);
           return [{
             ...checkRecord,
             claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds,
