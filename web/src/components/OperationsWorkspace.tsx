@@ -1082,17 +1082,20 @@ function localActionSourceMatchesStoredSourceId(action: LocalAction) {
   const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
   const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
   const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
+  const describesNextCheck = source.includes("evidence & checks") && provenance.includes("next check");
+  const describesIncompleteSource = title.includes("incomplete") && source.includes("incomplete") && (provenance.includes("remains") || provenance.includes("incomplete"));
+  const describesTacticTarget = source.includes("tactics and timeline") && provenance.includes("tactic target");
 
   if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id) || /^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) {
-    return source.includes("evidence & checks") && provenance.includes("next check");
+    return describesNextCheck;
   }
   if (/^source:[0-9a-f-]{36}:incomplete:[a-z0-9_:-]+$/i.test(action.id)) {
-    return title.includes("incomplete") && source.includes("incomplete") && (provenance.includes("remains") || provenance.includes("incomplete"));
+    return describesIncompleteSource;
   }
   if (/^source:[0-9a-f-]{36}:tactic:/i.test(action.id)) {
-    return source.includes("tactics and timeline") && provenance.includes("tactic target");
+    return describesTacticTarget;
   }
-  return id.startsWith("source:");
+  return id.startsWith("source:") && !describesNextCheck && !describesIncompleteSource && !describesTacticTarget;
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
