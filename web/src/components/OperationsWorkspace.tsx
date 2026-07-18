@@ -1206,15 +1206,29 @@ function localActionTacticMatchesStoredSourceId(actionId: string, title: string,
   return Boolean(storedTitleSlug && canonicalTitleSlug && storedTitleSlug === canonicalTitleSlug && source.includes("tactics and timeline") && provenance.includes("tactic target"));
 }
 
+function localActionNextCheckMatchesStoredSourceId(actionId: string, title: string, source: string, provenance: string) {
+  const match = actionId.match(/^source:[0-9a-f-]{36}:next-check:([a-z0-9_-]{1,80})$/);
+  if (!match) return false;
+  const checkId = match[1] ?? "";
+  if (!checkId || checkId !== checkId.toLowerCase()) return false;
+  return Boolean(
+    source.includes("evidence & checks") &&
+      title.startsWith("check:") &&
+      provenance.includes("derived from next check") &&
+      provenance.includes(`next check ${checkId}`),
+  );
+}
+
 function localActionSourceMatchesStoredSourceId(action: LocalAction) {
   const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
   const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
   const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
   const describesNextCheck = source.includes("evidence & checks") && provenance.includes("next check");
 
-  if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id) || /^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) {
+  if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id)) {
     return describesNextCheck;
   }
+  if (/^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) return localActionNextCheckMatchesStoredSourceId(action.id, title, source, provenance);
   if (/^source:[0-9a-f-]{36}:incomplete:/i.test(action.id)) {
     return localActionIncompleteDocumentMatchesStoredSourceId(action.id, title, source, provenance);
   }
@@ -2309,7 +2323,7 @@ function sourcePrimaryCheckButton(source: CampaignSource) {
 
 function sourceCheckActionId(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
   if (index === 0) return `source:${source.campaignId}:primary-source-check`;
-  return `source:${source.campaignId}:next-check:${check.id || index}`;
+  return `source:${source.campaignId}:next-check:${check.id || index + 1}`;
 }
 
 function sourceCheckActionTitle(source: CampaignSource, check: EvidenceAndNextChecks["nextChecks"][number], index: number) {
