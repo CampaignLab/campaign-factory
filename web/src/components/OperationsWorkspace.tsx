@@ -946,6 +946,7 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
   if (!value || typeof value !== "object") return null;
   const copy = value as Partial<SourceWorkingCopy>;
+  const campaignId = normaliseStoredCampaignId(copy.campaignId);
   if (
     typeof copy.id !== "string" ||
     !copy.id ||
@@ -953,15 +954,14 @@ function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
     !copy.title ||
     typeof copy.sourceDocument !== "string" ||
     !copy.sourceDocument ||
-    typeof copy.campaignId !== "string" ||
-    !copy.campaignId ||
+    !campaignId ||
     sourceWorkingCopyHasMalformedOptionalField(copy)
   ) {
     return null;
   }
   return {
     id: copy.id,
-    campaignId: copy.campaignId,
+    campaignId,
     title: copy.title,
     channel: typeof copy.channel === "string" && copy.channel ? copy.channel : "Source draft",
     sourceDocument: copy.sourceDocument,
@@ -991,29 +991,32 @@ function textFieldsReferenceOnlyExpectedCampaign(values: string[], expectedWorks
 }
 
 function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: string) {
-  const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
-  if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
-  if (!textFieldsReferenceOnlyExpectedCampaign([action.id, action.title, action.source, action.owner, action.timing, action.provenance], expectedWorkspaceKey)) return false;
-  const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1];
-  if (provenanceCampaignId && provenanceCampaignId !== expectedWorkspaceKey) return false;
-  return Boolean(idCampaignId === expectedWorkspaceKey || provenanceCampaignId === expectedWorkspaceKey);
+  const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
+  const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
+  if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
+  if (!textFieldsReferenceOnlyExpectedCampaign([action.id, action.title, action.source, action.owner, action.timing, action.provenance], expectedCampaignId)) return false;
+  const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
+  if (provenanceCampaignId && provenanceCampaignId !== expectedCampaignId) return false;
+  return Boolean(idCampaignId === expectedCampaignId || provenanceCampaignId === expectedCampaignId);
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
-  if (copy.campaignId !== expectedWorkspaceKey) return false;
-  const idCampaignId = copy.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
-  if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
-  if (!textFieldsReferenceOnlyExpectedCampaign([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings], expectedWorkspaceKey)) return false;
-  const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1];
-  if (provenanceCampaignId && provenanceCampaignId !== expectedWorkspaceKey) return false;
+  const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
+  if (copy.campaignId !== expectedCampaignId) return false;
+  const idCampaignId = copy.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
+  if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
+  if (!textFieldsReferenceOnlyExpectedCampaign([copy.id, copy.title, copy.channel, copy.sourceDocument, copy.sourceDocumentKey, copy.provenance, ...copy.warnings], expectedCampaignId)) return false;
+  const provenanceCampaignId = copy.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
+  if (provenanceCampaignId && provenanceCampaignId !== expectedCampaignId) return false;
   return true;
 }
 
 function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey: string) {
-  const idCampaignId = draft.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1];
-  if (idCampaignId && idCampaignId !== expectedWorkspaceKey) return false;
-  if (!textFieldsReferenceOnlyExpectedCampaign([draft.id, draft.title, draft.channel, draft.subject, draft.body, draft.reviewerNote], expectedWorkspaceKey)) return false;
-  return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedWorkspaceKey);
+  const expectedCampaignId = expectedWorkspaceKey.toLowerCase();
+  const idCampaignId = draft.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
+  if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
+  if (!textFieldsReferenceOnlyExpectedCampaign([draft.id, draft.title, draft.channel, draft.subject, draft.body, draft.reviewerNote], expectedCampaignId)) return false;
+  return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedCampaignId);
 }
 
 function stableTextCompare(a: string, b: string) {
@@ -1053,6 +1056,12 @@ function normaliseQueuedStatus(status: unknown, queuedAt: string | null): DraftS
 
 function normaliseStoredTimestamp(value: unknown) {
   return typeof value === "string" && value && isValidStoredTimestamp(value) ? value : null;
+}
+
+function normaliseStoredCampaignId(value: unknown) {
+  if (typeof value !== "string") return null;
+  const campaignId = value.trim().toLowerCase();
+  return UUID_RE.test(campaignId) ? campaignId : null;
 }
 
 function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>): WorkingDraft[] {
@@ -1139,7 +1148,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     activeDraft: draftLibrary.some((draft) => draft.id === parsed.activeDraft)
       ? (parsed.activeDraft as DraftId)
       : initialState.activeDraft,
-    workspaceKey: typeof parsed.workspaceKey === "string" ? parsed.workspaceKey : initialState.workspaceKey,
+    workspaceKey: normaliseStoredCampaignId(parsed.workspaceKey) ?? (typeof parsed.workspaceKey === "string" ? parsed.workspaceKey : initialState.workspaceKey),
     sourceStateVersion: normaliseOptionalSourceSequence(parsed.sourceStateVersion),
     sourceLastSequence: normaliseOptionalSourceSequence(parsed.sourceLastSequence),
     sourceDocumentSignature: typeof parsed.sourceDocumentSignature === "string" ? parsed.sourceDocumentSignature : null,

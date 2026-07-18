@@ -13835,6 +13835,119 @@ test("operations portfolio removes browser-local state stored under the wrong ca
   await expect.poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)).toBeNull();
 });
 
+test("operations portfolio case-folds browser-local source provenance before local counts", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const uppercaseCampaignId = campaignId.toUpperCase();
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 60, lastSequence: 2120, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning records" }),
+        evidence: campaignEvidence([{ id: "portfolio-case-fold", description: "Check Barnet planning records", reason: "Portfolio case-folded source provenance guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ id, upperId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${id}`,
+        JSON.stringify({
+          workspaceKey: upperId,
+          sourceStateVersion: 60,
+          sourceLastSequence: 2120,
+          sourceDocumentSignature: `source:${upperId}:completed:current-baseline`,
+          sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+          selectedSegment: "source_primary",
+          subject: "Barnet source draft for local review",
+          body: "This browser-local source draft keeps uppercase campaign provenance from an older saved workspace.",
+          reviewerNote: "Review this Barnet source copy before local queueing.",
+          status: "review",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "overview",
+          contactFilter: "source_primary",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${upperId}:portfolio-case-fold-action`,
+              title: "Check Barnet planning records",
+              source: "Campaign source · Evidence & checks",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${upperId}; created from Evidence & checks.`,
+            },
+          ],
+          workingDrafts: [
+            {
+              id: `source:${upperId}:draft:working-case-fold`,
+              title: "Barnet supporter update",
+              channel: "Email",
+              subject: "Barnet supporter update",
+              body: "This browser-local working draft also keeps uppercase campaign provenance from an older saved workspace.",
+              reviewerNote: "Review this source-bound copy before local queueing.",
+              status: "approved",
+              queuedAt: null,
+              createdAt: "2026-07-17T19:45:00.000Z",
+              updatedAt: "2026-07-17T19:45:00.000Z",
+              sourceWorkingCopy: {
+                id: `source:${upperId}:draft:working-case-fold`,
+                campaignId: upperId,
+                title: "Barnet supporter update",
+                channel: "Email",
+                sourceDocument: "Digital Campaign Pack",
+                sourceDocumentKey: "digital_pack",
+                createdAt: "2026-07-17T19:45:00.000Z",
+                warnings: ["Source campaign provenance was saved uppercase by an older browser state."],
+                provenance: `Source campaign ${upperId}; copied from Digital Campaign Pack into browser-local operations.`,
+              },
+            },
+          ],
+          activeWorkingDraftId: `source:${upperId}:draft:working-case-fold`,
+          sourceWorkingCopy: {
+            id: `source:${upperId}:draft:case-fold`,
+            campaignId: upperId,
+            title: "Barnet local review draft",
+            channel: "Source draft",
+            sourceDocument: "Digital Campaign Pack",
+            sourceDocumentKey: "digital_pack",
+            createdAt: "2026-07-17T19:30:00.000Z",
+            warnings: ["Source campaign provenance was saved uppercase by an older browser state."],
+            provenance: `Source campaign ${upperId}; copied from Digital Campaign Pack into browser-local operations.`,
+          },
+          sourceRecheckStateVersion: null,
+          sourceRecheckLastSequence: null,
+          sourceRecheckDocumentSignature: null,
+          sourceRecheckVisitedViews: [],
+          activity: [{ id: "portfolio-case-fold-action", label: "Created action: Check Barnet planning records" }],
+        }),
+      );
+    },
+    { id: campaignId, upperId: uppercaseCampaignId },
+  );
+
+  await page.goto("/operations");
+  await expect(page.getByRole("heading", { name: "Stop the leisure park redevelopment in Barnet" })).toBeVisible();
+  const barnetRow = page.locator("article").filter({ hasText: "Stop the leisure park redevelopment in Barnet" });
+  await expect(barnetRow).toContainText("1 action · 2 working drafts · 1 review");
+  await expect(barnetRow).not.toContainText("no browser-local operations work yet");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.workspaceKey).toBe(campaignId);
+  expect(storedState.localActions).toHaveLength(1);
+  expect(storedState.localActions[0].id).toContain(uppercaseCampaignId);
+  expect(storedState.workingDrafts).toHaveLength(2);
+  expect(storedState.workingDrafts.map((draft: { sourceWorkingCopy: { campaignId: string } }) => draft.sourceWorkingCopy.campaignId)).toEqual([campaignId, campaignId]);
+});
+
 test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
