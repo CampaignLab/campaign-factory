@@ -1301,7 +1301,7 @@ function sourceWorkingCopyProvenanceNamesOnlySourceResource(provenance: string, 
   const namedResourceTitles = resources
     .map((candidate) => normaliseOperationsSourceInlineText(candidate.title).toLowerCase())
     .filter((candidateTitle) => candidateTitle && normalizedProvenance.includes(candidateTitle));
-  return namedResourceTitles.length === 0 || namedResourceTitles.every((candidateTitle) => candidateTitle === normalizedResourceTitle);
+  return namedResourceTitles.length > 0 && namedResourceTitles.every((candidateTitle) => candidateTitle === normalizedResourceTitle);
 }
 
 function sourceWorkingCopyMatchesCurrentSourceResource(copy: SourceWorkingCopy, resources: SourceResource[]) {
