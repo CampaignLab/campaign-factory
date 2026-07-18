@@ -72,6 +72,14 @@ function normaliseSourcePresentationText(value: string) {
     .trim();
 }
 
+function normaliseSourceInlineText(value: string) {
+  return normaliseSourcePresentationText(value).replace(/\s+/g, " ");
+}
+
+function sourceTextIncludes(value: string, expected: string) {
+  return normaliseSourceInlineText(value).includes(normaliseSourceInlineText(expected));
+}
+
 const OPERATIONS_SOURCE_HTML_ENTITIES: Record<string, string> = {
   aacute: "á",
   Aacute: "Á",
@@ -173,7 +181,7 @@ function hasRenderedText(value: unknown): value is string {
 }
 
 function hasCompiledDocumentDisclaimer(value: Pick<CompiledDocument, "html" | "plainText">) {
-  return value.plainText.includes(DOCUMENT_DISCLAIMER) && visibleRenderedText(value.html).includes(DOCUMENT_DISCLAIMER);
+  return sourceTextIncludes(value.plainText, DOCUMENT_DISCLAIMER) && sourceTextIncludes(visibleRenderedText(value.html), DOCUMENT_DISCLAIMER);
 }
 
 function isUniqueNonEmptyStringArray(value: unknown): value is string[] {
@@ -265,14 +273,14 @@ function isOptionalUniqueNonEmptyStringArray(value: unknown): value is string[] 
 
 function isOperationsDocumentFlag(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
-  const normalized = normaliseSourcePresentationText(value);
+  const normalized = normaliseSourceInlineText(value);
   if (OPERATIONS_DOCUMENT_FLAGS.has(normalized)) return true;
   if (!normalized.startsWith(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM)) return false;
   return normalized.slice(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim().length > 0;
 }
 
 function operationsDocumentFlagClaimText(value: string) {
-  const normalized = normaliseSourcePresentationText(value);
+  const normalized = normaliseSourceInlineText(value);
   if (!normalized.startsWith(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM)) return null;
   return normalized.slice(OPERATIONS_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
 }
@@ -281,7 +289,7 @@ function isOperationsDocumentFlagArray(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
   for (const item of value) {
-    const normalized = typeof item === "string" ? normaliseSourcePresentationText(item) : "";
+    const normalized = typeof item === "string" ? normaliseSourceInlineText(item) : "";
     if (!isOperationsDocumentFlag(item) || seen.has(normalized)) return false;
     seen.add(normalized);
   }
@@ -442,7 +450,7 @@ export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocum
   for (const group of evidence.groups) {
     for (const claim of group.claims) {
       if (claim.loadBearing && UNRESOLVED_LABELS.has(claim.label)) {
-        unresolvedLoadBearingClaimTexts.add(claim.text);
+        unresolvedLoadBearingClaimTexts.add(normaliseSourceInlineText(claim.text));
       }
     }
   }
@@ -450,16 +458,17 @@ export function hasConsistentOperationsDocumentEvidence(documents: CompiledDocum
   for (const doc of documents) {
     const plainText = doc.plainText;
     const renderedText = visibleRenderedText(doc.html);
-    const flags = new Set(doc.flags);
-    const hasVerificationNote = plainText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || renderedText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE);
-    const hasPackVerificationNotes = doc.isPack && (plainText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || renderedText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING));
+    const flags = new Set(doc.flags.map(normaliseSourceInlineText));
+    const hasVerificationNote = sourceTextIncludes(plainText, OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || sourceTextIncludes(renderedText, OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE);
+    const hasPackVerificationNotes = doc.isPack && (sourceTextIncludes(plainText, OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || sourceTextIncludes(renderedText, OPERATIONS_PACK_VERIFICATION_NOTES_HEADING));
     if (hasVerificationNote && !flags.has(OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION)) return false;
     if (hasPackVerificationNotes && !flags.has(OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS)) return false;
     for (const flag of doc.flags) {
+      const normalizedFlag = normaliseSourceInlineText(flag);
       const claimText = operationsDocumentFlagClaimText(flag);
       if (claimText !== null && !unresolvedLoadBearingClaimTexts.has(claimText)) return false;
-      if (flag === OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION && (!plainText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || !renderedText.includes(OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE))) return false;
-      if (flag === OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS && (!doc.isPack || !plainText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || !renderedText.includes(OPERATIONS_PACK_VERIFICATION_NOTES_HEADING))) return false;
+      if (normalizedFlag === OPERATIONS_DOCUMENT_FLAG_NEEDS_VERIFICATION && (!sourceTextIncludes(plainText, OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE) || !sourceTextIncludes(renderedText, OPERATIONS_DOCUMENT_NEEDS_VERIFICATION_NOTE))) return false;
+      if (normalizedFlag === OPERATIONS_DOCUMENT_FLAG_PLACEHOLDERS && (!doc.isPack || !sourceTextIncludes(plainText, OPERATIONS_PACK_VERIFICATION_NOTES_HEADING) || !sourceTextIncludes(renderedText, OPERATIONS_PACK_VERIFICATION_NOTES_HEADING))) return false;
     }
   }
 

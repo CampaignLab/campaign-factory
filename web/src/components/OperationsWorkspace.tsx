@@ -2184,7 +2184,7 @@ function sourceDocumentSignature(source: CampaignSource) {
   const documentStatuses = source.documents
     .map((doc) => {
       const documentText = sourceSignatureText(`${doc.name}\n${sourceSignaturePlainText(doc.plainText)}\n${sourceSignatureHtmlText(doc.html)}`);
-      const documentFlags = sourceSignatureStrings(doc.flags.map(sourceSignatureText)).join("~");
+      const documentFlags = sourceSignatureStrings(doc.flags.map(sourceSignaturePlainText)).join("~");
       return `${doc.key}:${doc.status}:${doc.resourceCount}:${documentFlags}:${sourceSignatureHash(documentText)}`;
     })
     .sort(sourceSignatureCompare)

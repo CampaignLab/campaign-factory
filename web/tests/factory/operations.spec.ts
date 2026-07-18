@@ -13983,10 +13983,13 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let encodePlainSourceEntities = false;
   let reflowSourceEvidenceText = false;
 
+  const reflowEvidenceText = (value: string) => (reflowSourceEvidenceText ? value.replace(/ /g, "\n  ") : value);
+  const encodeSourceText = (value: string) => (encodePlainSourceEntities ? value.replace(/Café/g, "Caf&eacute;").replace(/—/g, "&mdash;") : value);
+  const sourceEvidenceText = (value: string) => encodeSourceText(reflowEvidenceText(useComposedSourceAccents ? value.normalize("NFC") : value));
+  const sourceDocumentFlagText = (value: string) =>
+    sourceEvidenceText(includeNoBreakSourceSpaces ? value.replace("load-bearing claim", "load-bearing\u00a0claim") : value);
+
   const sourceEvidence = () => {
-    const reflowEvidenceText = (value: string) => reflowSourceEvidenceText ? value.replace(/ /g, "\n  ") : value;
-    const encodeSourceText = (value: string) => encodePlainSourceEntities ? value.replace(/Café/g, "Caf&eacute;").replace(/—/g, "&mdash;") : value;
-    const sourceEvidenceText = (value: string) => encodeSourceText(reflowEvidenceText(useComposedSourceAccents ? value.normalize("NFC") : value));
     const evidence = campaignEvidence(
       nextChecks.map((check) => ({
         ...check,
@@ -13995,6 +13998,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
       })),
       2,
     );
+    evidence.groups[0].claims = evidence.groups[0].claims.map((claim) => ({ ...claim, text: sourceEvidenceText(claim.text) }));
     evidence.groups[0].claims[0].affectedOutputs = affectedOutputs;
     evidence.groups[0].claims[1].affectedOutputs = [...affectedOutputs].reverse();
     const appealCheck = evidence.nextChecks.find((check) => check.id === "appeal-check");
@@ -14036,7 +14040,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
           document.key === "campaign_brief"
             ? {
                 ...document,
-                flags: includeNoBreakSourceSpaces ? documentFlags.map((flag) => flag.replace("load-bearing claim", "load-bearing\u00a0claim")) : documentFlags,
+                flags: documentFlags.map(sourceDocumentFlagText),
                 plainText: campaignBriefText(
                   (reflowCampaignBriefPlainText ? document.plainText.replace(/\n/g, "\n \n") : document.plainText).replace(
                     "same readable source boundary",
