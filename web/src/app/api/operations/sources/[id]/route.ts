@@ -496,6 +496,30 @@ function normalizeSourceTerminalGap(value: Record<string, unknown>) {
   return normalized;
 }
 
+function isRecoverableSourceNextCheck(value: Record<string, unknown>) {
+  return (
+    typeof value.id === "string" &&
+    value.id.trim().length > 0 &&
+    typeof value.description === "string" &&
+    value.description.trim().length > 0 &&
+    typeof value.reason === "string" &&
+    value.reason.trim().length > 0 &&
+    Array.isArray(value.affectedSections) &&
+    value.affectedSections.every((section) => typeof section === "string" && SOURCE_AFFECTED_SECTION_KEYS.has(section)) &&
+    (value.claimIds === undefined || (Array.isArray(value.claimIds) && value.claimIds.every((claimId) => typeof claimId === "string" && claimId.trim().length > 0)))
+  );
+}
+
+function normalizeSourceNextCheck(value: Record<string, unknown>, claimIds: Set<string>): Record<string, unknown> {
+  const checkClaimIds = Array.isArray(value.claimIds) ? (uniqueStrings(value.claimIds) as string[]) : value.claimIds;
+  const affectedSections = normalizeSourceAffectedSectionValues(value.affectedSections);
+  return {
+    ...value,
+    claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds === null ? undefined : checkClaimIds,
+    affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
+  };
+}
+
 function normalizeSourceDocuments(value: unknown) {
   return Array.isArray(value)
     ? value.map((document) => (typeof document === "object" && document !== null ? { ...(document as Record<string, unknown>), flags: uniqueStrings((document as Record<string, unknown>).flags) } : document))
@@ -679,6 +703,30 @@ function normalizeSourceEvidence(value: unknown) {
     }
   }
   const seenNextCheckIds = new Set<string>();
+  const nextChecksById = new Map<string, Record<string, unknown>>();
+  const nextCheckOrder: string[] = [];
+  const passthroughNextChecks: unknown[] = [];
+  if (Array.isArray(record.nextChecks)) {
+    for (const check of record.nextChecks) {
+      if (typeof check !== "object" || check === null) {
+        passthroughNextChecks.push(check);
+        continue;
+      }
+      const checkRecord = normalizeSourceNextCheck(check as Record<string, unknown>, claimIds);
+      if (typeof checkRecord.id !== "string") {
+        passthroughNextChecks.push(checkRecord);
+        continue;
+      }
+      if (!seenNextCheckIds.has(checkRecord.id)) {
+        seenNextCheckIds.add(checkRecord.id);
+        nextCheckOrder.push(checkRecord.id);
+      }
+      const current = nextChecksById.get(checkRecord.id);
+      if (!current || (!isRecoverableSourceNextCheck(current) && isRecoverableSourceNextCheck(checkRecord))) {
+        nextChecksById.set(checkRecord.id, checkRecord);
+      }
+    }
+  }
   const terminalGapsById = new Map<string, Record<string, unknown>>();
   const terminalGapOrder: string[] = [];
   const passthroughTerminalGaps: unknown[] = [];
@@ -706,21 +754,12 @@ function normalizeSourceEvidence(value: unknown) {
     totals,
     conflicts: currentClaims.filter((claim) => claim.label === "Conflicting evidence" || (Array.isArray(claim.contradictsClaimIds) && claim.contradictsClaimIds.length > 0)),
     nextChecks: Array.isArray(record.nextChecks)
-      ? record.nextChecks.flatMap((check) => {
-          if (typeof check !== "object" || check === null) return [check];
-          const checkRecord = check as Record<string, unknown>;
-          if (typeof checkRecord.id === "string") {
-            if (seenNextCheckIds.has(checkRecord.id)) return [];
-            seenNextCheckIds.add(checkRecord.id);
-          }
-          const checkClaimIds = Array.isArray(checkRecord.claimIds) ? (uniqueStrings(checkRecord.claimIds) as string[]) : checkRecord.claimIds;
-          const affectedSections = normalizeSourceAffectedSectionValues(checkRecord.affectedSections);
-          return [{
-            ...checkRecord,
-            claimIds: Array.isArray(checkClaimIds) && claimIds.size > 0 ? checkClaimIds.filter((claimId) => claimIds.has(claimId)) : checkClaimIds === null ? undefined : checkClaimIds,
-            affectedSections: Array.isArray(affectedSections) ? affectedSections.filter((section) => SOURCE_AFFECTED_SECTION_KEYS.has(section)) : affectedSections,
-          }];
-        })
+      ? [
+          ...nextCheckOrder
+            .map((id) => nextChecksById.get(id))
+            .filter((check): check is Record<string, unknown> => Boolean(check)),
+          ...passthroughNextChecks,
+        ]
       : normalizeSourceEvidenceArray(record.nextChecks),
     terminalGaps: Array.isArray(record.terminalGaps)
       ? [

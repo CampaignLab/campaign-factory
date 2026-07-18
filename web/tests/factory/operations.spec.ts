@@ -3467,10 +3467,12 @@ test("operations source API: normalizes recoverable legacy source references bef
   legacyClaim.contradictsClaimIds = ["claim-2", "claim-2", "archived-claim-from-previous-build"];
   (evidence.groups[0].claims[1] as { contradictsClaimIds?: null }).contradictsClaimIds = null;
   evidence.conflicts = [legacyClaim, legacyClaim, { ...legacyClaim, id: "archived-claim-from-previous-build", contradictsClaimIds: ["claim-1"] }];
-  const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[] | null; affectedSections: string[] };
+  const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[] | null; affectedSections: string[]; reason: string };
+  const legacyNextCheckReason = legacyNextCheck.reason;
   legacyNextCheck.claimIds = ["claim-1", "claim-1", "archived-claim-from-previous-build"];
   legacyNextCheck.affectedSections = ["documents", "Lobbying Pack document", "lobbying_pack", "Media Pack document", "Tactics & Timeline document", "evidence base"];
-  evidence.nextChecks.push({ ...legacyNextCheck, description: "Duplicate legacy source check should be ignored." });
+  legacyNextCheck.reason = "";
+  evidence.nextChecks.push({ ...legacyNextCheck, reason: legacyNextCheckReason, description: "Duplicate legacy source check should recover the valid source row." });
   evidence.nextChecks.push({ id: "legacy-null-optional", description: "Legacy source check drops null optional claim ids.", reason: "Older builds sometimes serialised missing optional arrays as null.", claimIds: null, affectedSections: ["Campaign Brief document"] });
   evidence.draftNotes = [
     null,
