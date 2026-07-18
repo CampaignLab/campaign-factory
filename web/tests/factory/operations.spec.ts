@@ -12638,6 +12638,73 @@ test("operations workbench scrubs shorthand curated campaign phrases from queued
   expect(storedState).not.toContain("leisure park redevelopment");
 });
 
+test("operations workbench clears queued state from an already reset top-level draft", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "partial", stateVersion: 64, lastSequence: 2140, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Keep KFC Out of Ormskirk",
+          place: "Ormskirk, Lancashire",
+          next: "Check Ormskirk appeal records before public escalation",
+        }),
+        evidence: campaignEvidence([{ id: "reset-top-level-queued-state", description: "Check Ormskirk appeal records", reason: "Already reset top-level queue-state scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 64,
+        sourceLastSequence: 2140,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local draft was reset because it did not retain source-resource provenance for this real campaign.",
+        reviewerNote: "Approve the reset draft anyway.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-17T21:00:00.000Z",
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "queued-reset-draft", label: "Placed approved draft in local demo queue." }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
+  await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Queued locally");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).toContain('"status":"draft"');
+  expect(storedState).toContain('"queuedAt":null');
+  expect(storedState).not.toContain("Approve the reset draft anyway");
+  expect(storedState).not.toContain("queued-reset-draft");
+});
+
 test("operations portfolio sanitizes malformed browser-local state before local counts", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {

@@ -1231,6 +1231,11 @@ function topLevelDraftHasUnprovenancedLocalCopy(state: DemoState) {
   );
 }
 
+function topLevelDraftResetRetainsWorkflowState(state: DemoState) {
+  if (!topLevelDraftLooksAlreadyReset(state)) return false;
+  return Boolean(state.status !== "draft" || state.queuedAt || state.reviewerNote);
+}
+
 function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: string): DemoState {
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
@@ -1285,6 +1290,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
   const removedForeignTopLevelCopy = !topLevelDraftLooksAlreadyReset(state) && !topLevelDraftReferencesOnlyExpectedCampaign(state, expectedWorkspaceKey);
   const removedUnprovenancedTopLevelReviewState = !sourceWorkingCopy && topLevelDraftHasUnprovenancedLocalCopy(state);
+  const removedResetTopLevelWorkflowState = !sourceWorkingCopy && topLevelDraftResetRetainsWorkflowState(state);
   const removedFixtureAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature));
   const removedFixtureSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature));
   const removedForeignAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey));
@@ -1297,7 +1303,14 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ((state.sourceRecheckStateVersion !== null || state.sourceRecheckLastSequence !== null || state.sourceRecheckVisitedViews.length) && !state.sourceRecheckDocumentSignature) ||
       (state.sourceRecheckDocumentSignature && (state.sourceRecheckStateVersion === null || state.sourceRecheckLastSequence === null)),
   );
-  const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy || removedForeignTopLevelCopy || removedUnprovenancedTopLevelReviewState || removedDuplicatedTopLevelSourceCopy;
+  const resetTopLevelDraft =
+    removedMismatchedTopLevelSourceCopy ||
+    removedFixtureSourceWorkingCopy ||
+    removedFixtureTopLevelCopy ||
+    removedForeignTopLevelCopy ||
+    removedUnprovenancedTopLevelReviewState ||
+    removedResetTopLevelWorkflowState ||
+    removedDuplicatedTopLevelSourceCopy;
   const hasRetainedLocalWork = Boolean(localActions.length || workingDrafts.length || sourceWorkingCopy || state.status !== "draft" || state.queuedAt);
   const removedOrphanedDraftWorkflowActivity = !hasRetainedLocalWork && state.activity.some(activityLooksLikeDraftWorkflow);
   const removedQueuedWorkingDraft = state.workingDrafts.some((draft) => draft.status === "queued" && !workingDrafts.some((keptDraft) => keptDraft.id === draft.id));
@@ -1351,6 +1364,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     !removedFixtureTopLevelCopy &&
     !removedForeignTopLevelCopy &&
     !removedUnprovenancedTopLevelReviewState &&
+    !removedResetTopLevelWorkflowState &&
     !removedDuplicatedTopLevelSourceCopy &&
     !removedOrphanedDraftWorkflowActivity &&
     !resetAcknowledgedSourceBaseline &&
@@ -1381,7 +1395,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
           ? "This browser-local top-level draft was reset because the same source working copy already exists in the local drafts list. The campaign-specific local draft was preserved, and duplicate review or queue counts were removed."
           : removedForeignTopLevelCopy
             ? "This browser-local draft was reset because its text referenced another curated campaign. Use source material from this campaign before review or local queueing."
-            : removedUnprovenancedTopLevelReviewState && !removedFixtureSourceWorkingCopy && !removedFixtureTopLevelCopy
+            : (removedUnprovenancedTopLevelReviewState || removedResetTopLevelWorkflowState) && !removedFixtureSourceWorkingCopy && !removedFixtureTopLevelCopy
               ? "This browser-local review or queue state was reset because it did not retain source-resource provenance for this real campaign. Use this campaign's source resources to create a local working copy before review or local queueing."
               : "This browser-local draft was reset because it still contained fixture campaign copy or fixture-bound provenance. Use this real campaign's source material before review or local queueing."
       : state.body,
