@@ -292,6 +292,41 @@ test("operations source API: curated UUID ids are canonicalized before source re
   }
 });
 
+test("operations source API: unsafe run sequence numbers fail closed before document hydration", async () => {
+  const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const runBody = JSON.stringify({ campaignId: curatedId, status: "completed", stateVersion: Number.MAX_SAFE_INTEGER + 1, lastSequence: 14, events: [] });
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    expect(init?.headers).toEqual(SOURCE_FETCH_HEADERS);
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("manual");
+
+    if (String(input).endsWith(`/api/factory/runs/${curatedId}`)) {
+      return new Response(runBody, { status: 200, headers: { "content-type": "application/json", "content-length": String(Buffer.byteLength(runBody)) } });
+    }
+
+    throw new Error(`Document hydration must not run after an unsafe run sequence: ${String(input)}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await getOperationsSource(new Request(`http://localhost/api/operations/sources/${curatedId}`), { params: Promise.resolve({ id: curatedId }) });
+    expect(response.status).toBe(502);
+    expectPublicSourceJsonBoundary(response.headers, "unsafe source sequence");
+
+    const body = (await response.json()) as { error?: string; detail?: string; sourceStep?: string; sourceFailureKind?: string };
+    expect(body.error).toBe("Campaign source contract mismatch");
+    expect(body.detail).toBe("The public source did not return a run in the expected shape.");
+    expect(body.sourceStep).toBe("run");
+    expect(body.sourceFailureKind).toBe("contract_mismatch");
+    expect(requestedUrls).toEqual([`https://campaign-factory.vercel.app/api/factory/runs/${curatedId}`]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("operations source API: non-GET methods are blocked as read-only no-store responses", async ({ request }) => {
   const curatedId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
@@ -9022,7 +9057,7 @@ test("operations workbench removes incomplete source baseline metadata from real
   expect(stored).not.toContain('"sourceAcknowledgedAt":"2026-07-16T17:54:30.000Z"');
 });
 
-test("operations workbench removes malformed source baseline sequence metadata from real campaign state", async ({ page }) => {
+test("operations workbench removes malformed and unsafe source baseline sequence metadata from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
@@ -9056,12 +9091,12 @@ test("operations workbench removes malformed source baseline sequence metadata f
       `cf_operations_demo_v3:${campaignId}`,
       JSON.stringify({
         workspaceKey: campaignId,
-        sourceStateVersion: -1,
+        sourceStateVersion: Number.MAX_SAFE_INTEGER + 1,
         sourceLastSequence: 24.5,
         sourceDocumentSignature: "real-barnet-source-baseline",
         sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
         sourceRecheckStateVersion: -2,
-        sourceRecheckLastSequence: 25.5,
+        sourceRecheckLastSequence: Number.MAX_SAFE_INTEGER + 1,
         sourceRecheckDocumentSignature: "real-barnet-source-recheck-baseline",
         sourceRecheckVisitedViews: ["evidence", "strategy"],
         selectedSegment: "source_primary",
@@ -9103,10 +9138,10 @@ test("operations workbench removes malformed source baseline sequence metadata f
   expect(stored).toContain('"sourceLastSequence":25');
   expect(stored).toContain('"sourceRecheckVisitedViews":[]');
   expect(stored).toContain('"sourceDocumentSignature":"source:');
-  expect(stored).not.toContain('"sourceStateVersion":-1');
+  expect(stored).not.toContain('"sourceStateVersion":9007199254740992');
   expect(stored).not.toContain('"sourceLastSequence":24.5');
   expect(stored).not.toContain('"sourceRecheckStateVersion":-2');
-  expect(stored).not.toContain('"sourceRecheckLastSequence":25.5');
+  expect(stored).not.toContain('"sourceRecheckLastSequence":9007199254740992');
   expect(stored).not.toContain('"sourceAcknowledgedAt":"2026-07-16T17:54:30.000Z"');
 });
 

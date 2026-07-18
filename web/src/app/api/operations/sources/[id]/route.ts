@@ -763,7 +763,7 @@ function normalizeSourceDocumentSectionKeys(value: unknown, documentKey: unknown
 }
 
 function normalizeSourceNonNegativeInteger(value: unknown) {
-  if (typeof value === "number" && Number.isInteger(value) && value >= 0) return value;
+  if (typeof value === "number") return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
   if (typeof value !== "string") return value;
   const trimmed = value.trim();
   if (!/^\d{1,6}$/.test(trimmed)) return value;

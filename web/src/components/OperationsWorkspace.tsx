@@ -1124,7 +1124,7 @@ function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
 }
 
 function normaliseOptionalSourceSequence(value: unknown) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 function normaliseState(parsed: Partial<DemoState>): DemoState {
