@@ -1043,6 +1043,8 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
       if (!sourceWorkingCopy || typeof draft.id !== "string" || !draft.id || typeof draft.title !== "string" || !draft.title) return null;
       const malformed = workingDraftHasMalformedField(draft);
       const createdAt = normaliseStoredTimestamp(draft.createdAt) ?? sourceWorkingCopy.createdAt;
+      const parsedQueuedAt = malformed ? null : normaliseStoredTimestamp(draft.queuedAt);
+      const status = malformed ? "draft" : normaliseQueuedStatus(draft.status, parsedQueuedAt);
       return {
         id: draft.id,
         title: malformed ? INVALID_LOCAL_DRAFT_SUBJECT : draft.title,
@@ -1050,8 +1052,8 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
         subject: malformed ? INVALID_LOCAL_DRAFT_SUBJECT : typeof draft.subject === "string" && draft.subject ? draft.subject : draft.title,
         body: malformed ? INVALID_LOCAL_DRAFT_BODY : typeof draft.body === "string" && draft.body ? draft.body : "",
         reviewerNote: malformed ? "" : typeof draft.reviewerNote === "string" ? draft.reviewerNote : "",
-        status: malformed ? "draft" : normaliseQueuedStatus(draft.status, normaliseStoredTimestamp(draft.queuedAt)),
-        queuedAt: malformed ? null : normaliseStoredTimestamp(draft.queuedAt),
+        status,
+        queuedAt: status === "queued" ? parsedQueuedAt : null,
         createdAt,
         updatedAt: normaliseStoredTimestamp(draft.updatedAt) ?? createdAt,
         sourceWorkingCopy,
@@ -1061,6 +1063,8 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
 
   const legacyCopy = normaliseSourceWorkingCopy(legacyState.sourceWorkingCopy);
   if (legacyCopy && !normalised.some((draft) => draft.id === legacyCopy.id)) {
+    const parsedQueuedAt = normaliseStoredTimestamp(legacyState.queuedAt);
+    const status = normaliseQueuedStatus(legacyState.status, parsedQueuedAt);
     normalised.unshift({
       id: legacyCopy.id,
       title: legacyCopy.title,
@@ -1068,8 +1072,8 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
       subject: typeof legacyState.subject === "string" && legacyState.subject ? legacyState.subject : legacyCopy.title,
       body: typeof legacyState.body === "string" && legacyState.body ? legacyState.body : "",
       reviewerNote: typeof legacyState.reviewerNote === "string" ? legacyState.reviewerNote : "",
-      status: normaliseQueuedStatus(legacyState.status, normaliseStoredTimestamp(legacyState.queuedAt)),
-      queuedAt: normaliseStoredTimestamp(legacyState.queuedAt),
+      status,
+      queuedAt: status === "queued" ? parsedQueuedAt : null,
       createdAt: legacyCopy.createdAt,
       updatedAt: legacyCopy.createdAt,
       sourceWorkingCopy: legacyCopy,
@@ -1097,7 +1101,8 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   const workingDrafts = normaliseWorkingDrafts(parsed.workingDrafts, parsed);
   const parsedQueuedAt = normaliseStoredTimestamp(parsed.queuedAt);
   const status = normaliseQueuedStatus(parsed.status, parsedQueuedAt);
-  const queuedAt = parsedQueuedAt;
+  const queuedAt = status === "queued" ? parsedQueuedAt : null;
+  const staleQueueTimestamp = Boolean(parsedQueuedAt && status !== "queued");
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === parsed.activeWorkingDraftId)
     ? parsed.activeWorkingDraftId ?? null
     : parsed.sourceWorkingCopy && workingDrafts[0]
@@ -1130,8 +1135,9 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     contactReadinessFilter: ["all", "ready", "review", "blocked"].includes(parsed.contactReadinessFilter || "")
       ? (parsed.contactReadinessFilter as DemoState["contactReadinessFilter"])
       : initialState.contactReadinessFilter,
-    scheduleIntent:
-      (parsed as { scheduleIntent?: unknown }).scheduleIntent === "school_run"
+    scheduleIntent: staleQueueTimestamp
+      ? initialState.scheduleIntent
+      : (parsed as { scheduleIntent?: unknown }).scheduleIntent === "school_run"
         ? "after_next_check"
         : ["after_approval", "tomorrow_morning", "after_next_check"].includes(parsed.scheduleIntent || "")
           ? (parsed.scheduleIntent as DemoState["scheduleIntent"])
@@ -1141,7 +1147,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy: normaliseSourceWorkingCopy(parsed.sourceWorkingCopy),
-    activity: normaliseActivity(parsed.activity),
+    activity: staleQueueTimestamp ? normaliseActivity(parsed.activity).filter((item) => !activityLooksLikeQueueWorkflow(item)) : normaliseActivity(parsed.activity),
     mode: parsed.mode === "preview" ? "preview" : "compose",
   };
 }

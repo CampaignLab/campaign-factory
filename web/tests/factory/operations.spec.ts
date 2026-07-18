@@ -8369,6 +8369,48 @@ test("operations workbench demotes queued fixture draft state without a recorded
   expect(stored).not.toContain('"status":"queued"');
 });
 
+test("operations workbench clears stale queue timestamps from non-queued fixture draft state", async ({ page }) => {
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "cf_operations_demo_v3",
+      JSON.stringify({
+        workspaceKey: "fixture",
+        selectedSegment: "families",
+        subject: "Fixture supporter update approved earlier",
+        body: "Hi — can you help keep the school street conversation moving this week?",
+        reviewerNote: "Approved earlier, but this restored state should not imply it is queued.",
+        status: "approved",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "families",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-16T18:04:30.000Z",
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        activity: [{ id: "fixture-stale-queue-time", label: "Placed approved draft in the local demo queue before the status was restored to approved." }],
+      }),
+    );
+  });
+
+  await page.goto("/operations?demo=fixture&view=outbox");
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.getByText("Approve the draft before it can enter the local demo queue.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Queued for demo");
+  await expect(page.locator("main")).not.toContainText("Placed approved draft in the local demo queue before the status was restored to approved.");
+
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"))).toContain('"queuedAt":null');
+  const stored = await page.evaluate(() => localStorage.getItem("cf_operations_demo_v3"));
+  expect(stored).toContain('"status":"approved"');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).not.toContain("fixture-stale-queue-time");
+  expect(stored).not.toContain("2026-07-16T18:04:30.000Z");
+});
+
 test("operations workbench removes duplicated top-level source copy from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
