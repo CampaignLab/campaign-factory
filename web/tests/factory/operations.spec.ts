@@ -19350,6 +19350,81 @@ test("operations workbench rejects non-canonical source acknowledgement signatur
   expect(JSON.stringify(storedState)).not.toContain(upperCampaignId);
 });
 
+test("operations workbench rejects non-canonical source-scoped local action ids", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const upperCampaignId = campaignId.toUpperCase();
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 75, lastSequence: 2250, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning records" }),
+        evidence: campaignEvidence([{ id: "uppercase-local-action-id", description: "Check Barnet planning records", reason: "Uppercase local action id guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ id, upperId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${id}`,
+        JSON.stringify({
+          workspaceKey: id,
+          sourceStateVersion: 75,
+          sourceLastSequence: 2250,
+          sourceDocumentSignature: `source:${id}:completed:current-baseline`,
+          sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+          selectedSegment: "source_primary",
+          subject: "Local source draft reset",
+          body: "This browser-local workspace has an action whose source-scoped id used non-canonical UUID casing.",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "actions",
+          contactFilter: "all",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${upperId}:next-check:uppercase-local-action-id`,
+              title: "Check Barnet planning records",
+              source: "Campaign source · Evidence & checks",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${id}; derived from next check uppercase-local-action-id; stored only in this browser.`,
+            },
+          ],
+          workingDrafts: [],
+          activeWorkingDraftId: null,
+          sourceWorkingCopy: null,
+          sourceRecheckStateVersion: null,
+          sourceRecheckLastSequence: null,
+          sourceRecheckDocumentSignature: null,
+          sourceRecheckVisitedViews: [],
+          activity: [{ id: "uppercase-local-action-id", label: "Created action: Check Barnet planning records" }],
+        }),
+      );
+    },
+    { id: campaignId, upperId: upperCampaignId },
+  );
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Actions: 0 local items");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.localActions).toHaveLength(0);
+  expect(storedState.activity.some((item: { id: string }) => item.id === "workspace-sanitized")).toBe(true);
+  expect(JSON.stringify(storedState)).not.toContain(upperCampaignId);
+});
+
 test("operations workbench removes orphaned draft activity without dropping source actions", async ({ page }) => {
   const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
 

@@ -942,8 +942,10 @@ function storedTextIsInvisible(value: unknown) {
 function storedSourceScopedIdIsMalformed(value: unknown) {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
-  if (!/^(?:source:)?[0-9a-f-]{36}(?::|$)/i.test(trimmed)) return false;
-  return value !== trimmed || value !== value.normalize("NFC") || normaliseOperationsSourceInlineText(value) !== value;
+  const match = trimmed.match(/^(?:source:)?([0-9a-f-]{36})(?::|$)/i);
+  if (!match) return false;
+  const storedCampaignId = match[1] ?? "";
+  return value !== trimmed || value !== value.normalize("NFC") || normaliseOperationsSourceInlineText(value) !== value || storedCampaignId !== storedCampaignId.toLowerCase();
 }
 
 function storedSourceMetadataTextIsMalformed(value: unknown) {
