@@ -76,16 +76,22 @@ const SOURCE_AFFECTED_SECTION_ALIASES: Record<string, string> = {
   tacticstimeline: "tactics",
   organisingplan: "organising",
   campaignbrief: "campaign_brief",
+  campaignbriefdocument: "campaign_brief",
   brief: "campaign_brief",
   objectiveandtheoryofchangedocument: "objective_theory_of_change",
   powerandstakeholdermapdocument: "power_stakeholder_map",
   campaignstrategydocument: "campaign_strategy",
   tacticsandtimelinedocument: "tactics_timeline",
   organisingplandocument: "organising_plan",
+  organizingplandocument: "organising_plan",
   lobbyingpack: "lobbying_pack",
+  lobbyingpackdocument: "lobbying_pack",
   mediapack: "media_pack",
+  mediapackdocument: "media_pack",
   digitalcampaignpack: "digital_pack",
+  digitalcampaignpackdocument: "digital_pack",
   digitalpack: "digital_pack",
+  digitalpackdocument: "digital_pack",
 };
 const SOURCE_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
 const SOURCE_UNRESOLVED_LABELS = new Set(["Conflicting evidence", "Verification incomplete", "External information unavailable"]);
