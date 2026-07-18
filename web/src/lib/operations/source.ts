@@ -408,6 +408,7 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
 function hasConsistentOperationsRunEvents(value: RunReadModel) {
   const seenEventIds = new Set<string>();
   const seenSequences = new Set<number>();
+  const currentTimestamp = Date.now();
   let previousSequence = 0;
   let previousTimestamp = Number.NEGATIVE_INFINITY;
   let previousStateVersion = Number.NEGATIVE_INFINITY;
@@ -418,6 +419,7 @@ function hasConsistentOperationsRunEvents(value: RunReadModel) {
       seenSequences.has(event.sequence) ||
       event.sequence <= previousSequence ||
       event.sequence > value.lastSequence ||
+      eventTimestamp > currentTimestamp ||
       eventTimestamp < previousTimestamp ||
       (event.stateVersion !== undefined && event.stateVersion > value.stateVersion) ||
       (event.stateVersion !== undefined && event.stateVersion < previousStateVersion)
