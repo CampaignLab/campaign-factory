@@ -941,7 +941,7 @@ function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingC
   return ["channel", "sourceDocumentKey", "provenance"].some((field) => {
     const value = copy[field as keyof SourceWorkingCopy];
     return value !== undefined && typeof value !== "string";
-  }) || (createdAt !== undefined && (typeof createdAt !== "string" || !isValidStoredTimestamp(createdAt))) || (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
+  }) || typeof createdAt !== "string" || !isValidStoredTimestamp(createdAt) || (copy.warnings !== undefined && (!Array.isArray(copy.warnings) || copy.warnings.some((warning) => typeof warning !== "string")));
 }
 
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
@@ -1133,8 +1133,10 @@ function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
     const value = draft[field as keyof WorkingDraft];
     return value !== undefined && typeof value !== "string";
   }) ||
-    (draft.createdAt !== undefined && (typeof draft.createdAt !== "string" || !isValidStoredTimestamp(draft.createdAt))) ||
-    (draft.updatedAt !== undefined && (typeof draft.updatedAt !== "string" || !isValidStoredTimestamp(draft.updatedAt))) ||
+    typeof draft.createdAt !== "string" ||
+    !isValidStoredTimestamp(draft.createdAt) ||
+    typeof draft.updatedAt !== "string" ||
+    !isValidStoredTimestamp(draft.updatedAt) ||
     (draft.queuedAt !== undefined && draft.queuedAt !== null && typeof draft.queuedAt !== "string");
 }
 
@@ -1265,7 +1267,7 @@ function activityLooksTiedToRemovedLocalWork(activity: Activity, removedLocalWor
 }
 
 function activityLooksLikeTopLevelDraftWorkflow(activity: Activity) {
-  return /\b(marked the draft ready|human approval recorded|placed approved draft|approved draft|local demo queue|queued local draft|queued\b.{0,80}\blocally|submitted(?:\b.{0,80}\bdraft)?\b.{0,40}\bfor review|ready for human review)\b/i.test(
+  return /\b(marked the draft ready|human approval recorded|placed approved draft|approved draft|local demo queue|queued local\b.{0,60}\b(?:draft|copy)|queued\b.{0,80}\blocally|submitted(?:\b.{0,80}\bdraft)?\b.{0,40}\bfor review|ready for human review)\b/i.test(
     activity.label,
   );
 }
@@ -1278,7 +1280,7 @@ function activityLooksLikeDraftWorkflow(activity: Activity) {
 }
 
 function activityLooksLikeQueueWorkflow(activity: Activity) {
-  return /\b(placed approved draft|local demo queue|queued local draft|queued\b.{0,80}\blocally)\b/i.test(activity.label);
+  return /\b(placed approved draft|local demo queue|queued local\b.{0,60}\b(?:draft|copy)|queued\b.{0,80}\blocally)\b/i.test(activity.label);
 }
 
 function activityLooksLikeLocalActionWorkflow(activity: Activity) {

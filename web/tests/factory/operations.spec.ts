@@ -9235,6 +9235,113 @@ test("operations workbench rejects malformed source-working-copy optional fields
   expect(stored).not.toContain("Barnet source provenance briefing queued locally from malformed optional source copy fields");
 });
 
+test("operations workbench rejects source copies and drafts missing canonical saved timestamps", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([{ id: "missing-source-copy-timestamps", description: "Check Barnet decision records", reason: "Missing saved timestamp guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${campaignId}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet local source draft missing timestamp",
+        body: "This queued top-level Barnet source copy is missing its canonical saved timestamp and must be reset before export or outbox counts trust it.",
+        reviewerNote: "Do not keep this review note when the source-copy timestamp is missing.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-16T18:04:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: `source:${campaignId}:resource:lobbying_pack:missing-draft-timestamp`,
+            title: "Barnet missing timestamp briefing",
+            channel: "Briefing note",
+            subject: "Missing timestamp working draft should be removed",
+            body: "This Barnet working draft is missing updatedAt, so it must not remain in Drafts, Reviews, Outbox, or export.",
+            reviewerNote: "Saved review note without a canonical updated timestamp.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            sourceWorkingCopy: {
+              id: `source:${campaignId}:resource:lobbying_pack:missing-draft-timestamp`,
+              campaignId,
+              title: "Barnet missing timestamp briefing",
+              channel: "Briefing note",
+              sourceDocument: "Lobbying Pack",
+              sourceDocumentKey: "lobbying_pack",
+              createdAt: "2026-07-16T17:52:30.000Z",
+              warnings: ["Confirm the current Barnet decision record before any external use."],
+              provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+            },
+          },
+        ],
+        activeWorkingDraftId: `source:${campaignId}:resource:lobbying_pack:missing-draft-timestamp`,
+        sourceWorkingCopy: {
+          id: `source:${campaignId}:resource:digital_pack:missing-copy-timestamp`,
+          campaignId,
+          title: "Barnet top-level source copy missing timestamp",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "digital_campaign_pack",
+          warnings: ["Confirm the current Barnet decision record before any external use."],
+          provenance: `Source campaign ${campaignId}; copied from the read-only Digital Campaign Pack into this browser-local workspace.`,
+        },
+        activity: [
+          { id: "missing-draft-timestamp", label: "Barnet missing timestamp briefing queued locally." },
+          { id: "missing-copy-timestamp", label: "Barnet top-level source copy queued locally without a saved timestamp." },
+        ],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Barnet missing timestamp briefing queued locally");
+  await expect(page.locator("main")).not.toContainText("Barnet top-level source copy queued locally without a saved timestamp");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.locator("main")).not.toContainText("Missing timestamp working draft should be removed");
+  await expect(page.locator("main")).not.toContainText("Barnet local source draft missing timestamp");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"sourceWorkingCopy":null');
+  expect(stored).toContain('"subject":"Local source draft reset"');
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("missing-draft-timestamp");
+  expect(stored).not.toContain("missing-copy-timestamp");
+  expect(stored).not.toContain("Barnet top-level source copy missing timestamp");
+});
+
 test("operations workbench rejects malformed top-level draft fields from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
@@ -13189,7 +13296,7 @@ test("operations workbench: legacy fixture top-level drafts are reset for real c
   expect(storedState).not.toContain("local fixture contacts");
 });
 
-test("operations workbench: malformed browser-local timestamps are healed in a real workspace", async ({ page }) => {
+test("operations workbench rejects malformed browser-local timestamps in a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
   await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
@@ -13279,21 +13386,25 @@ test("operations workbench: malformed browser-local timestamps are healed in a r
 
   await page.goto(`/operations?campaignId=${campaignId}&view=outbox`);
   await expect(page.getByText("Keep KFC Out of Ormskirk · Ormskirk, Lancashire")).toBeVisible();
-  await expect(page.getByText("Local Ormskirk source copy")).toBeVisible();
-  await expect(page.getByText("Ormskirk meeting request")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Local Ormskirk source copy");
+  await expect(page.locator("main")).not.toContainText("Ormskirk meeting request");
   await expect(page.locator("main")).not.toContainText("Invalid Date");
   await expect(page.locator("main")).not.toContainText("not-a-real-date");
 
-  await expect
-    .poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId))
-    .not.toContain("not-a-real-date");
   const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "";
+  expect(storedState).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(storedState).toContain('"workingDrafts":[]');
+  expect(storedState).toContain('"sourceWorkingCopy":null');
+  expect(storedState).toContain('"subject":"Local source draft reset"');
+  expect(storedState).not.toContain("not-a-real-date");
   expect(storedState).not.toContain("also-not-a-date");
   expect(storedState).not.toContain("bad-working-draft-date");
   expect(storedState).not.toContain("bad-created-at");
   expect(storedState).not.toContain("bad-updated-at");
   expect(storedState).not.toContain("bad-copy-created-at");
   expect(storedState).not.toContain("bad-top-level-created-at");
+  expect(storedState).not.toContain("timestamp-legacy");
 });
 
 test("operations workbench restores top-level source copies to the editable supporter draft", async ({ page }) => {
