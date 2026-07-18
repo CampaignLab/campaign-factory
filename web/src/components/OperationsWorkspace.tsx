@@ -1005,11 +1005,25 @@ function sourceWorkingCopyIdDocumentKeyMatchesSourceKey(copyId: string, sourceDo
   return false;
 }
 
+function sourceResourceTitleSlug(value: string) {
+  return normaliseOperationsSourceInlineText(value)
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function sourceWorkingCopyIdTitleMatchesSourceTitle(copyId: string, title: string) {
   const sourceTitleMatch = copyId.match(/^source:[0-9a-f-]{36}:resource:[^:]+:(.+)$/i);
   const directTitleMatch = copyId.match(/^[0-9a-f-]{36}:[^:]+:(.+)$/i);
   const storedTitle = sourceTitleMatch?.[1] ?? directTitleMatch?.[1] ?? "";
-  return Boolean(storedTitle && normaliseOperationsSourceInlineText(storedTitle) === normaliseOperationsSourceInlineText(title));
+  const storedTitleSlug = sourceResourceTitleSlug(storedTitle);
+  const visibleTitleSlug = sourceResourceTitleSlug(title);
+  return Boolean(
+    storedTitleSlug &&
+      visibleTitleSlug &&
+      (storedTitleSlug === visibleTitleSlug || visibleTitleSlug.endsWith(`-${storedTitleSlug}`) || storedTitleSlug.endsWith(`-${visibleTitleSlug}`)),
+  );
 }
 
 function sourceWorkingCopyHasMalformedOptionalField(copy: Partial<SourceWorkingCopy>) {
