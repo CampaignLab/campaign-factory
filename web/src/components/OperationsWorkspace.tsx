@@ -1225,7 +1225,12 @@ function localActionNextCheckMatchesStoredSourceId(actionId: string, title: stri
       title.startsWith("check:") &&
       generatedSourceCheckIdMatchesTitle(checkId, title) &&
       provenance.includes("derived from next check") &&
-      provenance.includes(`next check ${checkId}`),
+      provenance.includes(`next check ${checkId}`) &&
+      !source.includes("tactics and timeline") &&
+      !source.includes("incomplete") &&
+      !provenance.includes("tactic target") &&
+      !provenance.includes("incomplete") &&
+      !provenance.includes("remains"),
   );
 }
 
@@ -1236,7 +1241,10 @@ function localActionPrimarySourceCheckMatchesStoredSourceId(title: string, sourc
       /^(confirm|verify)\b/.test(title) &&
       !title.startsWith("check:") &&
       !source.includes("tactics and timeline") &&
-      !provenance.includes("tactic target"),
+      !source.includes("incomplete") &&
+      !provenance.includes("tactic target") &&
+      !provenance.includes("incomplete") &&
+      !provenance.includes("remains"),
   );
 }
 
