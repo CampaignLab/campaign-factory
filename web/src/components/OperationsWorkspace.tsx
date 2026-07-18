@@ -1013,6 +1013,16 @@ function workingDraftMatchesWorkspace(draft: WorkingDraft, expectedWorkspaceKey:
   return sourceWorkingCopyMatchesWorkspace(draft.sourceWorkingCopy, expectedWorkspaceKey);
 }
 
+function uniqueByStoredId<T extends { id: string }>(items: T[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.id.toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 const STORED_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 function isValidStoredTimestamp(value: string) {
@@ -1264,9 +1274,11 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   if (!UUID_RE.test(expectedWorkspaceKey)) return state;
   const selectedSegment = isSourceSegmentId(state.selectedSegment) ? state.selectedSegment : SOURCE_PRIMARY_SEGMENT_ID;
   const contactFilter = state.contactFilter === "all" || isSourceSegmentId(state.contactFilter) ? state.contactFilter : "all";
-  const localActions = state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksMalformed(action) && !localActionLooksFixtureBound(action));
-  const workspaceWorkingDrafts = state.workingDrafts.filter(
-    (draft) => workingDraftMatchesWorkspace(draft, expectedWorkspaceKey) && !workingDraftLooksMalformed(draft) && !workingDraftLooksFixtureBound(draft),
+  const localActions = uniqueByStoredId(
+    state.localActions.filter((action) => localActionMatchesWorkspace(action, expectedWorkspaceKey) && !localActionLooksMalformed(action) && !localActionLooksFixtureBound(action)),
+  );
+  const workspaceWorkingDrafts = uniqueByStoredId(
+    state.workingDrafts.filter((draft) => workingDraftMatchesWorkspace(draft, expectedWorkspaceKey) && !workingDraftLooksMalformed(draft) && !workingDraftLooksFixtureBound(draft)),
   );
   const demotedWorkingDraftQueueState = workspaceWorkingDrafts.some((draft) => draft.status === "queued" && !draft.queuedAt);
   const staleWorkingDraftQueueTimestamp = workspaceWorkingDrafts.some((draft) => draft.status !== "queued" && Boolean(draft.queuedAt));

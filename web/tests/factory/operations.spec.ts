@@ -13330,6 +13330,111 @@ test("operations portfolio counts legacy top-level source working copies as loca
   await expect(ormskirkRow).not.toContainText("queued locally");
 });
 
+test("operations portfolio de-duplicates repeated browser-local source work before local counts", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
+    "69f257b6-9913-4395-94f7-5c25b4b5fe95": { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", status: "partial" },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London", status: "partial" },
+    [barnetId]: { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", status: "completed" },
+  };
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    const campaign = campaignTitles[requestedCampaignId] ?? campaignTitles[barnetId];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: campaign.status, stateVersion: 70, lastSequence: 2200, events: [] },
+        documents: campaignOperationsDocuments({ title: campaign.title, place: campaign.place, next: `Check ${campaign.place} source records` }),
+        evidence: campaignEvidence([{ id: "portfolio-deduplicate-local-work", description: `Check ${campaign.place} source records`, reason: "Portfolio duplicate local-work count guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    const sourceCopy = {
+      id: `source:${id}:digital-pack-duplicate-count`,
+      campaignId: id,
+      title: "Barnet supporter update",
+      channel: "Email",
+      sourceDocument: "Digital Campaign Pack",
+      sourceDocumentKey: "digital_campaign_pack",
+      createdAt: "2026-07-17T20:05:00.000Z",
+      warnings: ["Confirm Barnet planning records before stronger claims."],
+      provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+    };
+    const localAction = {
+      id: `source:${id}:duplicate-action-count`,
+      title: "Check Barnet planning records",
+      source: "Campaign source · Evidence & checks",
+      owner: "Campaigner",
+      timing: "Next",
+      priority: "High",
+      status: "next",
+      provenance: `Source campaign ${id}; created from Evidence & checks.`,
+    };
+    const workingDraft = {
+      id: sourceCopy.id,
+      title: sourceCopy.title,
+      channel: "Email",
+      subject: "Barnet supporter update",
+      body: "This browser-local source draft is duplicated in storage and should count once in portfolio local-work signals.",
+      reviewerNote: "",
+      status: "review",
+      queuedAt: null,
+      createdAt: "2026-07-17T20:05:00.000Z",
+      updatedAt: "2026-07-17T20:06:00.000Z",
+      sourceWorkingCopy: sourceCopy,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: null,
+        sourceLastSequence: null,
+        sourceDocumentSignature: null,
+        sourceAcknowledgedAt: null,
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local portfolio state contains duplicate source work that should be de-duplicated before counts render.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "overview",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [localAction, { ...localAction, title: "Duplicate Check Barnet planning records" }],
+        workingDrafts: [workingDraft, { ...workingDraft, subject: "Duplicate Barnet supporter update" }],
+        activeWorkingDraftId: sourceCopy.id,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "portfolio-duplicate-count", label: "Created duplicate local source records." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto("/operations");
+  await expect(page.getByRole("heading", { name: "Stop the leisure park redevelopment in Barnet" })).toBeVisible();
+  const barnetRow = page.getByLabel("Campaign operations portfolio").locator("article", { hasText: "Stop the leisure park redevelopment in Barnet" });
+  await expect(barnetRow).toContainText("Local signals: 1 action · 1 working draft · 1 review.");
+  await expect(barnetRow).not.toContainText("2 actions");
+  await expect(barnetRow).not.toContainText("2 working drafts");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "{}");
+  expect(storedState.localActions).toHaveLength(1);
+  expect(storedState.workingDrafts).toHaveLength(1);
+  expect(JSON.stringify(storedState)).not.toContain("Duplicate Check Barnet planning records");
+  expect(JSON.stringify(storedState)).not.toContain("Duplicate Barnet supporter update");
+});
+
 test("operations portfolio removes browser-local state stored under the wrong campaign key", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "57678ae0-29fd-4b4b-8a53-5c711cdb21cf";
