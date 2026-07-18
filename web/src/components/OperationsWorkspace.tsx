@@ -1486,7 +1486,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
           : removedForeignTopLevelCopy
             ? "This browser-local draft was reset because its text referenced another curated campaign. Use source material from this campaign before review or local queueing."
             : (removedUnprovenancedTopLevelReviewState || removedResetTopLevelWorkflowState) && !removedFixtureSourceWorkingCopy && !removedFixtureTopLevelCopy
-              ? "This browser-local review or queue state was reset because it did not retain source-resource provenance for this real campaign. Use this campaign's source resources to create a local working copy before review or local queueing."
+              ? "This browser-local review or queue state was reset because it did not retain canonical source-resource provenance for this real campaign. Use this campaign's source resources to create a local working copy before review or local queueing."
               : "This browser-local draft was reset because it still contained fixture campaign copy or fixture-bound provenance. Use this real campaign's source material before review or local queueing."
       : state.body,
     reviewerNote: resetTopLevelDraft ? "" : state.reviewerNote,
@@ -3608,7 +3608,7 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
         sourceDocumentKey: resource.sourceDocumentKey,
         createdAt: new Date().toISOString(),
         warnings: resource.warnings,
-        provenance: `Copied from ${resource.sourceDocument} in campaign ${source.campaignId}; this editable copy is browser-local and does not change the public source document.`,
+        provenance: `Source campaign ${source.campaignId}; copied from ${resource.sourceDocument} into a browser-local editable copy; this does not change the public source document.`,
       };
       const newDraft: WorkingDraft = {
         id: resource.id,

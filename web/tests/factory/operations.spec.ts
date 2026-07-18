@@ -5689,7 +5689,7 @@ test("operations workbench: real source working copies move through local review
   await page.goto("/operations?campaignId=69f257b6-9913-4395-94f7-5c25b4b5fe95&view=drafts");
   await page.getByLabel("Source pack resources").getByRole("button", { name: "Use in editable draft" }).first().click();
   await expect(page.getByRole("heading", { name: /Working copy: Ormskirk supporter email/i })).toBeVisible();
-  await expect(page.getByText(/Copied from Digital Campaign Pack in campaign/)).toBeVisible();
+  await expect(page.getByText(/Source campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95; copied from Digital Campaign Pack/)).toBeVisible();
   await expect(page.getByLabel("Subject")).toHaveValue("Ormskirk KFC source update");
 
   await page.getByRole("button", { name: "Mark ready for review" }).click();
@@ -5705,7 +5705,7 @@ test("operations workbench: real source working copies move through local review
   await expect(page.getByRole("heading", { name: "One local queue item" })).toBeVisible();
   await expect(page.locator("main")).toContainText("Ormskirk KFC source update");
   await expect(page.locator("main")).toContainText("Local copy from Digital Campaign Pack");
-  await expect(page.getByLabel("Queued source boundary")).toContainText("Copied from Digital Campaign Pack in campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95");
+  await expect(page.getByLabel("Queued source boundary")).toContainText("Source campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95; copied from Digital Campaign Pack");
   await expect(page.getByLabel("Queued source boundary")).toContainText("Keep the public source boundary attached.");
   await expect(page.getByText(/It is not connected to an email provider/)).toBeVisible();
 
@@ -5725,7 +5725,7 @@ test("operations workbench: real source working copies move through local review
   expect(markdownPack).toContain("Subject/source heading: Ormskirk KFC source update");
   expect(markdownPack).toContain("Preview: Dear supporter");
   expect(markdownPack).toContain("Source/provenance: Digital Campaign Pack (digital_pack)");
-  expect(markdownPack).toContain("Source boundary: Copied from Digital Campaign Pack in campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95");
+  expect(markdownPack).toContain("Source boundary: Source campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95; copied from Digital Campaign Pack into a browser-local editable copy; this does not change the public source document.");
   expect(markdownPack).toContain("Source warning: Keep the public source boundary attached.");
   expect(markdownPack).toContain("Provider sending: Not connected");
 
@@ -16146,7 +16146,7 @@ test("operations workbench: campaignId route loads a read-only public campaign s
   await expect(page.getByLabel("Source pack resources")).toContainText("Phone Script — Council Planning Team");
   await page.getByRole("button", { name: "Use in editable draft" }).first().click();
   await expect(page.getByRole("heading", { name: /Working copy: Supporter email — status update/i })).toBeVisible();
-  await expect(page.getByText(/Copied from Digital Campaign Pack in campaign/)).toBeVisible();
+  await expect(page.getByText(/Source campaign 69f257b6-9913-4395-94f7-5c25b4b5fe95; copied from Digital Campaign Pack/)).toBeVisible();
   await expect(page.getByLabel("Subject")).toHaveValue("Ormskirk KFC — what we know, what we don't");
   await expect(page.getByLabel("Message")).toHaveValue(/Dear supporter/);
   await expect(page.getByText(/unconfirmed single-source information/i)).toBeVisible();
