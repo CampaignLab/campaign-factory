@@ -13979,6 +13979,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   let useComposedSourceAccents = false;
   let includeInvisibleSourceBreakHints = false;
   let includeNoBreakSourceSpaces = false;
+  let encodeNamedHtmlEntities = false;
   let reflowSourceEvidenceText = false;
 
   const sourceEvidence = () => {
@@ -14048,7 +14049,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
                         : includeNoBreakSourceSpaces
                           ? "same&nbsp;readable source&thinsp;boundary"
                           : "same readable source boundary",
-                    )}</section>`
+                    ).replace("Café owners", encodeNamedHtmlEntities ? "Caf&eacute; owners" : "Café owners")}</section>`
                   : document.html,
               }
             : document,
@@ -14080,6 +14081,7 @@ test("operations workbench: order-only source metadata changes keep the acknowle
   useComposedSourceAccents = true;
   includeInvisibleSourceBreakHints = true;
   includeNoBreakSourceSpaces = true;
+  encodeNamedHtmlEntities = true;
   reflowSourceEvidenceText = true;
   await page.reload();
   await page.getByRole("button", { name: /Overview/ }).first().click();

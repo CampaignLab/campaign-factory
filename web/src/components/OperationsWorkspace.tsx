@@ -2056,6 +2056,69 @@ function sourceSignaturePlainText(value: string) {
   return sourceSignatureText(value.replace(/\s+/g, " "));
 }
 
+const SOURCE_SIGNATURE_HTML_ENTITIES: Record<string, string> = {
+  aacute: "á",
+  Aacute: "Á",
+  agrave: "à",
+  Agrave: "À",
+  acirc: "â",
+  Acirc: "Â",
+  aring: "å",
+  Aring: "Å",
+  atilde: "ã",
+  Atilde: "Ã",
+  auml: "ä",
+  Auml: "Ä",
+  ccedil: "ç",
+  Ccedil: "Ç",
+  eacute: "é",
+  Eacute: "É",
+  egrave: "è",
+  Egrave: "È",
+  ecirc: "ê",
+  Ecirc: "Ê",
+  euml: "ë",
+  Euml: "Ë",
+  iacute: "í",
+  Iacute: "Í",
+  igrave: "ì",
+  Igrave: "Ì",
+  icirc: "î",
+  Icirc: "Î",
+  iuml: "ï",
+  Iuml: "Ï",
+  ntilde: "ñ",
+  Ntilde: "Ñ",
+  oacute: "ó",
+  Oacute: "Ó",
+  ograve: "ò",
+  Ograve: "Ò",
+  ocirc: "ô",
+  Ocirc: "Ô",
+  otilde: "õ",
+  Otilde: "Õ",
+  ouml: "ö",
+  Ouml: "Ö",
+  uacute: "ú",
+  Uacute: "Ú",
+  ugrave: "ù",
+  Ugrave: "Ù",
+  ucirc: "û",
+  Ucirc: "Û",
+  uuml: "ü",
+  Uuml: "Ü",
+  yacute: "ý",
+  Yacute: "Ý",
+  yuml: "ÿ",
+  Yuml: "Ÿ",
+  szlig: "ß",
+  pound: "£",
+  euro: "€",
+  reg: "®",
+  copy: "©",
+  trade: "™",
+};
+
 function sourceSignatureHtmlText(value: string) {
   return sourceSignatureText(
     value
@@ -2079,6 +2142,7 @@ function sourceSignatureHtmlText(value: string) {
       .replace(/&#39;|&apos;/gi, "'")
       .replace(/&lt;/gi, "<")
       .replace(/&gt;/gi, ">")
+      .replace(/&([a-z][a-z0-9]+);/gi, (entity, name: string) => SOURCE_SIGNATURE_HTML_ENTITIES[name] ?? entity)
       .replace(/&[a-z0-9#]+;/gi, "")
       .replace(/\s+/g, " "),
   );
