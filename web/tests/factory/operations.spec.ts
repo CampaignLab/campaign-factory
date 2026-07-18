@@ -12131,6 +12131,92 @@ test("operations portfolio sanitizes malformed browser-local state before local 
   expect(storedState).not.toContain("portfolio-malformed-action");
 });
 
+test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+  const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
+    [foreignId]: { title: "Keep KFC Out of Ormskirk", place: "Ormskirk, Lancashire", status: "partial" },
+    "57678ae0-29fd-4b4b-8a53-5c711cdb21cf": { title: "Build 5,000 affordable houses in Tower Hamlets in the next 3 years", place: "Tower Hamlets, London", status: "partial" },
+    [barnetId]: { title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", status: "completed" },
+  };
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const requestedCampaignId = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    const campaign = campaignTitles[requestedCampaignId] ?? campaignTitles[barnetId];
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: requestedCampaignId, status: campaign.status, stateVersion: 58, lastSequence: 2100, events: [] },
+        documents: campaignOperationsDocuments({ title: campaign.title, place: campaign.place, next: `Check ${campaign.place} source records` }),
+        evidence: campaignEvidence([{ id: "portfolio-recheck-foreign", description: `Check ${campaign.place} source records`, reason: "Portfolio re-check metadata sanitization guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ campaignId, otherId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${campaignId}`,
+        JSON.stringify({
+          workspaceKey: campaignId,
+          sourceStateVersion: 57,
+          sourceLastSequence: 2090,
+          sourceDocumentSignature: `source:${campaignId}:previous-read-only-baseline`,
+          sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+          selectedSegment: "source_primary",
+          subject: "Local source draft reset",
+          body: "This browser-local portfolio state should keep the acknowledged baseline while re-check metadata is scrubbed.",
+          reviewerNote: "",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "overview",
+          contactFilter: "all",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${campaignId}:portfolio-valid-action`,
+              title: "Check Barnet source records",
+              source: "Campaign source · Evidence & checks",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${campaignId}; created from Evidence & checks.`,
+            },
+          ],
+          workingDrafts: [],
+          activeWorkingDraftId: null,
+          sourceWorkingCopy: null,
+          sourceRecheckStateVersion: 58,
+          sourceRecheckLastSequence: 2100,
+          sourceRecheckDocumentSignature: `source:${otherId}:foreign-current-baseline`,
+          sourceRecheckVisitedViews: ["strategy", "evidence", "drafts"],
+          activity: [{ id: "portfolio-valid-action", label: "Created action: Check Barnet source records" }],
+        }),
+      );
+    },
+    { campaignId: barnetId, otherId: foreignId },
+  );
+
+  await page.goto("/operations");
+  await expect(page.getByRole("heading", { name: "Stop the leisure park redevelopment in Barnet" })).toBeVisible();
+  const barnetRow = page.locator("article").filter({ hasText: "Stop the leisure park redevelopment in Barnet" });
+  await expect(barnetRow).toContainText("Local signals: 1 source re-check required · 1 action.");
+  await expect(barnetRow).toContainText("Source re-check progress: 0/3 required source views checked");
+  await expect(barnetRow).not.toContainText("3/3 required source views checked");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain(`source:${barnetId}:previous-read-only-baseline`);
+  expect(storedState).toContain('"sourceRecheckDocumentSignature":null');
+  expect(storedState).toContain('"sourceRecheckVisitedViews":[]');
+  expect(storedState).not.toContain(foreignId);
+});
+
 test("operations workbench: source updates without local work refresh the baseline without a re-check lock", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 

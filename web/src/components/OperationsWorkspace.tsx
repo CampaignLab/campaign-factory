@@ -1239,18 +1239,16 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const removedMismatchedTopLevelSourceCopy = Boolean(state.sourceWorkingCopy && !sourceWorkingCopyCandidate && !removedFixtureSourceWorkingCopy);
   const removedFixtureTopLevelCopy = !sourceWorkingCopy && topLevelDraftLooksFixtureBound(state);
   const removedUnprovenancedTopLevelReviewState = !sourceWorkingCopy && topLevelDraftHasUnprovenancedLocalCopy(state);
-  const removedFixtureSourceBaseline = Boolean(
-    (state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature)) ||
-      (state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature)),
-  );
-  const removedForeignSourceBaseline = Boolean(
-    (state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey)) ||
-      (state.sourceRecheckDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceRecheckDocumentSignature, expectedWorkspaceKey)),
-  );
-  const removedIncompleteSourceBaseline = Boolean(
+  const removedFixtureAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && hasFixtureLeakage(state.sourceDocumentSignature));
+  const removedFixtureSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && hasFixtureLeakage(state.sourceRecheckDocumentSignature));
+  const removedForeignAcknowledgedSourceBaseline = Boolean(state.sourceDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceDocumentSignature, expectedWorkspaceKey));
+  const removedForeignSourceRecheckBaseline = Boolean(state.sourceRecheckDocumentSignature && !textReferencesOnlyExpectedCampaign(state.sourceRecheckDocumentSignature, expectedWorkspaceKey));
+  const removedIncompleteAcknowledgedSourceBaseline = Boolean(
     ((state.sourceStateVersion !== null || state.sourceLastSequence !== null || state.sourceAcknowledgedAt) && !state.sourceDocumentSignature) ||
-      (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null)) ||
-      ((state.sourceRecheckStateVersion !== null || state.sourceRecheckLastSequence !== null || state.sourceRecheckVisitedViews.length) && !state.sourceRecheckDocumentSignature) ||
+      (state.sourceDocumentSignature && (state.sourceStateVersion === null || state.sourceLastSequence === null)),
+  );
+  const removedIncompleteSourceRecheckBaseline = Boolean(
+    ((state.sourceRecheckStateVersion !== null || state.sourceRecheckLastSequence !== null || state.sourceRecheckVisitedViews.length) && !state.sourceRecheckDocumentSignature) ||
       (state.sourceRecheckDocumentSignature && (state.sourceRecheckStateVersion === null || state.sourceRecheckLastSequence === null)),
   );
   const resetTopLevelDraft = removedMismatchedTopLevelSourceCopy || removedFixtureSourceWorkingCopy || removedFixtureTopLevelCopy || removedUnprovenancedTopLevelReviewState || removedDuplicatedTopLevelSourceCopy;
@@ -1260,11 +1258,13 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
   const hasQueuedWorkingDraft = workingDrafts.some((draft) => draft.status === "queued");
   const hasQueuedTopLevelSourceCopy = Boolean(sourceWorkingCopy && state.status === "queued");
   const resetScheduleIntent = (resetTopLevelDraft || removedQueuedWorkingDraft || removedOrphanedDraftWorkflowActivity) && !hasQueuedWorkingDraft && !hasQueuedTopLevelSourceCopy;
-  const resetSourceBaseline =
-    removedFixtureSourceBaseline ||
-    removedForeignSourceBaseline ||
-    removedIncompleteSourceBaseline ||
+  const resetAcknowledgedSourceBaseline =
+    removedFixtureAcknowledgedSourceBaseline ||
+    removedForeignAcknowledgedSourceBaseline ||
+    removedIncompleteAcknowledgedSourceBaseline ||
     (resetTopLevelDraft && localActions.length === 0 && workingDrafts.length === 0 && !sourceWorkingCopy);
+  const resetSourceRecheckBaseline =
+    resetAcknowledgedSourceBaseline || removedFixtureSourceRecheckBaseline || removedForeignSourceRecheckBaseline || removedIncompleteSourceRecheckBaseline;
   const unprovenancedActiveDraft = removedUnprovenancedTopLevelReviewState && !state.sourceWorkingCopy ? draftLibrary.find((draft) => draft.id === state.activeDraft) : null;
   const topLevelDraftResetReferences = resetTopLevelDraft
     ? [
@@ -1305,7 +1305,8 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     !removedUnprovenancedTopLevelReviewState &&
     !removedDuplicatedTopLevelSourceCopy &&
     !removedOrphanedDraftWorkflowActivity &&
-    !resetSourceBaseline &&
+    !resetAcknowledgedSourceBaseline &&
+    !resetSourceRecheckBaseline &&
     !removedFixtureActivity
   ) {
     return state;
@@ -1315,14 +1316,14 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ...state,
     selectedSegment,
     contactFilter,
-    sourceStateVersion: resetSourceBaseline ? null : state.sourceStateVersion,
-    sourceLastSequence: resetSourceBaseline ? null : state.sourceLastSequence,
-    sourceDocumentSignature: resetSourceBaseline ? null : state.sourceDocumentSignature,
-    sourceAcknowledgedAt: resetSourceBaseline ? null : state.sourceAcknowledgedAt,
-    sourceRecheckStateVersion: resetSourceBaseline ? null : state.sourceRecheckStateVersion,
-    sourceRecheckLastSequence: resetSourceBaseline ? null : state.sourceRecheckLastSequence,
-    sourceRecheckDocumentSignature: resetSourceBaseline ? null : state.sourceRecheckDocumentSignature,
-    sourceRecheckVisitedViews: resetSourceBaseline ? [] : state.sourceRecheckVisitedViews,
+    sourceStateVersion: resetAcknowledgedSourceBaseline ? null : state.sourceStateVersion,
+    sourceLastSequence: resetAcknowledgedSourceBaseline ? null : state.sourceLastSequence,
+    sourceDocumentSignature: resetAcknowledgedSourceBaseline ? null : state.sourceDocumentSignature,
+    sourceAcknowledgedAt: resetAcknowledgedSourceBaseline ? null : state.sourceAcknowledgedAt,
+    sourceRecheckStateVersion: resetSourceRecheckBaseline ? null : state.sourceRecheckStateVersion,
+    sourceRecheckLastSequence: resetSourceRecheckBaseline ? null : state.sourceRecheckLastSequence,
+    sourceRecheckDocumentSignature: resetSourceRecheckBaseline ? null : state.sourceRecheckDocumentSignature,
+    sourceRecheckVisitedViews: resetSourceRecheckBaseline ? [] : state.sourceRecheckVisitedViews,
     subject: resetTopLevelDraft ? "Local source draft reset" : state.subject,
     body: resetTopLevelDraft
       ? removedMismatchedTopLevelSourceCopy
@@ -1342,7 +1343,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     activeWorkingDraftId,
     sourceWorkingCopy,
     activity:
-      removedMismatchedLocalWork || resetTopLevelDraft || removedOrphanedDraftWorkflowActivity || resetSourceBaseline || removedFixtureActivity
+      removedMismatchedLocalWork || resetTopLevelDraft || removedOrphanedDraftWorkflowActivity || resetAcknowledgedSourceBaseline || resetSourceRecheckBaseline || removedFixtureActivity
         ? [{ id: "workspace-sanitized", label: "Browser-local state was sanitized for this real campaign workspace; public source data was not changed." }, ...activity].slice(0, 7)
         : state.activity,
   };
