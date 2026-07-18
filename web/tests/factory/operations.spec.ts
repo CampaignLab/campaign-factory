@@ -14050,6 +14050,80 @@ test("operations portfolio migrates uppercase browser-local campaign storage key
   expect(storedState.workingDrafts).toHaveLength(1);
 });
 
+test("operations workbench migrates uppercase browser-local campaign storage keys on direct routes", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+  const uppercaseCampaignId = campaignId.toUpperCase();
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 62, lastSequence: 2140, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning committee records" }),
+        evidence: campaignEvidence([{ id: "workbench-uppercase-storage-key", description: "Check Barnet planning committee records", reason: "Direct-route uppercase localStorage key migration guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate(
+    ({ id, upperId }) => {
+      localStorage.setItem(
+        `cf_operations_demo_v3:${upperId}`,
+        JSON.stringify({
+          workspaceKey: upperId,
+          sourceStateVersion: 62,
+          sourceLastSequence: 2140,
+          sourceDocumentSignature: `source:${upperId}:completed:direct-route-baseline`,
+          sourceAcknowledgedAt: "2026-07-17T20:30:00.000Z",
+          selectedSegment: "source_primary",
+          subject: "Barnet direct-route source draft",
+          body: "This browser-local state was saved under an uppercase campaign storage key by an older direct workspace route.",
+          reviewerNote: "Review this Barnet source copy before local queueing.",
+          status: "draft",
+          mode: "compose",
+          activeDraft: "supporter_email",
+          activeView: "actions",
+          contactFilter: "source_primary",
+          contactReadinessFilter: "all",
+          scheduleIntent: "after_approval",
+          queuedAt: null,
+          localActions: [
+            {
+              id: `source:${id}:workbench-uppercase-storage-action`,
+              title: "Check Barnet planning committee records",
+              source: "Campaign source · Evidence & checks",
+              owner: "Campaigner",
+              timing: "Next",
+              priority: "High",
+              status: "next",
+              provenance: `Source campaign ${id}; created from Evidence & checks.`,
+            },
+          ],
+          workingDrafts: [],
+          activeWorkingDraftId: null,
+          sourceWorkingCopy: null,
+          sourceRecheckStateVersion: null,
+          sourceRecheckLastSequence: null,
+          sourceRecheckDocumentSignature: null,
+          sourceRecheckVisitedViews: [],
+          activity: [{ id: "workbench-uppercase-storage-action", label: "Created action: Check Barnet planning committee records" }],
+        }),
+      );
+    },
+    { id: campaignId, upperId: uppercaseCampaignId },
+  );
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Check Barnet planning committee records");
+  await expect.poll(async () => page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id.toUpperCase()}`), campaignId)).toBeNull();
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.workspaceKey).toBe(campaignId);
+  expect(storedState.localActions).toHaveLength(1);
+});
+
 test("operations portfolio preserves acknowledged source baseline when re-check metadata is foreign", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const foreignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";

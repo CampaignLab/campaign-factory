@@ -3056,8 +3056,9 @@ function OperationsCampaignWorkspace({ campaignId, initialView }: { campaignId?:
 
   useEffect(() => {
     queueMicrotask(() => {
-      const stored = hasStoredState(storageKey);
-      const loaded = loadState(storageKey);
+      const recoveredWorkspaceState = campaignId ? loadSanitizedWorkspaceState(campaignId, true) : null;
+      const stored = Boolean(recoveredWorkspaceState) || hasStoredState(storageKey);
+      const loaded = recoveredWorkspaceState ?? loadState(storageKey);
       const expectedWorkspaceKey = campaignId ?? "fixture";
       const storedMatchesWorkspace = loaded.workspaceKey === expectedWorkspaceKey;
       const workspaceState = storedMatchesWorkspace ? sanitizeStateForWorkspace(loaded, expectedWorkspaceKey) : loaded;
