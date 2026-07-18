@@ -3456,12 +3456,13 @@ test("operations source API: normalizes recoverable legacy source references bef
   const legacyClaim = evidence.groups[0].claims[0] as { affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
   legacyClaim.excerpt = null;
   legacyClaim.affectedOutputs = [
-    "Campaign Brief document",
+    "Campaign&nbsp;Brief document",
     "campaign_brief",
-    "Objective & Theory of Change document",
+    "Objective &amp; Theory of Change document",
     "Power & Stakeholder Map document",
     "Digital Campaign Pack document",
     "digital_pack",
+    "Research &amp; Evidence",
     "evidence base",
   ];
   legacyClaim.contradictsClaimIds = ["claim-2", "claim-2", "archived-claim-from-previous-build"];
@@ -3470,7 +3471,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const legacyNextCheck = evidence.nextChecks[0] as { claimIds?: string[] | null; affectedSections: string[]; reason: string };
   const legacyNextCheckReason = legacyNextCheck.reason;
   legacyNextCheck.claimIds = ["claim-1", "claim-1", "archived-claim-from-previous-build"];
-  legacyNextCheck.affectedSections = ["documents", "Lobbying Pack document", "lobbying_pack", "Media Pack document", "Tactics & Timeline document", "evidence base"];
+  legacyNextCheck.affectedSections = ["documents", "Campaign&nbsp;Strategy document", "Lobbying Pack document", "lobbying_pack", "Media Pack document", "Tactics &amp; Timeline document", "Research &amp; Evidence", "evidence base"];
   legacyNextCheck.reason = "";
   evidence.nextChecks.push({ ...legacyNextCheck, reason: legacyNextCheckReason, description: "Duplicate legacy source check should recover the valid source row." });
   evidence.nextChecks.push({ id: "legacy-null-optional", description: "Legacy source check drops null optional claim ids.", reason: "Older builds sometimes serialised missing optional arrays as null.", claimIds: null, affectedSections: ["Campaign Brief document"] });
@@ -3522,7 +3523,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     expect(body.evidence?.conflicts).toEqual([{ ...body.evidence?.groups?.[0]?.claims?.[0], contradictsClaimIds: ["claim-2"] }]);
     expect(body.evidence?.nextChecks).toHaveLength(2);
     expect(body.evidence?.nextChecks?.[0]?.claimIds).toEqual(["claim-1"]);
-    expect(body.evidence?.nextChecks?.[0]?.affectedSections).toEqual(["lobbying_pack", "media_pack", "tactics_timeline", "evidence"]);
+    expect(body.evidence?.nextChecks?.[0]?.affectedSections).toEqual(["campaign_strategy", "lobbying_pack", "media_pack", "tactics_timeline", "evidence"]);
     expect(body.evidence?.nextChecks?.[1]?.id).toBe("legacy-null-optional");
     expect(body.evidence?.nextChecks?.[1]?.claimIds).toBeUndefined();
     expect(body.evidence?.nextChecks?.[1]?.affectedSections).toEqual(["campaign_brief"]);

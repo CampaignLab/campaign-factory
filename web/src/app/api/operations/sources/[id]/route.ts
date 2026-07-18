@@ -452,8 +452,9 @@ function uniqueStrings(values: unknown) {
 }
 
 function normalizeSourceAffectedSectionKey(value: string) {
-  if (SOURCE_AFFECTED_SECTION_KEYS.has(value)) return value;
-  const folded = value
+  const visibleValue = normaliseOperationsSourceInlineText(value);
+  if (SOURCE_AFFECTED_SECTION_KEYS.has(visibleValue)) return visibleValue;
+  const folded = visibleValue
     .trim()
     .toLowerCase()
     .replace(/&/g, "and")
