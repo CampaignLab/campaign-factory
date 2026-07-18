@@ -1087,8 +1087,7 @@ function normaliseStoredTimestamp(value: unknown) {
 function normaliseStoredAcknowledgedTimestamp(value: unknown) {
   const timestamp = normaliseStoredTimestamp(value);
   if (!timestamp) return null;
-  const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
-  return new Date(timestamp).getTime() <= fiveMinutesFromNow ? timestamp : null;
+  return new Date(timestamp).getTime() <= Date.now() ? timestamp : null;
 }
 
 function normaliseStoredCampaignId(value: unknown) {

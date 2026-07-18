@@ -10760,6 +10760,77 @@ test("operations workbench requires re-check when source baseline acknowledgemen
   expect(stored).not.toContain("2099-01-01T00:00:00.000Z");
 });
 
+test("operations workbench requires re-check when source baseline acknowledgement is slightly future-dated", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([{ id: "next", description: "Check Barnet decision records", reason: "Slight future acknowledged timestamp guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=overview`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+
+  const futureAcknowledgedAt = await page.evaluate((campaignId) => {
+    const key = `cf_operations_demo_v3:${campaignId}`;
+    const currentState = JSON.parse(localStorage.getItem(key) ?? "{}");
+    const timestamp = new Date(Date.now() + 60_000).toISOString();
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        ...currentState,
+        sourceAcknowledgedAt: timestamp,
+        localActions: [
+          {
+            id: `source:${campaignId}:slight-future-acknowledgement-check`,
+            title: "Confirm Barnet slightly future acknowledgement state",
+            source: "Campaign source · Evidence & checks · strategy",
+            owner: "Reviewer",
+            timing: "Before local queue",
+            priority: "High",
+            status: "next",
+            provenance: `Source campaign ${campaignId}; local action retained while the slightly future-dated acknowledged timestamp is re-checked.`,
+          },
+        ],
+        activity: [{ id: "local-action", label: "Created local action: Confirm Barnet slightly future acknowledgement state." }],
+      }),
+    );
+    return timestamp;
+  }, barnetId);
+
+  await page.goto("/operations");
+  const portfolio = page.getByLabel("Campaign operations portfolio");
+  const barnetRow = portfolio.locator("article").nth(2);
+  await expect(barnetRow).toContainText("Local signals: 1 source re-check required · 1 action.");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=overview`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.locator("main")).toContainText("Browser-local state was sanitized for this real campaign workspace");
+  await expect(page.getByText("Read-only source has changed since this local workspace started.")).toBeVisible();
+  await expect(page.getByLabel("Local work requiring source re-check")).toContainText("Action: Confirm Barnet slightly future acknowledgement state");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).toContain("Confirm Barnet slightly future acknowledgement state");
+  expect(stored).toContain('"sourceStateVersion":null');
+  expect(stored).toContain('"sourceLastSequence":null');
+  expect(stored).toContain('"sourceDocumentSignature":null');
+  expect(stored).toContain('"sourceAcknowledgedAt":null');
+  expect(stored).not.toContain(futureAcknowledgedAt);
+});
+
 test("operations workbench requires re-check when malformed source baseline has local work", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
