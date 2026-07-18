@@ -1382,6 +1382,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
   const body = typeof parsed.body === "string" ? parsed.body.trim() : "";
   const visibleSubject = subject && storedTextHasVisibleText(subject) ? subject : "";
   const visibleBody = body && storedTextHasVisibleText(body) ? body : "";
+  const malformedWorkspaceKey = storedCampaignIdIsMalformed(parsed.workspaceKey);
   const parsedSourceRecheckVisitedViews = Array.isArray(parsed.sourceRecheckVisitedViews) ? parsed.sourceRecheckVisitedViews : [];
   const parsedRequiredSourceRecheckViews = parsedSourceRecheckVisitedViews.filter((view): view is ViewId => SOURCE_RECHECK_REQUIRED_VIEWS.includes(view as ViewId));
   const parsedRequiredSourceRecheckViewSet = new Set(parsedRequiredSourceRecheckViews);
@@ -1428,7 +1429,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     workingDrafts,
     activeWorkingDraftId,
     sourceWorkingCopy,
-    activity: scrubbedSourceRecheckVisitedViews ? withWorkspaceSanitizedActivity(normalizedActivity) : normalizedActivity,
+    activity: scrubbedSourceRecheckVisitedViews || malformedWorkspaceKey ? withWorkspaceSanitizedActivity(normalizedActivity) : normalizedActivity,
     mode: parsed.mode === "preview" ? "preview" : "compose",
   };
 }
