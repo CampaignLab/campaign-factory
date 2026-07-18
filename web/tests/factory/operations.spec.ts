@@ -8103,6 +8103,104 @@ test("operations workbench rejects source working copies with malformed timestam
   expect(stored).not.toContain("Malformed timestamp working draft should not render");
 });
 
+test("operations workbench rejects source working drafts with malformed draft timestamps", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Malformed draft timestamp guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const sourceCopy = {
+      id: `source:${campaignId}:resource:lobbying_pack:bad-draft-updated-at`,
+      campaignId,
+      title: "Barnet source draft with malformed draft timestamp",
+      channel: "Briefing note",
+      sourceDocument: "Lobbying Pack",
+      sourceDocumentKey: "lobbying_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: ["Confirm the current Barnet decision record before any external use."],
+      provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${campaignId}:real-barnet-source-baseline`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local draft was already reset; only the malformed working draft should be removed.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "drafts",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [
+          {
+            id: sourceCopy.id,
+            title: sourceCopy.title,
+            channel: "Briefing note",
+            subject: "Malformed updatedAt working draft should not render",
+            body: "This source-bound browser-local working draft should be removed because its saved draft updatedAt timestamp is not canonical ISO storage format.",
+            reviewerNote: "Malformed draft timestamp note.",
+            status: "review",
+            queuedAt: null,
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16 18:01:30",
+            sourceWorkingCopy: sourceCopy,
+          },
+        ],
+        activeWorkingDraftId: sourceCopy.id,
+        sourceWorkingCopy: null,
+        activity: [{ id: "bad-draft-updated-at", label: "Submitted malformed updatedAt working draft for review." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Malformed updatedAt working draft should not render");
+  await page.goto(`/operations?campaignId=${barnetId}&view=reviews`);
+  await expect(page.locator("main")).not.toContainText("Malformed draft timestamp note");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain('"activeWorkingDraftId":null');
+  expect(stored).toContain("Browser-local state was sanitized for this real campaign workspace");
+  expect(stored).not.toContain("bad-draft-updated-at");
+  expect(stored).not.toContain("2026-07-16 18:01:30");
+  expect(stored).not.toContain("Malformed updatedAt working draft should not render");
+});
+
 test("operations workbench rejects cross-campaign source-copy identifiers from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const otherCampaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";

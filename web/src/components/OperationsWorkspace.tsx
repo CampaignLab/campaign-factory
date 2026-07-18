@@ -1132,7 +1132,10 @@ function workingDraftHasMalformedField(draft: Partial<WorkingDraft>) {
   return ["channel", "subject", "body", "reviewerNote", "status", "createdAt", "updatedAt"].some((field) => {
     const value = draft[field as keyof WorkingDraft];
     return value !== undefined && typeof value !== "string";
-  }) || (draft.queuedAt !== undefined && draft.queuedAt !== null && typeof draft.queuedAt !== "string");
+  }) ||
+    (draft.createdAt !== undefined && (typeof draft.createdAt !== "string" || !isValidStoredTimestamp(draft.createdAt))) ||
+    (draft.updatedAt !== undefined && (typeof draft.updatedAt !== "string" || !isValidStoredTimestamp(draft.updatedAt))) ||
+    (draft.queuedAt !== undefined && draft.queuedAt !== null && typeof draft.queuedAt !== "string");
 }
 
 function normaliseOptionalSourceSequence(value: unknown) {
