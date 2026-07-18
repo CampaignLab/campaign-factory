@@ -7215,6 +7215,95 @@ test("operations workbench resets unprovenanced top-level draft copy from real c
   expect(stored).not.toContain("stale draft regression test");
 });
 
+test("operations workbench rejects malformed source working-copy fields from real campaign state", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          status: "completed",
+          next: "Check Barnet decision records",
+        }),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [{ id: "next", description: "Check Barnet decision records", reason: "Malformed source-copy guard", claimIds: [], affectedSections: ["problem"] }],
+          terminalGaps: [],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: "real-barnet-source-baseline",
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Legacy malformed copy",
+        body: "This queued browser-local copy should be reset because its source copy is malformed.",
+        reviewerNote: "Malformed legacy source copy note.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "tomorrow_morning",
+        queuedAt: "2026-07-16T17:58:30.000Z",
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: {
+          id: `source:${campaignId}:resource:lobbying_pack:malformed-copy`,
+          campaignId,
+          title: { text: "Barnet briefing note" },
+          channel: "Briefing note",
+          sourceDocument: "Lobbying Pack",
+          sourceDocumentKey: "lobbying_pack",
+          createdAt: "2026-07-16T17:52:30.000Z",
+          warnings: ["Confirm the current Barnet decision record before any external use."],
+          provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+        },
+        activity: [{ id: "legacy-malformed-queue", label: "Queued malformed source locally." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing queued yet" })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Legacy malformed copy");
+  await expect(page.locator("main")).not.toContainText("Queued malformed source locally");
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.locator("main")).toContainText("did not retain source-resource provenance");
+  await expect(page.locator("main")).not.toContainText("Legacy malformed copy");
+  await expect(page.locator("main")).not.toContainText("Queued malformed source locally");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain('"status":"draft"');
+  expect(stored).toContain("did not retain source-resource provenance");
+  expect(stored).toContain('"scheduleIntent":"after_approval"');
+  expect(stored).not.toContain("Legacy malformed copy");
+  expect(stored).not.toContain("Queued malformed source locally");
+  expect(stored).not.toContain("malformed-copy");
+});
+
 test("operations workbench removes duplicated top-level source copy from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 

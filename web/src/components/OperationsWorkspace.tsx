@@ -879,17 +879,28 @@ function normaliseLocalActions(actions: unknown): LocalAction[] {
 function normaliseSourceWorkingCopy(value: unknown): SourceWorkingCopy | null {
   if (!value || typeof value !== "object") return null;
   const copy = value as Partial<SourceWorkingCopy>;
-  if (!copy.id || !copy.title || !copy.sourceDocument || !copy.campaignId) return null;
+  if (
+    typeof copy.id !== "string" ||
+    !copy.id ||
+    typeof copy.title !== "string" ||
+    !copy.title ||
+    typeof copy.sourceDocument !== "string" ||
+    !copy.sourceDocument ||
+    typeof copy.campaignId !== "string" ||
+    !copy.campaignId
+  ) {
+    return null;
+  }
   return {
     id: copy.id,
     campaignId: copy.campaignId,
     title: copy.title,
-    channel: copy.channel || "Source draft",
+    channel: typeof copy.channel === "string" && copy.channel ? copy.channel : "Source draft",
     sourceDocument: copy.sourceDocument,
-    sourceDocumentKey: copy.sourceDocumentKey || "source_document",
-    createdAt: copy.createdAt || new Date().toISOString(),
+    sourceDocumentKey: typeof copy.sourceDocumentKey === "string" && copy.sourceDocumentKey ? copy.sourceDocumentKey : "source_document",
+    createdAt: typeof copy.createdAt === "string" && copy.createdAt ? copy.createdAt : new Date().toISOString(),
     warnings: Array.isArray(copy.warnings) ? copy.warnings.filter((warning): warning is string => typeof warning === "string") : [],
-    provenance: copy.provenance || "Copied from a read-only Campaign Factory source document into this browser-local workspace.",
+    provenance: typeof copy.provenance === "string" && copy.provenance ? copy.provenance : "Copied from a read-only Campaign Factory source document into this browser-local workspace.",
   };
 }
 
@@ -1046,7 +1057,7 @@ function activityLooksTiedToRemovedLocalWork(activity: Activity, removedLocalWor
 }
 
 function activityLooksLikeTopLevelDraftWorkflow(activity: Activity) {
-  return /\b(marked the draft ready|human approval recorded|placed approved draft|approved draft|local demo queue|queued local draft|submitted for review|ready for human review)\b/i.test(
+  return /\b(marked the draft ready|human approval recorded|placed approved draft|approved draft|local demo queue|queued local draft|queued\b.{0,80}\blocally|submitted for review|ready for human review)\b/i.test(
     activity.label,
   );
 }
