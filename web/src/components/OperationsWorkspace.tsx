@@ -965,6 +965,9 @@ function normaliseWorkingDrafts(value: unknown, legacyState: Partial<DemoState>)
   return normalised;
 }
 
+const INVALID_LOCAL_DRAFT_SUBJECT = "Local draft unavailable";
+const INVALID_LOCAL_DRAFT_BODY = "This browser-local draft could not be restored because its saved subject or body was malformed.";
+
 function normaliseState(parsed: Partial<DemoState>): DemoState {
   const workingDrafts = normaliseWorkingDrafts(parsed.workingDrafts, parsed);
   const activeWorkingDraftId = workingDrafts.some((draft) => draft.id === parsed.activeWorkingDraftId)
@@ -976,6 +979,8 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
     ...initialState,
     ...parsed,
     selectedSegment: isSegmentId(parsed.selectedSegment) ? parsed.selectedSegment : initialState.selectedSegment,
+    subject: typeof parsed.subject === "string" && parsed.subject ? parsed.subject : INVALID_LOCAL_DRAFT_SUBJECT,
+    body: typeof parsed.body === "string" && parsed.body ? parsed.body : INVALID_LOCAL_DRAFT_BODY,
     status: ["draft", "review", "approved", "queued"].includes(parsed.status || "")
       ? (parsed.status as DraftStatus)
       : initialState.status,
@@ -1005,6 +1010,7 @@ function normaliseState(parsed: Partial<DemoState>): DemoState {
         : ["after_approval", "tomorrow_morning", "after_next_check"].includes(parsed.scheduleIntent || "")
           ? (parsed.scheduleIntent as DemoState["scheduleIntent"])
           : initialState.scheduleIntent,
+    queuedAt: typeof parsed.queuedAt === "string" ? parsed.queuedAt : null,
     localActions: normaliseLocalActions(parsed.localActions),
     workingDrafts,
     activeWorkingDraftId,
