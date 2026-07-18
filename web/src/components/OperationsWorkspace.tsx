@@ -1394,9 +1394,7 @@ function sanitizeStateForWorkspace(state: DemoState, expectedWorkspaceKey: strin
     ? state.activeWorkingDraftId
     : workingDrafts[0]?.id ?? null;
   const removedDuplicatedTopLevelSourceCopy = Boolean(
-    sourceWorkingCopyCandidate &&
-      (workingDrafts.some((draft) => stableLowercase(draft.id) === stableLowercase(sourceWorkingCopyCandidate.id)) ||
-        state.workingDrafts.some((draft) => stableLowercase(draft.id) === stableLowercase(sourceWorkingCopyCandidate.id))),
+    sourceWorkingCopyCandidate && workingDrafts.some((draft) => stableLowercase(draft.id) === stableLowercase(sourceWorkingCopyCandidate.id)),
   );
   const sourceWorkingCopy = removedDuplicatedTopLevelSourceCopy ? null : sourceWorkingCopyCandidate;
   const removedMismatchedLocalWork = localActions.length !== state.localActions.length || workingDrafts.length !== state.workingDrafts.length;

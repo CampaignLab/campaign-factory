@@ -10097,6 +10097,101 @@ test("operations workbench removes duplicated top-level source copy ids case-ins
   expect(stored).not.toContain("Legacy uppercase duplicated top-level note");
 });
 
+test("operations workbench preserves top-level source copy when only malformed duplicate draft is scrubbed", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    const id = route.request().url().match(/sources\/([^/]+)$/)?.[1] ?? barnetId;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: id, status: "completed", stateVersion: 14, lastSequence: 25, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          status: "completed",
+          next: "Check Barnet decision records",
+        }),
+        evidence: campaignEvidence([{ id: "malformed-duplicate-draft", description: "Check Barnet decision records", reason: "Malformed duplicate draft scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((campaignId) => {
+    const sourceCopy = {
+      id: `source:${campaignId}:resource:lobbying_pack:briefing-note`,
+      campaignId,
+      title: "Barnet briefing note",
+      channel: "Briefing note",
+      sourceDocument: "Lobbying Pack",
+      sourceDocumentKey: "lobbying_pack",
+      createdAt: "2026-07-16T17:52:30.000Z",
+      warnings: ["Confirm the current Barnet decision record before any external use."],
+      provenance: `Source campaign ${campaignId}; copied from the read-only Lobbying Pack into this browser-local workspace.`,
+    };
+    localStorage.setItem(
+      `cf_operations_demo_v3:${campaignId}`,
+      JSON.stringify({
+        workspaceKey: campaignId,
+        sourceStateVersion: 14,
+        sourceLastSequence: 25,
+        sourceDocumentSignature: `source:${campaignId}:documents:v1`,
+        sourceAcknowledgedAt: "2026-07-16T17:54:30.000Z",
+        selectedSegment: "source_primary",
+        subject: "Barnet top-level briefing note",
+        body: "This valid top-level source copy should stay queued when a malformed duplicate working draft is scrubbed.",
+        reviewerNote: "Top-level source review note should be preserved.",
+        status: "queued",
+        mode: "preview",
+        activeDraft: "supporter_email",
+        activeView: "outbox",
+        contactFilter: "source_primary",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_next_check",
+        queuedAt: "2026-07-16T17:58:30.000Z",
+        localActions: [],
+        workingDrafts: [
+          {
+            id: sourceCopy.id,
+            title: "Barnet malformed duplicate draft",
+            channel: "Briefing note",
+            subject: 123,
+            body: "Malformed duplicate working draft should be scrubbed, not used to reset the valid top-level source copy.",
+            reviewerNote: "Malformed duplicate note should disappear.",
+            status: "queued",
+            queuedAt: "2026-07-16T18:02:30.000Z",
+            createdAt: "2026-07-16T17:52:30.000Z",
+            updatedAt: "2026-07-16T18:02:30.000Z",
+            sourceWorkingCopy: sourceCopy,
+          },
+        ],
+        activeWorkingDraftId: sourceCopy.id,
+        sourceWorkingCopy: sourceCopy,
+        activity: [
+          { id: "top-level-queue", label: "Barnet top-level briefing note queued locally." },
+          { id: "malformed-duplicate", label: "Malformed duplicate working draft queued locally." },
+        ],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=outbox`);
+  await expect(page.getByRole("heading", { name: "One local queue item" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Barnet top-level briefing note");
+  await expect(page.locator("main")).not.toContainText("Malformed duplicate working draft");
+
+  const stored = await page.evaluate((campaignId) => localStorage.getItem(`cf_operations_demo_v3:${campaignId}`), barnetId);
+  expect(stored).toContain("workspace-sanitized");
+  expect(stored).toContain('"sourceWorkingCopy":{"id":"source:');
+  expect(stored).toContain('"workingDrafts":[]');
+  expect(stored).toContain("Barnet top-level briefing note");
+  expect(stored).toContain("Top-level source review note should be preserved.");
+  expect(stored).not.toContain("Malformed duplicate working draft should be scrubbed");
+  expect(stored).not.toContain("Malformed duplicate note should disappear");
+});
+
 test("operations workbench removes fixture source baseline metadata from real campaign state", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
 
