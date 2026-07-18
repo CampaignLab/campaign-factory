@@ -19425,6 +19425,77 @@ test("operations workbench rejects non-canonical source-scoped local action ids"
   expect(JSON.stringify(storedState)).not.toContain(upperCampaignId);
 });
 
+test("operations workbench rejects source actions for non-canonical incomplete documents", async ({ page }) => {
+  const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId, status: "completed", stateVersion: 77, lastSequence: 2270, events: [] },
+        documents: campaignOperationsDocuments({ title: "Stop the leisure park redevelopment in Barnet", place: "Barnet, London", next: "Check Barnet planning records" }),
+        evidence: campaignEvidence([{ id: "shadow-incomplete-action", description: "Check Barnet planning records", reason: "Incomplete-document action key guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 77,
+        sourceLastSequence: 2270,
+        sourceDocumentSignature: `source:${id}:completed:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Local source draft reset",
+        body: "This browser-local workspace has an incomplete-document source action whose stored document key is not canonical.",
+        reviewerNote: "",
+        status: "draft",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "actions",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [
+          {
+            id: `source:${id}:incomplete:shadow_pack`,
+            title: "Follow up incomplete Shadow Pack",
+            source: "Campaign source · Shadow Pack incomplete",
+            owner: "Reviewer",
+            timing: "After the primary source check and evidence warnings are understood",
+            priority: "Low",
+            status: "blocked",
+            provenance: `Source campaign ${id}; Shadow Pack remains assembling, so this is a local work item rather than a false ready state.`,
+          },
+        ],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: null,
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "shadow-incomplete-action", label: "Created action: Follow up incomplete Shadow Pack" }],
+      }),
+    );
+  }, campaignId);
+
+  await page.goto(`/operations?campaignId=${campaignId}&view=actions`);
+  await expect(page.getByRole("heading", { name: "Owned local work from source checks" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Actions: 0 local items");
+
+  const storedState = JSON.parse((await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), campaignId)) ?? "{}");
+  expect(storedState.localActions).toHaveLength(0);
+  expect(storedState.activity.some((item: { id: string }) => item.id === "workspace-sanitized")).toBe(true);
+  expect(JSON.stringify(storedState)).not.toContain("Shadow Pack");
+});
+
 test("operations workbench canonicalizes restored real campaign workspace keys", async ({ page }) => {
   const campaignId = "6b54225d-afa3-41d1-b053-89741094f153";
   const upperCampaignId = campaignId.toUpperCase();

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { foldEvents } from "@/lib/factory/client/fold";
 import type { RunReadModel } from "@/lib/factory/contracts/api";
+import { CANONICAL_DOCUMENTS } from "@/lib/factory/contracts/documents";
 import type { CompiledDocument, EvidenceAndNextChecks } from "@/lib/factory/documents";
 import {
   OPERATIONS_PUBLIC_CAMPAIGNS,
@@ -1167,25 +1168,43 @@ function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: 
   return Boolean(idCampaignId === expectedCampaignId && provenanceCampaignId === expectedCampaignId);
 }
 
+const CANONICAL_SOURCE_ACTION_DOCUMENTS_BY_KEY = new Map<string, string>(CANONICAL_DOCUMENTS.map((document) => [document.key, document.name]));
+
+function localActionIncompleteDocumentMatchesStoredSourceId(actionId: string, title: string, source: string, provenance: string) {
+  const match = actionId.match(/^source:[0-9a-f-]{36}:incomplete:([a-z0-9_]+)$/i);
+  if (!match) return false;
+  const documentKey = match[1] ?? "";
+  const documentName = CANONICAL_SOURCE_ACTION_DOCUMENTS_BY_KEY.get(documentKey);
+  if (!documentName || documentKey !== canonicalSourceDocumentKey(documentKey)) return false;
+  const canonicalDocumentName = normaliseOperationsSourceInlineText(documentName).toLowerCase();
+  return (
+    title.includes("incomplete") &&
+    source.includes("incomplete") &&
+    (provenance.includes("remains") || provenance.includes("incomplete")) &&
+    title.includes(canonicalDocumentName) &&
+    source.includes(canonicalDocumentName) &&
+    provenance.includes(canonicalDocumentName)
+  );
+}
+
 function localActionSourceMatchesStoredSourceId(action: LocalAction) {
   const id = action.id.toLowerCase();
   const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
   const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
   const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
   const describesNextCheck = source.includes("evidence & checks") && provenance.includes("next check");
-  const describesIncompleteSource = title.includes("incomplete") && source.includes("incomplete") && (provenance.includes("remains") || provenance.includes("incomplete"));
   const describesTacticTarget = source.includes("tactics and timeline") && provenance.includes("tactic target");
 
   if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id) || /^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) {
     return describesNextCheck;
   }
-  if (/^source:[0-9a-f-]{36}:incomplete:[a-z0-9_:-]+$/i.test(action.id)) {
-    return describesIncompleteSource;
+  if (/^source:[0-9a-f-]{36}:incomplete:/i.test(action.id)) {
+    return localActionIncompleteDocumentMatchesStoredSourceId(action.id, title, source, provenance);
   }
   if (/^source:[0-9a-f-]{36}:tactic:/i.test(action.id)) {
     return describesTacticTarget;
   }
-  return id.startsWith("source:") && !describesNextCheck && !describesIncompleteSource && !describesTacticTarget;
+  return id.startsWith("source:") && !describesNextCheck && !localActionIncompleteDocumentMatchesStoredSourceId(action.id, title, source, provenance) && !describesTacticTarget;
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
