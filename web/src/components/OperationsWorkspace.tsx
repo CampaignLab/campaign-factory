@@ -1071,9 +1071,28 @@ function localActionMatchesWorkspace(action: LocalAction, expectedWorkspaceKey: 
   const idCampaignId = action.id.match(/^source:([0-9a-f-]{36})(?::|$)/i)?.[1]?.toLowerCase();
   if (idCampaignId && idCampaignId !== expectedCampaignId) return false;
   if (!textFieldsReferenceOnlyExpectedCampaign([action.id, action.title, action.source, action.owner, action.timing, action.provenance], expectedCampaignId)) return false;
+  if (!localActionSourceMatchesStoredSourceId(action)) return false;
   const provenanceCampaignId = action.provenance.match(/Source campaign\s+([0-9a-f-]{36})/i)?.[1]?.toLowerCase();
   if (provenanceCampaignId && provenanceCampaignId !== expectedCampaignId) return false;
   return Boolean(idCampaignId === expectedCampaignId && provenanceCampaignId === expectedCampaignId);
+}
+
+function localActionSourceMatchesStoredSourceId(action: LocalAction) {
+  const id = action.id.toLowerCase();
+  const source = normaliseOperationsSourceInlineText(action.source).toLowerCase();
+  const title = normaliseOperationsSourceInlineText(action.title).toLowerCase();
+  const provenance = normaliseOperationsSourceInlineText(action.provenance).toLowerCase();
+
+  if (/^source:[0-9a-f-]{36}:primary-source-check$/i.test(action.id) || /^source:[0-9a-f-]{36}:next-check:/i.test(action.id)) {
+    return source.includes("evidence & checks") && provenance.includes("next check");
+  }
+  if (/^source:[0-9a-f-]{36}:incomplete:[a-z0-9_:-]+$/i.test(action.id)) {
+    return title.includes("incomplete") && source.includes("incomplete") && (provenance.includes("remains") || provenance.includes("incomplete"));
+  }
+  if (/^source:[0-9a-f-]{36}:tactic:/i.test(action.id)) {
+    return source.includes("tactics and timeline") && provenance.includes("tactic target");
+  }
+  return id.startsWith("source:");
 }
 
 function sourceWorkingCopyMatchesWorkspace(copy: SourceWorkingCopy, expectedWorkspaceKey: string) {
