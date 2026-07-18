@@ -271,6 +271,10 @@ function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
 }
 
+function isOptionalCanonicalNonEmptySourceId(value: unknown): value is string | undefined {
+  return value === undefined || isCanonicalNonEmptySourceId(value);
+}
+
 function isOptionalNonNegativeInteger(value: unknown): value is number | undefined {
   return value === undefined || isNonNegativeInteger(value);
 }
@@ -380,9 +384,9 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     isCanonicalNonEmptySourceId(value.eventId) &&
     isPositiveInteger(value.sequence) &&
     value.campaignId === campaignId &&
-    isOptionalString(value.batchId) &&
-    isOptionalString(value.agentRunId) &&
-    isOptionalString(value.parentAgentRunId) &&
+    isOptionalCanonicalNonEmptySourceId(value.batchId) &&
+    isOptionalCanonicalNonEmptySourceId(value.agentRunId) &&
+    isOptionalCanonicalNonEmptySourceId(value.parentAgentRunId) &&
     isOptionalJourneyStep(value.journeyStep) &&
     typeof value.type === "string" &&
     OPERATIONS_EVENT_TYPES.has(value.type) &&
@@ -396,9 +400,9 @@ function isOperationsFactoryEvent(value: unknown, campaignId: string): value is 
     isOptionalString(payload.agentDisplayName) &&
     isOptionalUniqueCanonicalSourceIdArray(payload.sourceIds) &&
     isOptionalUniqueCanonicalSourceIdArray(payload.claimIds) &&
-    isOptionalString(payload.proposalId) &&
-    isOptionalString(payload.judgementId) &&
-    isOptionalString(payload.handoffToAgentRunId) &&
+    isOptionalCanonicalNonEmptySourceId(payload.proposalId) &&
+    isOptionalCanonicalNonEmptySourceId(payload.judgementId) &&
+    isOptionalCanonicalNonEmptySourceId(payload.handoffToAgentRunId) &&
     isOptionalJourneyStep(payload.sectionStep) &&
     isOptionalSectionStatus(payload.sectionStatus) &&
     isOptionalDocumentKey(payload.documentKey) &&
@@ -602,7 +606,7 @@ function isOperationsTerminalGap(value: unknown) {
     isRecord(value) &&
     isCanonicalNonEmptySourceId(value.id) &&
     hasRenderedText(value.description) &&
-    isOptionalString(value.agentRunId) &&
+    isOptionalCanonicalNonEmptySourceId(value.agentRunId) &&
     isOptionalJourneyStep(value.step) &&
     isIsoDateTimeString(at) &&
     Date.parse(at) <= Date.now()

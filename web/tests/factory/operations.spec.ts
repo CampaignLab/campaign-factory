@@ -13551,6 +13551,65 @@ test("operations workbench: padded source event reference ids do not hydrate a r
   await expect(page.getByText("A. Patel")).toHaveCount(0);
 });
 
+test("operations workbench: padded source provenance ids do not hydrate a real workspace", async ({ page }) => {
+  const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
+
+  await page.route(`**/api/operations/sources/${campaignId}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: {
+          campaignId,
+          batchId: " batch-1 ",
+          status: "partial",
+          stateVersion: 10,
+          lastSequence: 100,
+          events: [
+            {
+              eventId: "event-1",
+              sequence: 1,
+              campaignId,
+              batchId: "batch-1",
+              agentRunId: " agent-run-1 ",
+              parentAgentRunId: "parent-agent-run-1",
+              type: "document.status",
+              at: "2026-07-16T20:40:00Z",
+              visibility: "public",
+              payload: {
+                summary: "Padded provenance event should not hydrate Ormskirk",
+                proposalId: " proposal-1 ",
+                judgementId: "judgement-1",
+                handoffToAgentRunId: " handoff-agent-run-1 ",
+              },
+            },
+          ],
+        },
+        documents: canonicalOperationsDocuments("Padded provenance Ormskirk"),
+        evidence: {
+          groups: [],
+          conflicts: [],
+          nextChecks: [],
+          terminalGaps: [{ id: "gap-1", description: "Padded terminal gap run id should not hydrate Ormskirk", agentRunId: " terminal-agent-1 ", step: 4, at: "2026-07-17T12:01:00Z" }],
+          draftNotes: [],
+          totals: { claims: 0, loadBearing: 0, verifiedLoadBearing: 0, unresolvedLoadBearing: 0 },
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/operations?campaignId=${campaignId}`);
+
+  await expect(page.getByRole("heading", { name: "Campaign source unavailable" })).toBeVisible();
+  await expect(page.getByText("No fixture fallback used", { exact: true })).toBeVisible();
+  await expect(page.getByText(/did not match the requested campaign|typed public document contract/i)).toBeVisible();
+  await expect(page.getByText("Padded provenance event should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Padded terminal gap run id should not hydrate Ormskirk")).toHaveCount(0);
+  await expect(page.getByText("Padded provenance Ormskirk")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Make the St John the Baptist school street/i })).toHaveCount(0);
+  await expect(page.getByText("A. Patel")).toHaveCount(0);
+});
+
 test("operations workbench: invisible source event summaries do not hydrate a real workspace", async ({ page }) => {
   const campaignId = "69f257b6-9913-4395-94f7-5c25b4b5fe95";
 
