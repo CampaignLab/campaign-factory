@@ -863,14 +863,15 @@ function normalizeSourceDocuments(value: unknown) {
 function normalizeSourceDocumentEvidenceFlags(documents: unknown, evidence: unknown) {
   if (!Array.isArray(documents) || typeof evidence !== "object" || evidence === null || !Array.isArray((evidence as Record<string, unknown>).groups)) return documents;
 
-  const unresolvedLoadBearingClaimTexts = new Set<string>();
+  const unresolvedLoadBearingClaimTexts = new Map<string, string>();
   for (const group of (evidence as Record<string, unknown>).groups as unknown[]) {
     if (typeof group !== "object" || group === null || !Array.isArray((group as Record<string, unknown>).claims)) continue;
     for (const claim of (group as Record<string, unknown>).claims as unknown[]) {
       if (typeof claim !== "object" || claim === null) continue;
       const claimRecord = claim as Record<string, unknown>;
       if (claimRecord.loadBearing === true && typeof claimRecord.label === "string" && SOURCE_UNRESOLVED_LABELS.has(claimRecord.label) && typeof claimRecord.text === "string") {
-        unresolvedLoadBearingClaimTexts.add(normaliseOperationsSourceInlineText(claimRecord.text));
+        const claimText = normaliseOperationsSourceInlineText(claimRecord.text);
+        unresolvedLoadBearingClaimTexts.set(claimText.toLowerCase(), claimText);
       }
     }
   }
@@ -883,7 +884,8 @@ function normalizeSourceDocumentEvidenceFlags(documents: unknown, evidence: unkn
       const normalizedFlag = normaliseOperationsSourceInlineText(canonicalFlag);
       if (!normalizedFlag.startsWith(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM)) return [canonicalFlag];
       const claimText = normalizedFlag.slice(SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM.length).trim();
-      return unresolvedLoadBearingClaimTexts.has(claimText) ? [`${SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM}${claimText}`] : [];
+      const canonicalClaimText = unresolvedLoadBearingClaimTexts.get(claimText.toLowerCase());
+      return canonicalClaimText ? [`${SOURCE_DOCUMENT_FLAG_PREFIX_CLAIM}${canonicalClaimText}`] : [];
     });
     return { ...(document as Record<string, unknown>), flags: uniqueSourceDocumentFlags(flags) };
   });

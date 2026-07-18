@@ -3482,7 +3482,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const runBody = JSON.stringify({ campaignId: ` ${curatedId} `, batchId: "  ", status: " Complete ", stateVersion: " 88 ", lastSequence: " 900 ", events: [{ eventId: "legacy-large-source-event", sequence: 1 }] });
   const documents = canonicalOperationsDocuments("Stop the leisure park redevelopment in Barnet");
   documents[0].flags = [
-    " unresolved load-bearing CLAIM:\u00a0Unresolved source claim 1 ",
+    " unresolved load-bearing CLAIM:\u00a0unresolved SOURCE claim 1 ",
     "Unresolved load-bearing\u00a0claim: Unresolved source&nbsp claim 1",
     "UNRESOLVED LOAD-BEARING CLAIM: Archived source claim from an older build",
   ];
