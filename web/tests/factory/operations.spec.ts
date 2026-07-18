@@ -12464,6 +12464,83 @@ test("operations workbench scrubs other curated campaign names from real local s
   expect(storedState).not.toContain("Tower Hamlets");
 });
 
+test("operations workbench resets top-level drafts that mention another curated campaign", async ({ page }) => {
+  const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
+
+  await page.route(/\/api\/operations\/sources\/([^/]+)$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sourceOrigin: "https://campaign-factory.vercel.app",
+        run: { campaignId: barnetId, status: "completed", stateVersion: 62, lastSequence: 2120, events: [] },
+        documents: campaignOperationsDocuments({
+          title: "Stop the leisure park redevelopment in Barnet",
+          place: "Barnet, London",
+          next: "Check Barnet GLA and committee decision records",
+        }),
+        evidence: campaignEvidence([{ id: "top-level-foreign-scrub", description: "Check Barnet decision records", reason: "Top-level foreign campaign copy scrub guard", affectedSections: ["strategy"] }]),
+      }),
+    });
+  });
+
+  await page.goto("/operations?demo=fixture");
+  await page.evaluate((id) => {
+    localStorage.setItem(
+      `cf_operations_demo_v3:${id}`,
+      JSON.stringify({
+        workspaceKey: id,
+        sourceStateVersion: 62,
+        sourceLastSequence: 2120,
+        sourceDocumentSignature: `source:${id}:current-baseline`,
+        sourceAcknowledgedAt: "2026-07-17T20:00:00.000Z",
+        selectedSegment: "source_primary",
+        subject: "Tower Hamlets affordable housing update",
+        body: "This browser-local draft still mentions Build 5,000 affordable houses in Tower Hamlets in the next 3 years even though its source copy now points at Barnet.",
+        reviewerNote: "Check Tower Hamlets, London figures before approval.",
+        status: "review",
+        mode: "compose",
+        activeDraft: "supporter_email",
+        activeView: "drafts",
+        contactFilter: "all",
+        contactReadinessFilter: "all",
+        scheduleIntent: "after_approval",
+        queuedAt: null,
+        localActions: [],
+        workingDrafts: [],
+        activeWorkingDraftId: null,
+        sourceWorkingCopy: {
+          id: `source:${id}:digital-pack`,
+          campaignId: id,
+          title: "Barnet supporter email from source",
+          channel: "Email",
+          sourceDocument: "Digital Campaign Pack",
+          sourceDocumentKey: "digital_campaign_pack",
+          createdAt: "2026-07-17T20:05:00.000Z",
+          warnings: ["Confirm Barnet decision records before stronger claims."],
+          provenance: `Source campaign ${id}; copied from Digital Campaign Pack into browser-local operations.`,
+        },
+        sourceRecheckStateVersion: null,
+        sourceRecheckLastSequence: null,
+        sourceRecheckDocumentSignature: null,
+        sourceRecheckVisitedViews: [],
+        activity: [{ id: "draft-review-note", label: "Top-level draft moved to review." }],
+      }),
+    );
+  }, barnetId);
+
+  await page.goto(`/operations?campaignId=${barnetId}&view=drafts`);
+  await expect(page.getByText("Stop the leisure park redevelopment in Barnet · Barnet, London")).toBeVisible();
+  await expect(page.getByText("This browser-local draft was reset because its text referenced another curated campaign.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Build 5,000 affordable houses in Tower Hamlets");
+  await expect(page.locator("main")).not.toContainText("Tower Hamlets, London figures");
+  await expect(page.locator("main")).toContainText("Barnet supporter email from source");
+
+  const storedState = (await page.evaluate((id) => localStorage.getItem(`cf_operations_demo_v3:${id}`), barnetId)) ?? "";
+  expect(storedState).toContain("workspace-sanitized");
+  expect(storedState).toContain("Barnet supporter email from source");
+  expect(storedState).not.toContain("Tower Hamlets");
+});
+
 test("operations portfolio sanitizes malformed browser-local state before local counts", async ({ page }) => {
   const barnetId = "6b54225d-afa3-41d1-b053-89741094f153";
   const campaignTitles: Record<string, { title: string; place: string; status: "partial" | "completed" }> = {
