@@ -99,7 +99,15 @@ const SOURCE_AFFECTED_SECTION_ALIASES: Record<string, string> = {
   digitalpackdocument: "digital_pack",
 };
 const SOURCE_VERIFICATION_LABELS = new Set<string>(VERIFICATION_LABELS);
-const SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT = new Map<string, string>(VERIFICATION_LABELS.map((label) => [normaliseOperationsSourceInlineText(label), label]));
+const SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT = new Map<string, string>(
+  VERIFICATION_LABELS.flatMap((label): Array<[string, string]> => {
+    const visibleLabel = normaliseOperationsSourceInlineText(label);
+    return [
+      [visibleLabel, label],
+      [visibleLabel.toLowerCase(), label],
+    ];
+  }),
+);
 const SOURCE_UNRESOLVED_LABELS = new Set(["Conflicting evidence", "Verification incomplete", "External information unavailable"]);
 const SOURCE_CLAIM_TYPES = new Set(["authority", "process", "deadline", "officeholder", "policy", "stakeholder_position", "number", "context", "other"]);
 const SOURCE_CLAIM_CONFIDENCES = new Set(["high", "medium", "low"]);
@@ -561,7 +569,7 @@ function normalizeSourceVisibleText(value: unknown) {
 
 function normalizeSourceVerificationLabel(value: unknown) {
   const normalized = normalizeSourceVisibleText(value);
-  return normalized ? SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normalized) : undefined;
+  return normalized ? (SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normalized) ?? SOURCE_VERIFICATION_LABEL_BY_VISIBLE_TEXT.get(normalized.toLowerCase())) : undefined;
 }
 
 function normalizeSourceClaimType(value: unknown) {

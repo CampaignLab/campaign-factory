@@ -3511,7 +3511,7 @@ test("operations source API: normalizes recoverable legacy source references bef
     [{ id: "legacy-reference", description: "Legacy source check keeps the current claim and drops historical ids.", reason: "Older public source builds can carry archived claim ids in next checks.", affectedSections: ["documents", "lobbying_pack", "evidence"] }],
     2,
   );
-  evidence.groups[0].label = "Supported inference";
+  evidence.groups[0].label = "supported inference";
   evidence.groups[0].count = 7;
   evidence.groups[0].claims.push({ ...evidence.groups[0].claims[0] });
   evidence.groups.push({ label: "Verification incomplete", count: 1, claims: [{ ...evidence.groups[0].claims[1] }] });
@@ -3524,6 +3524,7 @@ test("operations source API: normalizes recoverable legacy source references bef
   const legacyClaim = evidence.groups[1].claims[0] as { id: string; text: string; type?: string; confidence?: string; loadBearing?: unknown; sourceCount?: unknown; affectedOutputs: string[]; contradictsClaimIds?: string[] | null; excerpt?: string | null };
   legacyClaim.id = " claim-1 ";
   legacyClaim.text = "Unresolved&nbsp source\n claim 1";
+  legacyClaim.label = " verification&nbsp;incomplete ";
   legacyClaim.type = " Stakeholder&nbsp;position ";
   legacyClaim.confidence = " Medium ";
   legacyClaim.loadBearing = " true ";
@@ -3650,7 +3651,7 @@ test("operations source API: restores legacy group-level claim labels before hyd
     [{ id: "legacy-group-label", description: "Recover a legacy source claim that only carried its verification label at group level.", reason: "Older public source evidence can predate per-claim label persistence.", affectedSections: ["evidence"] }],
     1,
   );
-  evidence.groups[0].label = "Verification&nbsp;incomplete";
+  evidence.groups[0].label = "verification&nbsp;incomplete";
   delete (evidence.groups[0].claims[0] as { label?: string }).label;
   const documentsBody = JSON.stringify({ documents: canonicalOperationsDocuments("Build 5,000 affordable homes in Tower Hamlets"), evidence });
 
