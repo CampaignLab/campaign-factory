@@ -223,3 +223,28 @@ was exposed in a session transcript on 16 Jul), disconnect the Neon
 integration from the Vercel project, then downgrade/delete
 `neon-claret-kettle` once comfortable. Conference-day caps (session/IP 200,
 kill-switch $600) still await the post-event posture decision.
+
+## 20 Jul 2026 ~02:15 BST — BYOK: public runs now require the visitor's own Anthropic key
+
+Organizer decision ahead of the newsletter (21 Jul): every public run now
+runs on the visitor's own Anthropic API key — the house key never funds a
+public run. Rationale: the app is being shared publicly; BYOK moves model
+cost to the person running the campaign. Anthropic keys only (not
+OpenRouter/OpenAI): the agent pipeline is Anthropic-native — server-side
+web search, effort levels, the overload retry ladder, and the Opus
+last-resort fallback — so other providers would mean rebuilding the model
+layer; deferred as a possible follow-up.
+
+Mechanics: the web gate validates the key with a zero-cost Anthropic
+/v1/models call before accepting the run (definite 401/403 → clear
+rejection copy; network trouble → 502, never a false reject). The worker
+seals the key with AES-256-GCM under FACTORY_BYOK_SECRET before it touches
+the database, opens it only when the run executes, and strips it at every
+terminal path — no credential outlives its run. A durable meta.byokRun
+flag excludes the run's cost from the house daily kill-switch. The
+per-campaign $20 hard stop now protects the visitor's key. Presenter
+batches and admin-header runs keep the house key (batch-of-1 is the
+organizer's solo path). Verified end-to-end on prod: gate rejections
+(missing/malformed/invalid key), a real BYOK run (agents researched on the
+sealed key; $0.12 recorded, $0.00 counted against the house budget), and
+the strip after cancellation.
