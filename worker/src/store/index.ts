@@ -1,95 +1,13 @@
 // Worker store barrel. The factory persistence layer is OWNED by w1-db
 // (web/src/lib/factory/store/** + state/reducer.ts, schema in
-// db/factory/migrations). The worker injects its own DIRECT/unpooled `sql`
-// client into these functions. This barrel re-exports exactly what the worker
-// runtime uses, plus worker-only helpers (environment-identity assertion and
-// cheap readiness probes) that have no web-side equivalent yet.
+// db/factory/migrations); the worker injects its own DIRECT/unpooled `sql`
+// client into those functions. Everything web-side flows through unchanged —
+// the previous hand-maintained re-export list kept drifting (product code
+// bypassed it for functions it forgot; architecture review 2026-07-20, W7).
+// The worker-only readiness probes below are this barrel's real value-add.
 
-export {
-  createBatch,
-  getBatch,
-  setBatchStatus,
-  setBatchReceipt,
-  createRun,
-  getRun,
-  listRunsByBatch,
-  setRunStatus,
-  setRunStateVersion,
-  setRunCost,
-  stripRunByok,
-  getRunReadModel,
-  type RunRecord,
-  type BatchRecord,
-  type CreateRunInput,
-  type CreateBatchInput,
-  type SetRunStatusOpts,
-} from "@web/lib/factory/store/runs.js";
-
-export {
-  appendEvent,
-  readEvents,
-  latestSequence,
-  NOTIFY_CHANNEL,
-  notifyPayload,
-  type AppendEventInput,
-} from "@web/lib/factory/store/events.js";
-
-export {
-  createAgentRun,
-  setAgentRunStatus,
-  getAgentRun,
-  listAgentRuns,
-  type CreateAgentRunInput,
-  type SetAgentRunStatusOpts,
-  type AgentRunRecord,
-} from "@web/lib/factory/store/agent-runs.js";
-
-export {
-  recordSource,
-  getSources,
-  recordRetrieval,
-  upsertClaim,
-  getClaims,
-  linkClaimEvidence,
-  type SourceInput as StoreSourceInput,
-  type ClaimInput,
-} from "@web/lib/factory/store/evidence.js";
-
-export {
-  saveStateVersion,
-  loadLatestState,
-  loadStateVersion,
-  getAcceptedState,
-  type SaveStateVersionInput,
-} from "@web/lib/factory/store/state-versions.js";
-
-export {
-  insertJudgement,
-  getJudgement,
-  listJudgements,
-  resolveJudgement,
-  type JudgementInput,
-  type ResolveJudgementInput,
-} from "@web/lib/factory/store/judgements.js";
-
-export {
-  appendCost,
-  campaignCostTotal,
-  batchCostTotal,
-  campaignCostBreakdown,
-  type CostEntry,
-} from "@web/lib/factory/store/ledger.js";
-
-export {
-  saveDocumentVersion,
-  type SaveDocumentVersionInput,
-} from "@web/lib/factory/store/documents.js";
-
-export {
-  emptyCampaignState,
-  applyProposal,
-  resolveEvidenceRefs,
-} from "@web/lib/factory/state/reducer.js";
+export * from "@web/lib/factory/store/index.js";
+export * from "@web/lib/factory/state/reducer.js";
 
 // Environment Identity Check (ADR 0014) — w1-db's authoritative fail-closed
 // implementation. assertEnvironmentIdentity reads FACTORY_ENV_ID from env.

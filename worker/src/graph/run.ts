@@ -11,9 +11,6 @@ import type { RunStatus } from "@web/lib/factory/contracts/core.js";
 import type { RunProfile } from "@web/lib/factory/contracts/api.js";
 import { agentDef } from "@web/lib/factory/contracts/roster.js";
 import { MAX_JUDGEMENT_REQUESTS_PER_RUN } from "@web/lib/factory/contracts/state.js";
-// Direct-module import (same pattern as finalise.ts) — the worker store barrel
-// does not re-export document reads.
-import { listLatestDocuments } from "@web/lib/factory/store/documents.js";
 import { config } from "../config.js";
 import { openForRun } from "../byok.js";
 import type { ModelProvider } from "@web/lib/anthropic.js";
@@ -201,7 +198,7 @@ async function maybeCompleteBatch(s: Sql, batchId: string): Promise<void> {
   // documents is not usable; counting it was flattering the receipt).
   const usableByCampaign = new Map<string, boolean>();
   for (const r of runs) {
-    const docs = await listLatestDocuments(s, r.campaignId);
+    const docs = await store.listLatestDocuments(s, r.campaignId);
     usableByCampaign.set(r.campaignId, docs.some((d) => d.status === "ready"));
   }
   const usable = runs.filter((r) => usableByCampaign.get(r.campaignId)).length;

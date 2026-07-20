@@ -36,6 +36,7 @@ import {
   type ModelTurnResult,
   type ModelTurnSpec,
 } from "./model-call.js";
+import { isKeyOrCreditError, isOverloadError, overloadWaitMs, sleep } from "./model-errors.js";
 import { WorkEmitter } from "./work.js";
 import { mockReview } from "./mock.js";
 
@@ -204,6 +205,18 @@ async function runReviewTurn(
     // runModelTurn; a second full review turn would only burn budget. Fall
     // through to the safe hold-for-revision outcome.
     if (e instanceof EmptyOutputError) return null;
+    // A dead key (rejected / out of credits) fails identically on a retry —
+    // fall straight through to hold-for-revision. Shared taxonomy with the
+    // executor's ladder (model-errors.ts).
+    if (isKeyOrCreditError(e)) {
+      work.work("The API key for this run was rejected or is out of credits — review held", "failed");
+      return null;
+    }
+    // Overloads clear within seconds-to-a-minute (16 Jul incident data): give
+    // the single retry a fighting chance instead of re-failing instantly.
+    // Still ONE retry — the reviewer stays deliberately cheaper than the
+    // executor's full ladder.
+    if (isOverloadError(e)) await sleep(overloadWaitMs(e));
     deps
       .emit({
         type: "agent.retry",

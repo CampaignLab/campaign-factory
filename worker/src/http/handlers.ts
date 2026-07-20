@@ -63,12 +63,7 @@ export async function handleStartRun(body: unknown): Promise<HandlerResult> {
   // byokProvider survive the terminal strip — spend accounting reads the
   // former, client construction the latter.
   let byokMeta: Record<string, unknown> = {};
-  const rawByokKey =
-    typeof b.byokKey === "string" && b.byokKey.trim() !== ""
-      ? b.byokKey.trim()
-      : typeof b.byokAnthropicKey === "string" && b.byokAnthropicKey.trim() !== ""
-        ? b.byokAnthropicKey.trim() // legacy field: always an Anthropic key
-        : undefined;
+  const rawByokKey = typeof b.byokKey === "string" && b.byokKey.trim() !== "" ? b.byokKey.trim() : undefined;
   if (rawByokKey) {
     const provider = b.byokProvider === "openrouter" ? "openrouter" : "anthropic";
     if (!byokMatchesProvider(rawByokKey, provider)) {

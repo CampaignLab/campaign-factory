@@ -32,6 +32,7 @@ import {
 } from "./model-call.js";
 import { WorkEmitter } from "./work.js";
 import { mockAgentTurn } from "./mock.js";
+import { isKeyOrCreditError, isOverloadError, overloadWaitMs, sleep } from "./model-errors.js";
 
 export const executeAgentTurn: AgentTurnFn = async (envelope, deps) => {
   const def = deps.agentDef;
@@ -116,49 +117,8 @@ export const executeAgentTurn: AgentTurnFn = async (envelope, deps) => {
 const MIN_RETRY_HEADROOM_MS = 30_000;
 const MAX_RETRY_TIMEOUT_MS = 120_000;
 const OVERLOAD_EXTRA_ATTEMPTS = 2;
-const OVERLOAD_MAX_WAIT_MS = 20_000;
 const FALLBACK_MODEL = "claude-opus-4-8";
 const MIN_FALLBACK_HEADROOM_MS = 45_000;
-
-function isOverloadError(e: unknown): boolean {
-  const err = e as { status?: unknown; error?: { type?: unknown }; message?: unknown } | null;
-  const status = typeof err?.status === "number" ? err.status : undefined;
-  const type = err?.error && typeof err.error === "object" ? (err.error as { type?: unknown }).type : undefined;
-  if (status === 429 || status === 529 || type === "rate_limit_error" || type === "overloaded_error") return true;
-  // Observed 16 Jul (Sonnet incident): the client wrapper rethrows a plain
-  // Error whose MESSAGE is the raw JSON body ({"type":"overloaded_error",...},
-  // status undefined) — detect that shape too.
-  const msg = typeof err?.message === "string" ? err.message : "";
-  return msg.includes('"overloaded_error"') || msg.includes('"rate_limit_error"');
-}
-
-// Auth/credit failures are NON-retryable: a rejected, revoked, or
-// out-of-credits key (Anthropic 401; OpenRouter 401/402/403 on BYOK runs)
-// fails identically on every rung, and the Opus fallback would burn the same
-// dead key. Fail the turn immediately with an honest gap instead.
-function isKeyOrCreditError(e: unknown): boolean {
-  const err = e as { status?: unknown; message?: unknown } | null;
-  const status = typeof err?.status === "number" ? err.status : undefined;
-  if (status === 401 || status === 402 || status === 403) return true;
-  const msg = typeof err?.message === "string" ? err.message : "";
-  return msg.includes('"authentication_error"') || msg.includes("Insufficient credits");
-}
-
-function overloadWaitMs(e: unknown): number {
-  const headers = (e as { headers?: unknown })?.headers;
-  const raw =
-    headers && typeof (headers as { get?: unknown }).get === "function"
-      ? (headers as { get: (k: string) => string | null }).get("retry-after")
-      : headers && typeof headers === "object"
-        ? (headers as Record<string, string>)["retry-after"]
-        : undefined;
-  const retryAfterMs = raw ? Number(raw) * 1000 : NaN;
-  const jitteredMs = 5_000 + Math.random() * 10_000;
-  const wait = Number.isFinite(retryAfterMs) && retryAfterMs > 0 ? retryAfterMs : jitteredMs;
-  return Math.min(Math.max(wait, 1_000), OVERLOAD_MAX_WAIT_MS);
-}
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function runWithOperationalRetry(
   spec: ModelTurnSpec,

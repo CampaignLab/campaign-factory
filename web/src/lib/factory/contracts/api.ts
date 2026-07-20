@@ -79,10 +79,6 @@ export interface StartRunRequest {
   // event. byokProvider defaults to "anthropic" when absent.
   byokKey?: string;
   byokProvider?: "anthropic" | "openrouter";
-  // Legacy field name (pre-OpenRouter); treated as byokKey + provider
-  // "anthropic". Kept so an older web deploy can talk to a newer worker
-  // during the cutover window.
-  byokAnthropicKey?: string;
 }
 
 // Worker-side mutation auth (cancel + judgement resolve): the web route

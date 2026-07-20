@@ -27,6 +27,8 @@ The "what is a valid key / which provider / what does it cost" knowledge is writ
 
 ## WORTH EXPLORING — cheap information-leakage batch
 
+> **Status 20 Jul (evening):** W1–W7 all implemented (W6 conservatively: shared error taxonomy in `worker/src/agents/model-errors.ts`; the reviewer gained the dead-key fail-fast and overload pacing but deliberately keeps its single-retry character). The legacy `byokAnthropicKey` wire field was also removed. Only P1 remains open, by design.
+
 - **W1. Campaign-id guard:** the UUID regex is written out five times across routes/pages (with the "non-UUID must 404, not 500 via Postgres 22P02" comment repeated); `isCampaignId()` + one 404 helper.
 - **W2. Admin auth helper:** the `x-cf-admin-key` comparison is triplicated identically plus two divergent variants; `isAdminRequest(req)` beside `config.adminKey`.
 - **W3. `needsSsl` / pg-connect idiom copy-pasted 5×** (`worker/config.ts`, `migrate.ts`, `db/spend.ts`, `db/client.ts`, `factory/store/client.ts`); the `ENV` name map in `contracts/api.ts` is documentation nothing imports.
