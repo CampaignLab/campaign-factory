@@ -9,7 +9,7 @@
 
 import { call, getClient, parseJSONLoose, textOf } from "@web/lib/anthropic.js";
 import { isVerificationLabel } from "@web/lib/pipeline/labels.js";
-import { costUSD, type Usage } from "@web/lib/spend/pricing.js";
+import { turnCostUSD, type Usage } from "@web/lib/spend/pricing.js";
 import type { AgentDef, AgentResult, ChangeProposalDraft } from "@web/lib/factory/contracts/index.js";
 import type { ExecutorDeps } from "./deps.js";
 
@@ -178,7 +178,7 @@ export async function runInvisibleQA(input: QAInput, deps: ExecutorDeps): Promis
                 model,
                 inputTokens: usage.input_tokens ?? 0,
                 outputTokens: usage.output_tokens ?? 0,
-                costUSD: costUSD(model, usage),
+                costUSD: turnCostUSD(model, usage), // QA never searches; surcharge = 0
               })
               .catch((err) => console.error("[agents] QA recordUsage failed:", err)),
         },

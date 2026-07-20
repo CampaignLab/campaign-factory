@@ -61,8 +61,7 @@ export const COST_GUARDS = {
   perCampaignWarningUSD: 10,
   perCampaignHardStopUSD: 20, // stops new model nodes; deterministic finalisation runs
   presenterBatchWarningUSD: 40,
-  presenterBatchHardStopUSD: 80, // the ceiling
-  dailyProjectKillSwitchGBP: 150, // existing global switch, unchanged
+  presenterBatchHardStopUSD: 80, // the ceiling; worker's presenter spend ceiling defaults from this
 } as const;
 
 export const LATENCY_TARGETS = {

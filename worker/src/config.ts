@@ -13,6 +13,7 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import dotenv from "dotenv";
+import { COST_GUARDS } from "@web/lib/factory/contracts/limits.js";
 
 // worker/src/config.ts → dirname = worker/src → resolve(..) = worker/
 const WORKER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."); // .../worker
@@ -86,7 +87,9 @@ export const config = {
   modelMode,
   // Presenter secrets (owned by w5's presenter auth; documented here per api.ts).
   presenterCode: str("CF_PRESENTER_CODE"),
-  presenterSpendCeilingUSD: num("CF_PRESENTER_SPEND_CEILING_USD", 80),
+  // Defaults from the one authoritative batch ceiling in contracts/limits.ts;
+  // the env var remains an operational override.
+  presenterSpendCeilingUSD: num("CF_PRESENTER_SPEND_CEILING_USD", COST_GUARDS.presenterBatchHardStopUSD),
   // Live-mode model key. Presence is checked by /ready without spending tokens.
   anthropicApiKey: str("ANTHROPIC_API_KEY"),
   // Secret sealing visitors' BYOK Anthropic keys at rest (worker/src/byok.ts).

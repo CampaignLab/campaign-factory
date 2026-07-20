@@ -26,6 +26,13 @@ const PRICING: Record<string, Price> = {
 // Approximate web-search server-tool cost per research call (~4 searches).
 export const WEB_SEARCH_COST_USD = 0.04;
 
+/** Full price of one model turn: token cost plus the web-search surcharge.
+ * WEB_SEARCH_COST_USD is per research CALL of ~4 searches, so each individual
+ * search contributes a quarter of it — that rule lives here and nowhere else. */
+export function turnCostUSD(model: string, u: Usage, webSearches = 0): number {
+  return costUSD(model, u) + webSearches * (WEB_SEARCH_COST_USD / 4);
+}
+
 export function costUSD(model: string, u: Usage): number {
   const p = PRICING[model];
   if (!p) return 0;

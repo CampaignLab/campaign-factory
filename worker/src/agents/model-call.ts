@@ -10,7 +10,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { call, getClient, parseJSONLoose, textOf } from "@web/lib/anthropic.js";
 import type { Effort } from "@web/lib/pipeline/models.js";
-import { costUSD, WEB_SEARCH_COST_USD, type Usage } from "@web/lib/spend/pricing.js";
+import { turnCostUSD, type Usage } from "@web/lib/spend/pricing.js";
 import { validateAgainst, type JSchema } from "@web/lib/factory/agents/index.js";
 import type { AgentDef } from "@web/lib/factory/contracts/index.js";
 import type { ExecutorDeps } from "./deps.js";
@@ -168,9 +168,9 @@ export async function runModelTurn(spec: ModelTurnSpec, deps: ExecutorDeps): Pro
         outputTokens: usage.output_tokens ?? 0,
         cacheReadTokens: usage.cache_read_input_tokens,
         cacheCreationTokens: usage.cache_creation_input_tokens,
-        // Ledger totals sum cost_usd only, so search spend must be priced in
-        // here. WEB_SEARCH_COST_USD is per research call of ~4 searches → /4.
-        costUSD: costUSD(model, usage) + webSearches * (WEB_SEARCH_COST_USD / 4),
+        // Ledger totals sum cost_usd only — turnCostUSD owns the pricing
+        // rules (token cost + per-search surcharge) in one place.
+        costUSD: turnCostUSD(model, usage, webSearches),
         webSearches: webSearches || undefined,
       })
       .catch(logDropped("recordUsage"));
