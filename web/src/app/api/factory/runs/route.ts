@@ -12,18 +12,56 @@ import { forwardSigned, factoryEnvId, type ForwardResult } from "../_lib/worker"
 
 export const runtime = "nodejs";
 
-// Zero-cost key check: /v1/models lists models without spending tokens. Only
-// a definite 401/403 counts as "rejected"; network trouble or 5xx must not
-// bounce a valid key, so it maps to "unverifiable" (caller returns 502).
-async function validateAnthropicKey(key: string): Promise<"ok" | "rejected" | "unverifiable"> {
+type ByokProvider = "anthropic" | "openrouter";
+
+// sk-ant-… → Anthropic; sk-or-… → OpenRouter. Anything else is not a key we
+// accept (null → format error).
+function detectProvider(key: string): ByokProvider | null {
+  if (/^sk-ant-[A-Za-z0-9_-]{10,}$/.test(key)) return "anthropic";
+  if (/^sk-or-[A-Za-z0-9_-]{10,}$/.test(key)) return "openrouter";
+  return null;
+}
+
+// Zero-cost key check against the key's own provider. Anthropic: /v1/models
+// lists models without spending tokens. OpenRouter: /api/v1/key returns the
+// key's metadata, then /api/v1/credits catches an authenticated-but-empty
+// account ("no_credits") — otherwise the run starts and every agent fails
+// fast on 402s. Only a definite 401/403 counts as "rejected"; network
+// trouble or 5xx must not bounce a valid key, so it maps to "unverifiable"
+// (caller returns 502).
+async function validateByokKey(
+  key: string,
+  provider: ByokProvider,
+): Promise<"ok" | "rejected" | "unverifiable" | "no_credits"> {
+  const req: { url: string; headers: Record<string, string> } =
+    provider === "openrouter"
+      ? { url: "https://openrouter.ai/api/v1/key", headers: { authorization: `Bearer ${key}` } }
+      : {
+          url: "https://api.anthropic.com/v1/models?limit=1",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+        };
   try {
-    const r = await fetch("https://api.anthropic.com/v1/models?limit=1", {
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (r.ok) return "ok";
+    const r = await fetch(req.url, { headers: req.headers, signal: AbortSignal.timeout(8000) });
     if (r.status === 401 || r.status === 403) return "rejected";
-    return "unverifiable";
+    if (!r.ok) return "unverifiable";
+    if (provider === "openrouter") {
+      // Balance check is advisory: a definite ≤0 balance rejects, anything
+      // unreadable passes through (the executor fails fast on 402 anyway).
+      try {
+        const c = await fetch("https://openrouter.ai/api/v1/credits", {
+          headers: req.headers,
+          signal: AbortSignal.timeout(8000),
+        });
+        if (c.ok) {
+          const j = (await c.json()) as { data?: { total_credits?: number; total_usage?: number } };
+          const remaining = (j.data?.total_credits ?? NaN) - (j.data?.total_usage ?? NaN);
+          if (Number.isFinite(remaining) && remaining <= 0) return "no_credits";
+        }
+      } catch {
+        /* balance unknown — let the run proceed */
+      }
+    }
+    return "ok";
   } catch {
     return "unverifiable";
   }
@@ -47,7 +85,8 @@ export async function POST(req: Request) {
     intake?: { problem?: unknown; place?: unknown };
     problem?: unknown;
     place?: unknown;
-    anthropicApiKey?: unknown;
+    apiKey?: unknown;
+    anthropicApiKey?: unknown; // legacy client field name
   };
   const problem = typeof b.intake?.problem === "string" ? b.intake.problem : (b.problem as string);
   const place = typeof b.intake?.place === "string" ? b.intake.place : (b.place as string);
@@ -67,37 +106,46 @@ export async function POST(req: Request) {
   const isAdmin = !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
 
   // BYOK gate (user decision, 20 Jul 2026): public runs ALWAYS run on the
-  // visitor's own Anthropic key — the house key never funds a public run.
-  // Admin callers may omit the key (organizer testing on the house key).
-  const byokKey = typeof b.anthropicApiKey === "string" ? b.anthropicApiKey.trim() : "";
+  // visitor's own key — Anthropic (sk-ant-…) or OpenRouter (sk-or-…) — and the
+  // house key never funds a public run. Admin callers may omit the key
+  // (organizer testing on the house key).
+  const rawKey = b.apiKey ?? b.anthropicApiKey;
+  const byokKey = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!byokKey && !isAdmin) {
     return NextResponse.json(
       {
         byokRequired: true,
         error:
-          "An Anthropic API key is required — your campaign's agents run on your key, so its cost (typically $1.50–$3, hard-capped at $20) goes to your account.",
+          "An Anthropic or OpenRouter API key is required — your campaign's agents run on your key, so its cost (typically $1.50–$3, hard-capped at $20) goes to your account.",
       },
       { status: 400 },
     );
   }
+  let byokProvider: "anthropic" | "openrouter" = "anthropic";
   if (byokKey) {
-    if (!/^sk-ant-[A-Za-z0-9_-]{10,}$/.test(byokKey)) {
-      return NextResponse.json(
-        { error: "That doesn't look like an Anthropic API key — they start with sk-ant-. Check for missing characters." },
-        { status: 400 },
-      );
-    }
-    const check = await validateAnthropicKey(byokKey);
-    if (check !== "ok") {
+    const provider = detectProvider(byokKey);
+    if (!provider) {
       return NextResponse.json(
         {
           error:
-            check === "rejected"
-              ? "Anthropic rejected that API key. Check it in console.anthropic.com → API keys and try again."
-              : "We couldn't verify your API key with Anthropic just now — please try again in a moment.",
+            "That doesn't look like an Anthropic or OpenRouter API key — they start with sk-ant- or sk-or-. Check for missing characters.",
         },
-        { status: check === "rejected" ? 400 : 502 },
+        { status: 400 },
       );
+    }
+    byokProvider = provider;
+    const providerName = provider === "openrouter" ? "OpenRouter" : "Anthropic";
+    const consoleHint =
+      provider === "openrouter" ? "openrouter.ai/settings/keys" : "console.anthropic.com → API keys";
+    const check = await validateByokKey(byokKey, provider);
+    if (check !== "ok") {
+      const error =
+        check === "rejected"
+          ? `${providerName} rejected that API key. Check it in ${consoleHint} and try again.`
+          : check === "no_credits"
+            ? "That OpenRouter key works, but the account has no remaining credits — top up at openrouter.ai/settings/credits and try again."
+            : `We couldn't verify your API key with ${providerName} just now — please try again in a moment.`;
+      return NextResponse.json({ error }, { status: check === "unverifiable" ? 502 : 400 });
     }
   }
 
@@ -145,7 +193,7 @@ export async function POST(req: Request) {
       mode: "public",
       profile: "express",
       environmentId: factoryEnvId(),
-      ...(byokKey ? { byokAnthropicKey: byokKey } : {}),
+      ...(byokKey ? { byokKey, byokProvider } : {}),
     });
   } catch (err) {
     if (!isAdmin) {
