@@ -10,6 +10,9 @@ export function SiteFooter() {
           <Link href="/">New campaign</Link>
           <Link href="/gallery">Campaign Gallery</Link>
           <Link href="/how">How it works</Link>
+          <a href="https://github.com/CampaignLab/campaign-factory#readme" target="_blank" rel="noreferrer">
+            Source &amp; README
+          </a>
         </nav>
       </div>
       <p className="footer-caption">

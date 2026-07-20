@@ -248,3 +248,16 @@ organizer's solo path). Verified end-to-end on prod: gate rejections
 (missing/malformed/invalid key), a real BYOK run (agents researched on the
 sealed key; $0.12 recorded, $0.00 counted against the house budget), and
 the strip after cancellation.
+
+## 20 Jul 2026 ~18:20 BST — OpenRouter BYOK merged (PR #13) + README refresh
+
+Public runs now accept OpenRouter keys alongside Anthropic. Spike-verified
+with a real funded key before merge: Anthropic server-side web_search,
+effort, prompt caching, and streaming all pass through OpenRouter's
+Anthropic-compatible endpoint. Deploy order worker-first, then merge;
+prod-verified end-to-end with a real sk-or- run (3 agents, 3 searches,
+zero retries; sealed with provider flag; stripped at cancel). The gate
+also now rejects credit-less OpenRouter keys upfront (live-tested against
+a zero-balance account). README rewritten to match current functionality
+(factory-as-production, BYOK, conference/outage/migration history) and
+linked from the site footer as "Source & README".
