@@ -12,3 +12,5 @@ app/local-key.js
 
 # Local-only demo risk review (names exploitable routes; not for the public repo)
 DEMO-LIVE-RISKS.md
+
+.playwright-cli/
