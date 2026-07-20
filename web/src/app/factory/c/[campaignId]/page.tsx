@@ -14,16 +14,14 @@
 import type { Metadata } from "next";
 import { AssemblyClient } from "@/components/factory/assembly/AssemblyClient";
 import {
-  buildBriefRegister,
   campaignNameFromState,
   type BriefRegister,
 } from "@/components/factory/assembly/briefData";
+import { isUuidId } from "@/lib/factory/ids";
 import { factorySql } from "@/lib/factory/store/client";
 import { getRun } from "@/lib/factory/store/runs";
-import { getClaims, getSources } from "@/lib/factory/store/evidence";
 import { loadLatestState } from "@/lib/factory/store/state-versions";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { loadBriefRegister } from "./briefRegister";
 
 function truncate(s: string, cap: number): string {
   const t = s.trim();
@@ -36,7 +34,7 @@ export async function generateMetadata({
   params: Promise<{ campaignId: string }>;
 }): Promise<Metadata> {
   const { campaignId } = await params;
-  if (UUID_RE.test(campaignId)) {
+  if (isUuidId(campaignId)) {
     try {
       const sql = factorySql();
       const [run, state] = await Promise.all([
@@ -72,7 +70,7 @@ export default async function CampaignAssemblyPage({
   let problem: string | undefined;
   let place: string | undefined;
   let register: BriefRegister | undefined;
-  if (UUID_RE.test(campaignId)) {
+  if (isUuidId(campaignId)) {
     const sql = factorySql();
     try {
       const run = await getRun(sql, campaignId);
@@ -82,12 +80,7 @@ export default async function CampaignAssemblyPage({
       // db unreachable — the client still renders from events/seedless
     }
     try {
-      const [sources, claims, state] = await Promise.all([
-        getSources(sql, campaignId),
-        getClaims(sql, campaignId),
-        loadLatestState(sql, campaignId),
-      ]);
-      register = buildBriefRegister(sources, claims, campaignNameFromState(state));
+      register = await loadBriefRegister(campaignId);
     } catch {
       // register unavailable — the rungs render their honest empty states
     }

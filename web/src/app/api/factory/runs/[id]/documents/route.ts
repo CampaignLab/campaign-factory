@@ -9,6 +9,7 @@ import { getRun } from "@/lib/factory/store/runs";
 import { getAcceptedState } from "@/lib/factory/store/state-versions";
 import { getClaims } from "@/lib/factory/store/evidence";
 import { compileDocuments, buildEvidenceAndNextChecks } from "@/lib/factory/documents";
+import { isUuidId } from "@/lib/factory/ids";
 import { factoryReadSql } from "../../../_lib/worker";
 
 export const runtime = "nodejs";
@@ -17,8 +18,7 @@ const TERMINAL = new Set(["completed", "partial", "failed", "cancelled"]);
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  // Non-UUID ids must 404 per contract, not surface a Postgres 22P02 as a 500.
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+  if (!isUuidId(id)) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }
   const sql = factoryReadSql();

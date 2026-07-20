@@ -4,10 +4,16 @@ import { randomUUID } from "node:crypto";
 
 export const SID_COOKIE = "cf_sid";
 
+// Parse a single cookie value from a raw Cookie header. Generic over the
+// cookie name; parseSid is the cf_sid-specific reader on top of it.
+export function readCookie(cookieHeader: string | null, name: string): string | undefined {
+  if (!cookieHeader) return undefined;
+  const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return m ? decodeURIComponent(m[1]) : undefined;
+}
+
 export function parseSid(cookieHeader: string | null): string | null {
-  if (!cookieHeader) return null;
-  const m = cookieHeader.match(/(?:^|;\s*)cf_sid=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return readCookie(cookieHeader, SID_COOKIE) ?? null;
 }
 
 export function newSid(): string {

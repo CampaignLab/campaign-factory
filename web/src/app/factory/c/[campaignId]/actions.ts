@@ -8,27 +8,14 @@
 // public documents route compiles from); returns null on any failure so the
 // client simply keeps what it has.
 
-import {
-  buildBriefRegister,
-  campaignNameFromState,
-  type BriefRegister,
-} from "@/components/factory/assembly/briefData";
-import { factorySql } from "@/lib/factory/store/client";
-import { getClaims, getSources } from "@/lib/factory/store/evidence";
-import { loadLatestState } from "@/lib/factory/store/state-versions";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { type BriefRegister } from "@/components/factory/assembly/briefData";
+import { isUuidId } from "@/lib/factory/ids";
+import { loadBriefRegister } from "./briefRegister";
 
 export async function fetchBriefRegister(campaignId: string): Promise<BriefRegister | null> {
-  if (!UUID_RE.test(campaignId)) return null;
+  if (!isUuidId(campaignId)) return null;
   try {
-    const sql = factorySql();
-    const [sources, claims, state] = await Promise.all([
-      getSources(sql, campaignId),
-      getClaims(sql, campaignId),
-      loadLatestState(sql, campaignId),
-    ]);
-    return buildBriefRegister(sources, claims, campaignNameFromState(state));
+    return await loadBriefRegister(campaignId);
   } catch {
     return null;
   }

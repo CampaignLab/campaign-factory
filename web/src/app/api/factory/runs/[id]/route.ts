@@ -5,14 +5,14 @@
 
 import { NextResponse } from "next/server";
 import { getRunReadModel } from "@/lib/factory/store/runs";
+import { isUuidId } from "@/lib/factory/ids";
 import { factoryReadSql } from "../../_lib/worker";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  // Non-UUID ids must 404 per contract, not surface a Postgres 22P02 as a 500.
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+  if (!isUuidId(id)) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }
   const afterRaw = Number(new URL(req.url).searchParams.get("after") ?? "0");

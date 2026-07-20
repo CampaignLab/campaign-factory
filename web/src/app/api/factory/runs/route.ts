@@ -5,7 +5,7 @@
 // worker, and return its StartRunResponse. No business logic beyond gates.
 
 import { NextResponse } from "next/server";
-import { config } from "@/lib/config";
+import { config, isAdminRequest } from "@/lib/config";
 import { overBudget } from "@/lib/db/spend";
 import { withRunSlots } from "@/lib/db/sessions";
 import { resolveByok } from "@/lib/byok";
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That place name is too long — please keep it under 200 characters." }, { status: 400 });
   }
 
-  const isAdmin = !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
+  const isAdmin = isAdminRequest(req);
 
   const byok = await resolveByok(b.apiKey ?? b.anthropicApiKey, isAdmin);
   if (!byok.ok) return NextResponse.json(byok.body, { status: byok.status });

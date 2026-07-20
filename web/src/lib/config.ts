@@ -42,3 +42,10 @@ export const config = {
 export function dailyBudgetUSD(): number {
   return config.dailyBudgetGBP * config.fxGbpUsd;
 }
+
+// A request is admin iff an admin key is configured AND the caller's
+// x-cf-admin-key header matches it exactly (trimmed). Header-only by design —
+// surfaces that accept the key via ?key= or a body field must not use this.
+export function isAdminRequest(req: Request): boolean {
+  return !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
+}

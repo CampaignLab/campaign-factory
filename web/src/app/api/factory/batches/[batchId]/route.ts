@@ -6,6 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { getBatch, listRunsByBatch } from "@/lib/factory/store/runs";
+import { isUuidId } from "@/lib/factory/ids";
 import { PRESENTER_COOKIE, verifyPresenterToken } from "../../present/session";
 import { factoryReadSql, readCookie } from "../../_lib/worker";
 
@@ -20,8 +21,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ batchId: string
   }
 
   const { batchId } = await ctx.params;
-  // Non-UUID ids must 404 per contract, not surface a Postgres 22P02 as a 500.
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(batchId)) {
+  if (!isUuidId(batchId)) {
     return NextResponse.json({ error: "Batch not found" }, { status: 404 });
   }
   const sql = factoryReadSql();

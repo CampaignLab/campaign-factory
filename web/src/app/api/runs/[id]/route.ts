@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getRun } from "@/lib/jobs/store";
 import { deleteRun, deleteRunAdmin } from "@/lib/db/wall";
 import { parseSid } from "@/lib/session";
-import { config } from "@/lib/config";
+import { isAdminRequest } from "@/lib/config";
 
 // GET /api/runs/[id] — poll run progress + the partial campaign.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -17,7 +17,7 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   const { id } = await ctx.params;
 
   // Admin override: a valid admin key deletes any run, bypassing owner check.
-  const isAdmin = !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
+  const isAdmin = isAdminRequest(req);
   if (isAdmin) {
     const ok = await deleteRunAdmin(id);
     return NextResponse.json({ ok }, { status: ok ? 200 : 404 });

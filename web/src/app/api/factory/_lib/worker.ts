@@ -116,9 +116,7 @@ export function factoryReadSql(): ReturnType<typeof postgres> {
   return readSql;
 }
 
-// Parse a single cookie value from a raw Cookie header.
-export function readCookie(cookieHeader: string | null, name: string): string | undefined {
-  if (!cookieHeader) return undefined;
-  const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
-  return m ? decodeURIComponent(m[1]) : undefined;
-}
+// Generic Cookie-header reader. Defined once in @/lib/session (lib must not
+// import from app/); re-exported here so the factory routes keep importing it
+// from their local _lib barrel.
+export { readCookie } from "@/lib/session";

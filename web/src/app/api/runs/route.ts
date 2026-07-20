@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { startRun } from "@/lib/jobs/store";
-import { config } from "@/lib/config";
+import { config, isAdminRequest } from "@/lib/config";
 import { overBudget } from "@/lib/db/spend";
 import { runCount, incrRun, runCountByIp, incrIpRun } from "@/lib/db/sessions";
 import { SID_COOKIE, parseSid, newSid, clientIp } from "@/lib/session";
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   // Admin bypass: a valid admin key (header x-cf-admin-key) skips the run caps
   // and their counters, so we can exercise the pipeline without burning quota.
   // The budget kill-switch below still applies.
-  const isAdmin = !!config.adminKey && (req.headers.get("x-cf-admin-key") || "").trim() === config.adminKey;
+  const isAdmin = isAdminRequest(req);
 
   // 3. Global spend kill-switch
   if (await overBudget()) {
