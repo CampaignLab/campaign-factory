@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { startFactoryRun } from "@/lib/factory/client/api";
-import { keyLooksValid, PROVIDER_META, BYOK_TYPICAL_COST, BYOK_HARD_CAP } from "@/lib/byok";
+import { keyLooksValid, looksLikeFreeCode, PROVIDER_META, BYOK_TYPICAL_COST, BYOK_HARD_CAP } from "@/lib/byok";
 import { rememberFactoryRun } from "@/lib/factory/client";
 import styles from "./factory-intake.module.css";
 
@@ -70,7 +70,10 @@ export default function FactoryIntakePage() {
 
   const problemOk = problem.trim().length >= 8;
   const placeOk = placeIsNamed(place);
-  const keyOk = keyLooksValid(apiKey);
+  // An access code (session handout, e.g. FREE-CAMPAIGN-BUILD) is accepted in
+  // the same field as an API key; only the server knows the real code, so the
+  // form gate passes anything code-shaped and lets the gate verify it.
+  const keyOk = keyLooksValid(apiKey) || looksLikeFreeCode(apiKey);
   const canSubmit = problemOk && placeOk && keyOk && !busy;
 
   const submit = async (e: React.FormEvent) => {

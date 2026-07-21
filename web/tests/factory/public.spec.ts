@@ -16,6 +16,10 @@ test("public intake: single campaign starts and comes alive", async ({ page }) =
 
   await page.locator("#problem").fill(PUBLIC_CAMPAIGN.problem);
   await page.locator("#place").fill(PUBLIC_CAMPAIGN.place);
+  // BYOK gate (20 Jul): the form won't submit without a key or access code.
+  // Default assumes CF_FREE_CODE=FREE-CAMPAIGN-BUILD on the target env; point
+  // PW_FACTORY_KEY at a real sk-ant-/sk-or- key to exercise the BYOK path.
+  await page.locator("#apiKey").fill(process.env.PW_FACTORY_KEY || "FREE-CAMPAIGN-BUILD");
 
   // Capture the start response so a shared per-IP cap (429/503) is reported
   // honestly rather than surfacing as a confusing UI failure.

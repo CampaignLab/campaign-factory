@@ -30,7 +30,9 @@ export const config = {
   ipRunCap: intEnv("CF_IP_RUN_CAP", 200),
   // Global daily spend ceiling (kill-switch), in GBP, converted to USD for the
   // ledger. Conference day (16 Jul): raised to ≈$600 USD at the configured FX
-  // (user decision; was £150 ≈ $190).
+  // (user decision; was £150 ≈ $190). Zero or negative DISABLES the kill-switch
+  // (user decision, 21 Jul 2026, free-access-code launch) — per-campaign
+  // COST_GUARDS on the worker and the session/IP run caps remain the backstops.
   dailyBudgetGBP: numEnv("CF_DAILY_BUDGET_GBP", 472.44),
   fxGbpUsd: numEnv("CF_FX_GBP_USD", 1.27),
   // Sunset / maintenance switch — disables new runs, existing URLs stay readable.

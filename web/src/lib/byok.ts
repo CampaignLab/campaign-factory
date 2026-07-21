@@ -1,5 +1,6 @@
 // BYOK vocabulary — the ONE home for "what is a valid visitor key, which
-// provider does it belong to, what does it cost, and is it usable right now".
+// provider does it belong to, what does it cost, and is it usable right now",
+// plus the free-access code that waives BYOK onto the house key.
 // The intake form (client) and the run gate (server) both read from here so
 // the two can never drift; worker-side sealing lives in worker/src/byok.ts.
 // (Architecture review 2026-07-20, candidates S1/S2.)
@@ -24,6 +25,32 @@ export function detectProvider(key: string): ByokProvider | null {
 /** Client-side form gate — same source of truth as the server's detect. */
 export function keyLooksValid(key: string): boolean {
   return detectProvider(key) !== null;
+}
+
+// ---- Free-access code ---------------------------------------------------------
+// A shared code (e.g. FREE-CAMPAIGN-BUILD) handed out at sessions, typed into
+// the same field as an API key. A matching code makes the run a house-key run —
+// the same path admin callers use — so the daily budget kill-switch and the
+// session/IP caps are the cost controls. The real code lives ONLY in server env
+// (CF_FREE_CODE, unset = feature off) and is read at call time, never at module
+// scope: this module is imported by the client bundle, and only NEXT_PUBLIC_
+// vars are ever inlined there. The client knows just the SHAPE below, so the
+// code itself never ships to the browser.
+
+// Code-shaped: letters/digits/hyphens, 8–64 chars. The (?!sk-) guard keeps
+// mistyped API keys on the key-error copy instead of the code-error copy.
+const FREE_CODE_SHAPE = /^(?!sk-)[A-Za-z][A-Za-z0-9-]{7,63}$/i;
+
+/** Client-side form gate: could this input be an access code (vs an API key)? */
+export function looksLikeFreeCode(input: string): boolean {
+  return FREE_CODE_SHAPE.test(input.trim());
+}
+
+/** Server-only: does the input match the configured code? Case-insensitive —
+ * codes are dictated aloud at sessions, so casing must not matter. */
+function matchesFreeCode(input: string): boolean {
+  const code = (process.env.CF_FREE_CODE || "").trim();
+  return code !== "" && input.trim().toUpperCase() === code.toUpperCase();
 }
 
 export const PROVIDER_META: Record<
@@ -93,13 +120,14 @@ export async function validateByokKey(key: string, provider: ByokProvider): Prom
 
 export type ByokResolution =
   | { ok: true; key: string; provider: ByokProvider }
-  | { ok: true; key: null; provider: null } // admin caller on the house key
+  | { ok: true; key: null; provider: null } // house-key run: admin caller, or a valid free-access code
   | { ok: false; status: 400 | 502; body: { error: string; byokRequired?: true } };
 
 /** The run gate's whole BYOK decision behind one call: required-key policy,
- * format/provider detection, live provider validation, and the user-facing
- * copy for every rejection. (Public runs ALWAYS run on the visitor's key —
- * user decision, 20 Jul 2026; admin callers may omit it.) */
+ * free-access-code match, format/provider detection, live provider validation,
+ * and the user-facing copy for every rejection. (Public runs ALWAYS run on the
+ * visitor's key — user decision, 20 Jul 2026; admin callers may omit it, and a
+ * valid CF_FREE_CODE waives it onto the house key.) */
 export async function resolveByok(rawKey: unknown, isAdmin: boolean): Promise<ByokResolution> {
   const key = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!key) {
@@ -113,14 +141,16 @@ export async function resolveByok(rawKey: unknown, isAdmin: boolean): Promise<By
       },
     };
   }
+  if (matchesFreeCode(key)) return { ok: true, key: null, provider: null };
   const provider = detectProvider(key);
   if (!provider) {
     return {
       ok: false,
       status: 400,
       body: {
-        error:
-          "That doesn't look like an Anthropic or OpenRouter API key — they start with sk-ant- or sk-or-. Check for missing characters.",
+        error: looksLikeFreeCode(key)
+          ? "That access code isn't recognised. Check the code you were given, or use your own Anthropic (sk-ant-…) or OpenRouter (sk-or-…) API key."
+          : "That doesn't look like an Anthropic or OpenRouter API key — they start with sk-ant- or sk-or-. Check for missing characters.",
       },
     };
   }

@@ -61,12 +61,19 @@ export async function spentTodayUSD(): Promise<number> {
 }
 
 export async function overBudget(): Promise<boolean> {
-  return (await spentTodayUSD()) >= dailyBudgetUSD();
+  const cap = dailyBudgetUSD();
+  if (cap <= 0) return false; // kill-switch disabled — see config.dailyBudgetGBP
+  return (await spentTodayUSD()) >= cap;
 }
 
 export async function budgetSnapshot() {
   const spent = await spentTodayUSD();
   const cap = dailyBudgetUSD();
   const round = (n: number) => Math.round(n * 100) / 100;
-  return { spentUSD: round(spent), capUSD: round(cap), remainingUSD: round(Math.max(0, cap - spent)), over: spent >= cap };
+  return {
+    spentUSD: round(spent),
+    capUSD: round(cap),
+    remainingUSD: round(Math.max(0, cap - spent)),
+    over: cap > 0 && spent >= cap,
+  };
 }

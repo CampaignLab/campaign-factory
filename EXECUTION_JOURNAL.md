@@ -261,3 +261,29 @@ also now rejects credit-less OpenRouter keys upfront (live-tested against
 a zero-balance account). README rewritten to match current functionality
 (factory-as-production, BYOK, conference/outage/migration history) and
 linked from the site footer as "Source & README".
+
+## 21 Jul 2026 ~21:55 BST — Free-access code: FREE-CAMPAIGN-BUILD waives BYOK; kill-switch off
+
+Typing FREE-CAMPAIGN-BUILD (case-insensitive) into the intake's API-key
+field now resolves to a house-key run — the same null-key path admin
+callers use — so session/IP caps still apply and the spend lands on the
+house ledger. The real code lives only in server env (CF_FREE_CODE,
+unset = feature off), compared at call time inside resolveByok; the
+client bundle ships only a shape check, never the code itself.
+Unrecognised code-shaped input gets its own rejection copy. The legacy
+CF_ACCESS_CODE was deliberately not reused — it gates a different route
+and circulated at the conference.
+
+Two operational changes alongside it (user decisions, same session):
+the daily spend kill-switch is DISABLED — CF_DAILY_BUDGET_GBP=0 on
+Vercel prod+preview, and overBudget() now treats a cap of zero or less
+as off — leaving the worker's per-campaign COST_GUARDS and the run caps
+as the only money backstops. And the worker's ANTHROPIC_API_KEY was
+rotated to a Campaign Lab key: the Railway variable edit alone did NOT
+restart the container (uptime read ~24h), so the swap needed an explicit
+railway redeploy, verified by /health uptimeSec dropping to 23.
+
+Also fixed in passing: tests/factory/public.spec.ts had been silently
+broken since the BYOK gate shipped (it never filled the key field, so
+the submit button stayed disabled). It now fills the field from
+PW_FACTORY_KEY, defaulting to the free code.

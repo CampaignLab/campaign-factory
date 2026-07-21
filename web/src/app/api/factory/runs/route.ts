@@ -1,6 +1,7 @@
 // POST /api/factory/runs — public single-campaign intake. Thin gate: validate
-// problem+place, resolve the visitor's BYOK key (required for non-admin runs;
-// lib/byok.ts owns that whole decision), apply the budget kill-switch to
+// problem+place, resolve the visitor's BYOK key (required for non-admin runs
+// unless they present the CF_FREE_CODE access code, which makes it a house-key
+// run; lib/byok.ts owns that whole decision), apply the budget kill-switch to
 // house-key runs, claim the session+IP slots around a signed forward to the
 // worker, and return its StartRunResponse. No business logic beyond gates.
 
