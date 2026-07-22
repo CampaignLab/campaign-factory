@@ -205,7 +205,7 @@ export function AssemblyView({
   const draftedMaterials = useMemo(() => {
     if (!compiled) return [] as CompiledDocument[];
     return compiled.documents
-      .filter((d) => documentPill(d.status, d.flags.length > 0) != null)
+      .filter((d) => documentPill(d.status) != null)
       .sort((a, b) => a.num - b.num);
   }, [compiled]);
   const showDrafted = draftedMaterials.length > 0;

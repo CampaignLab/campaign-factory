@@ -65,25 +65,22 @@ function deriveActivity(a: FoldAgentVM): CardActivity | undefined {
   return { kind: "tool", label: last.summary };
 }
 
-function deriveProposal(a: FoldAgentVM): {
-  proposal?: CardProposalState;
-  awaitingReview: boolean;
-} {
+function deriveProposal(a: FoldAgentVM): CardProposalState | undefined {
   const last = lastOfTypes(a.backscroll, PROPOSAL_TYPES);
-  if (!last) return { awaitingReview: false };
+  if (!last) return undefined;
   switch (last.type) {
     case "proposal.submitted":
-      return { proposal: { label: "Proposal under review", tone: "pending" }, awaitingReview: true };
+      return { label: "Proposal under review", tone: "pending" };
     case "proposal.returned":
-      return { proposal: { label: "Returned once", tone: "returned" }, awaitingReview: true };
+      return { label: "Returned once", tone: "returned" };
     case "proposal.accepted":
-      return { proposal: { label: "Accepted", tone: "accepted" }, awaitingReview: false };
+      return { label: "Accepted", tone: "accepted" };
     case "proposal.rejected":
-      return { proposal: { label: "Rejected", tone: "rejected" }, awaitingReview: false };
+      return { label: "Rejected", tone: "rejected" };
     case "proposal.applied":
-      return { proposal: { label: "Applied", tone: "applied" }, awaitingReview: false };
+      return { label: "Applied", tone: "applied" };
     default:
-      return { awaitingReview: false };
+      return undefined;
   }
 }
 
@@ -98,7 +95,7 @@ export function foldAgentToCardVM(a: FoldAgentVM, ctx: CardAdaptContext): AgentC
     a.responsibility ??
     a.backscroll.find((r) => r.type === "agent.started" || r.type === "agent.queued")?.summary ??
     "";
-  const { proposal, awaitingReview } = deriveProposal(a);
+  const proposal = deriveProposal(a);
   const lastEventAt = a.lastEventAt ?? a.startedAt ?? backscroll[backscroll.length - 1]?.at ?? new Date(0).toISOString();
 
   return {
@@ -123,45 +120,6 @@ export function foldAgentToCardVM(a: FoldAgentVM, ctx: CardAdaptContext): AgentC
     startedAt: a.startedAt,
     lastEventAt,
     completedAt: a.completedAt,
-    isFailing: a.status === "failed",
     isHandingOff: a.lastEvent?.type === "artefact.handoff",
-    isAwaitingReview: awaitingReview,
-    spawnSequence: a.order,
-  };
-}
-
-// Defensive normaliser for callers that build an AgentCardVM directly from a
-// partial upstream shape (used by any non-fold source). Fills safe defaults.
-export type AgentCardVMInput = Partial<AgentCardVM> &
-  Pick<AgentCardVM, "agentRunId" | "campaignId" | "hue" | "campaignShortName" | "displayName">;
-
-export function adaptAgentCardVM(input: AgentCardVMInput): AgentCardVM {
-  const backscroll = input.backscroll ?? [];
-  return {
-    agentRunId: input.agentRunId,
-    campaignId: input.campaignId,
-    hue: input.hue,
-    campaignShortName: input.campaignShortName,
-    agentKey: input.agentKey,
-    displayName: input.displayName,
-    shortName: input.shortName ?? input.displayName,
-    responsibility: input.responsibility ?? "",
-    kind: input.kind ?? "fixed",
-    parentAgentRunId: input.parentAgentRunId,
-    parentShortName: input.parentShortName,
-    status: input.status ?? "queued",
-    assignment: input.assignment ?? "",
-    verb: input.verb,
-    backscroll,
-    activity: input.activity,
-    latestFinding: input.latestFinding,
-    proposal: input.proposal,
-    startedAt: input.startedAt,
-    lastEventAt: input.lastEventAt ?? backscroll[backscroll.length - 1]?.at ?? input.startedAt ?? new Date(0).toISOString(),
-    completedAt: input.completedAt,
-    isFailing: input.isFailing ?? input.status === "failed",
-    isHandingOff: input.isHandingOff ?? false,
-    isAwaitingReview: input.isAwaitingReview ?? false,
-    spawnSequence: input.spawnSequence ?? 0,
   };
 }

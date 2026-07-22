@@ -16,9 +16,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-// Pill colour language follows LabelChip: green = complete, amber = nearly
-// complete, grey = legacy single-agent. Nothing red ever appears on the public
-// wall — lower grades are hidden entirely, not badged.
+// Shared status language: green = complete, amber = nearly complete, grey =
+// legacy single-agent. Nothing red ever appears on the public wall — lower
+// grades are hidden entirely, not badged.
 const PILL_STYLES: Record<PillTone, string> = {
   complete: "border-emerald-300 bg-emerald-100 text-emerald-900",
   nearly: "border-amber-300 bg-amber-100 text-amber-900",

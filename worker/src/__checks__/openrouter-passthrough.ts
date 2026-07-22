@@ -3,14 +3,16 @@
 // (getClient + call: streaming, cache annotation, server-tool notes) with the
 // exact web_search tool shape gateway.ts declares.
 // Run: npx tsx src/__checks__/openrouter-passthrough.ts
-// Reads OPENROUTER_API_KEY from ../web/.env.local — the key is never printed.
+// Reads OPENROUTER_API_KEY from the process or web/.env.local — never printed.
 import { readFileSync } from "node:fs";
 import { getClient, call } from "@web/lib/anthropic.js";
 
-const env = readFileSync(new URL("../../../app/.env", import.meta.url), "utf8");
-const key = (env.match(/^OPEN_ROUTER_API_KEY="?([^"\n]*)"?$/m) || [])[1];
+const env = readFileSync(new URL("../../../web/.env.local", import.meta.url), "utf8");
+const key =
+  process.env.OPENROUTER_API_KEY ||
+  (env.match(/^OPENROUTER_API_KEY="?([^"\n]*)"?$/m) || [])[1];
 if (!key || !key.startsWith("sk-or-")) {
-  console.error("no OPEN_ROUTER_API_KEY in app/.env");
+  console.error("no OPENROUTER_API_KEY in the process or web/.env.local");
   process.exit(1);
 }
 

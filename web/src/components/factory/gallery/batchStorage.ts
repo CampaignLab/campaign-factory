@@ -52,11 +52,3 @@ export function getBatch(batchId: string): StoredBatch | null {
     return null;
   }
 }
-
-export function forgetBatch(batchId: string): void {
-  try {
-    localStorage.removeItem(KEY(batchId));
-  } catch {
-    /* ignore */
-  }
-}

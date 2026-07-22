@@ -73,16 +73,9 @@ export const LATENCY_TARGETS = {
   batchSubstantiallyCompleteMs: 12 * 60000,
 } as const;
 
-// UI choreography caps (parameters §6).
+// UI limits with active render or test callers.
 export const UI_LIMITS = {
   factoryLedgerMaxHeightPx: 44,
-  maxExpandedCards: 10,
-  maxExpandedCardsPerCampaignInBatch: 3,
   expandedCardSize: { w: 300, h: 190 },
-  compactCardSize: { w: 180, h: 96 },
-  completionReadableMsMin: 800,
-  completionReadableMsMax: 1200,
-  maxChoreographyDelayMs: 750,
-  stepWorkspaceMaxHeightPx: 420,
   backscrollVirtualiseAfterRows: 100,
 } as const;

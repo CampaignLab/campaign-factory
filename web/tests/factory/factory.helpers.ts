@@ -83,9 +83,10 @@ export const PUBLIC_CAMPAIGN: Intake = {
 // inline-style based because the components ship no data-testids and CSS-module
 // class names are hashed. The stable hooks used:
 //   * CampaignAnchor sets inline color #1b1d1e + borderRadius 12px (unique).
-//   * Agent card wrappers carry data-agent-run-id; the expanded AgentWorkCard
-//     root is exactly 300px wide (UI_LIMITS.expandedCardSize.w — a frozen
-//     contract), which distinguishes it from compact (180px) and pills.
+//     Its title span carries the full place/name in a title attribute and the
+//     adjacent span is the status.
+//   * Agent card wrappers carry data-agent-run-id; every gallery AgentWorkCard
+//     root fills its column with an inline width of 100%.
 //   * The completion receipt is the global .fa-rcpt / .fa-rcpt__open (plain CSS).
 
 export interface CampaignSnapshot {
@@ -93,7 +94,7 @@ export interface CampaignSnapshot {
   statusLabel: string;
   anchorBg: string;
   cardCount: number;
-  expanded: number;
+  fullWidthCards: number;
   backscrollRows: number;
   cardTexts: string[];
   hasReceipt: boolean;
@@ -108,26 +109,20 @@ export async function snapshotGallery(page: Page): Promise<CampaignSnapshot[]> {
     const anchors = Array.from(document.querySelectorAll<HTMLElement>("div")).filter(isAnchor);
 
     return anchors.map((a) => {
-      const spans = Array.from(a.querySelectorAll<HTMLElement>("span"));
-      let shortName = "";
-      let statusLabel = "";
-      for (const s of spans) {
-        const fw = s.style.fontWeight;
-        const fs = parseFloat(s.style.fontSize || "0");
-        if (!shortName && fw === "600" && fs >= 15) shortName = (s.textContent || "").trim();
-        if (!statusLabel && s.style.textTransform === "uppercase" && s.style.fontSize === "10px")
-          statusLabel = (s.textContent || "").trim();
-      }
+      const title = a.querySelector<HTMLElement>("span[title]");
+      const status = title?.nextElementSibling as HTMLElement | null;
+      const shortName = (title?.textContent || "").trim();
+      const statusLabel = (status?.textContent || "").trim();
 
       const col = a.parentElement as HTMLElement | null;
       const wrappers = col
         ? Array.from(col.querySelectorAll<HTMLElement>("[data-agent-run-id]"))
         : [];
-      let expanded = 0;
+      let fullWidthCards = 0;
       const cardTexts: string[] = [];
       for (const w of wrappers) {
         const card = w.firstElementChild as HTMLElement | null;
-        if (card && card.style.width === "300px") expanded += 1;
+        if (card?.style.width === "100%") fullWidthCards += 1;
         cardTexts.push((w.textContent || "").trim());
       }
 
@@ -148,7 +143,7 @@ export async function snapshotGallery(page: Page): Promise<CampaignSnapshot[]> {
         statusLabel,
         anchorBg: getComputedStyle(a).backgroundColor,
         cardCount: wrappers.length,
-        expanded,
+        fullWidthCards,
         backscrollRows,
         cardTexts,
         hasReceipt: !!receipt,
@@ -159,9 +154,9 @@ export async function snapshotGallery(page: Page): Promise<CampaignSnapshot[]> {
   });
 }
 
-/** Total expanded agent cards across the whole gallery (the ≤10 global cap). */
-export function totalExpanded(snap: CampaignSnapshot[]): number {
-  return snap.reduce((n, c) => n + c.expanded, 0);
+/** The always-open gallery renders every agent card at the column width. */
+export function allCardsFullWidth(snap: CampaignSnapshot[]): boolean {
+  return snap.every((campaign) => campaign.fullWidthCards === campaign.cardCount);
 }
 
 /** Total agent-card wrappers across the whole gallery. */

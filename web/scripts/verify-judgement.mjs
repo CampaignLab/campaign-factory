@@ -181,13 +181,11 @@ async function main() {
     log(`waiting up to ${CARD_WAIT_MS / 60000} min for a "Needs your decision" card...`);
     const cardDeadline = Date.now() + CARD_WAIT_MS;
     let sawOpen = false;
-    let sawAnyCard = false;
     let lastLog = 0;
     let terminalStatus = null;
 
     while (Date.now() < cardDeadline) {
       const snap = await snapshotCards(page);
-      if (snap.any > 0) sawAnyCard = true;
       if (snap.open > 0) {
         sawOpen = true;
         log(`OPEN card detected. question="${snap.firstOpenQuestion}" firstOption="${snap.firstOpenOption}"`);

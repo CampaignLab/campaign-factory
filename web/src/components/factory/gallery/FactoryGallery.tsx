@@ -7,7 +7,6 @@
 // workspace open at full width, all the time (no presentation tiering).
 
 import { useMemo, useRef } from "react";
-import type { JudgementAnswerRequest } from "@/lib/factory/contracts";
 import { FactoryLedger, FactoryStatsStrip } from "./FactoryLedger";
 import { CampaignColumn } from "./CampaignColumn";
 import { useFloorFollow } from "./useFloorFollow";
@@ -23,18 +22,7 @@ export interface FactoryGalleryProps {
   campaigns: GalleryCampaign[];
   now: number;
   connectionLabel?: string; // shown quietly in the ledger (e.g. "live", "recorded run")
-  /** No-op since the always-open redesign (nothing collapses to pills any
-   *  more). Accepted for API compatibility with existing callers. */
-  completionReadableMs?: number;
   onCancel?: (campaignId: string) => void; // presenter-only per-campaign cancel
-  /** No-op since judgement cards left the gallery columns (judgement UI lives
-   *  on the brief page). Accepted for API compatibility. */
-  onAnswerJudgement?: (
-    campaignId: string,
-    judgementId: string,
-    action: JudgementAnswerRequest["action"],
-    answer?: string,
-  ) => void;
 }
 
 export function FactoryGallery({ campaigns, now, connectionLabel, onCancel }: FactoryGalleryProps) {

@@ -56,7 +56,7 @@
 }
 
 :root {
-  /* Awake theme — ported from archive/prototypes/awake.css (tokens verified from
+  /* Awake theme — ported from the retired Awake prototype in Git history (tokens verified from
      the shadcnspace 'awake' template demo). Light-only. */
   --background: #ffffff;
   --foreground: #1b1d1e;

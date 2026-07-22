@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Simplifier"
+  short_description: "Simplify code and audit architecture safely"
+  default_prompt: "Use $code-simplifier to simplify this code safely, or audit the repository file by file, derive coding standards, and remove obsolete architecture."

@@ -122,21 +122,6 @@
   will-change: transform;
 }
 
-/* Collapse to pill (180ms ease-out-quart). */
-.collapse {
-  animation: cfCollapse 180ms var(--cf-ease-out-quart) both;
-}
-@keyframes cfCollapse {
-  from {
-    opacity: 0.6;
-    transform: scale(1.02);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* Backscroll append (120ms opacity/translate). */
 .backscrollRow {
   animation: cfRow 120ms var(--cf-ease-out-quart) both;
@@ -183,7 +168,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cardEnter,
-  .collapse,
   .backscrollRow,
   .pulseDot,
   .livePulse {

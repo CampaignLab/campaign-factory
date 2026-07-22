@@ -2,8 +2,8 @@
 
 // Fixture-driven gallery preview. Canned events → the SAME W4 fold → the pure
 // W5 FactoryGallery renderer (the exact path W7 replay uses). No network, no
-// live run. Demonstrates ≥15 cards across five campaigns with expansion
-// priority, connectors, a judgement, a failure, and a completion receipt.
+// live run. Demonstrates ≥15 always-open cards across five campaigns with
+// connectors, a failure, and a completion receipt.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { foldEvents } from "@/lib/factory/client";
@@ -65,9 +65,6 @@ export function GalleryPreviewClient() {
           now={now}
           connectionLabel="fixture preview"
           onCancel={(id) => console.log("[preview] cancel", id)}
-          onAnswerJudgement={(cid, jid, action, answer) =>
-            console.log("[preview] judgement", cid, jid, action, answer)
-          }
         />
       ) : null}
     </div>

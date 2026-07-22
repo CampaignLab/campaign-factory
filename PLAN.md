@@ -5,6 +5,9 @@
 > [`docs/product/factory-implementation-parameters.md`](docs/product/factory-implementation-parameters.md)
 > and its ADRs. Current Production remains on this baseline until explicit Factory
 > Promotion.
+>
+> Historical `app/` and `archive/` paths named below were retired from the
+> working tree on 22 July 2026 and remain available in Git history.
 
 Turning the `app/` prototype into a public self-serve production application on Vercel,
 launching at a ~45-person conference. Decisions locked in the grilling session of 13 Jul 2026.

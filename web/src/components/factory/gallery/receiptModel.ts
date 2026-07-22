@@ -7,9 +7,8 @@
 // same counts against the same spec'd definitions (agents by final status,
 // sources fetched, sections accepted, documents ready/needs-verification,
 // terminal gaps, judgements). Claims-by-label is not carried in the RunVM, so
-// the tally is left empty (labelSource "none") — the compact gallery tile does
-// not render claim labels; the authoritative claim breakdown lives on the brief
-// page's full receipt.
+// the tally is left empty (labelSource "none") — the gallery receipt does not
+// render claim labels; the authoritative claim breakdown lives on the brief.
 
 import type { RunVM } from "@/lib/factory/client/fold";
 import { CANONICAL_DOCUMENTS, JOURNEY_STEPS } from "@/lib/factory/contracts";

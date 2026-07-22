@@ -11,7 +11,7 @@ import { PUBLIC_CAMPAIGN, FIRST_CARD_TIMEOUT_MS } from "./factory.helpers";
 // test honestly SKIPS (see the 429/503 handling below) rather than pretending to
 // pass. On a preview URL with real per-visitor IPs it runs normally.
 
-test("public intake: single campaign starts and comes alive", async ({ page }) => {
+test("public intake: single campaign starts and comes alive", async ({ page, request }) => {
   await page.goto("/factory");
 
   await page.locator("#problem").fill(PUBLIC_CAMPAIGN.problem);
@@ -38,23 +38,33 @@ test("public intake: single campaign starts and comes alive", async ({ page }) =
     return;
   }
   expect(res.status(), "public start should be accepted").toBeLessThan(400);
+  const started = (await res.json()) as { campaignId?: string; streamToken?: string };
 
-  // Redirect to the assembly view.
-  await page.waitForURL(/\/factory\/c\/.+/, { timeout: 30_000 });
+  try {
+    // Redirect to the assembly view.
+    await page.waitForURL(/\/factory\/c\/.+/, { timeout: 30_000 });
 
-  // First agent card within the first-card budget — the Step Workspace only
-  // mounts once at least one agent is working, and it wraps the first W5 card.
-  const workspace = page.locator(".fa-workspace").first();
-  await expect(workspace).toBeVisible({ timeout: FIRST_CARD_TIMEOUT_MS });
+    // The build bar renders immediately, but liveness requires a folded
+    // agent.started event rather than the static "Starting up" placeholder.
+    const buildBar = page.locator(".fa-buildbar").first();
+    await expect(buildBar).toBeVisible({ timeout: FIRST_CARD_TIMEOUT_MS });
+    await expect(buildBar).toContainText(/[1-9]\d* agents? at work/i, {
+      timeout: FIRST_CARD_TIMEOUT_MS,
+    });
 
-  // The step workspace renders directly above a brief section (the assembly
-  // lays active work over the section it builds).
-  await expect(page.locator("section[data-stage]").first()).toBeVisible();
-  expect(await page.locator("section[data-stage]").count()).toBeGreaterThanOrEqual(10);
-
-  // Cancel via UI if a control exists; else leave the (cheap) mock run going.
-  const cancel = page.getByRole("button", { name: /cancel/i }).first();
-  if (await cancel.count()) {
-    await cancel.click().catch(() => {});
+    // The progressive brief renders beneath the live controller.
+    await expect(page.locator("section[data-stage]").first()).toBeVisible();
+    expect(await page.locator("section[data-stage]").count()).toBeGreaterThanOrEqual(10);
+  } finally {
+    // Every accepted test run carries its own cancellation credential. Clean
+    // it up even when an assertion fails so live-mode checks do not keep
+    // spending and mock checks do not leave queue residue.
+    if (started.campaignId && started.streamToken) {
+      await request
+        .post(`/api/factory/runs/${started.campaignId}/cancel`, {
+          headers: { "x-factory-stream-token": started.streamToken },
+        })
+        .catch(() => {});
+    }
   }
 });

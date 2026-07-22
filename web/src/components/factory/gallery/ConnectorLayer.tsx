@@ -30,7 +30,7 @@ export function ConnectorLayer({
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   edges: ConnectorEdge[];
-  revision: string | number; // change to force a recompute (presentation / run changes)
+  revision: string | number; // change to force a recompute when the run layout changes
 }) {
   const [segments, setSegments] = useState<Segment[]>([]);
   const seenRef = useRef<Set<string>>(new Set());

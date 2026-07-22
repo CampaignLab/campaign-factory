@@ -7,7 +7,7 @@
 // chips (user decision; agent attribution lives in the Agent Build Bar).
 // Right column: Decision point cards inline above the bespoke section content,
 // a quiet skeleton until content lands, and an optional footer (the step-10
-// Document Library). Reveal + scrollspy are driven by the parent observer via
+// Document Library). Section reveal and scrollspy are driven by the parent observer via
 // data-stage / data-on / the .active class, exactly like the legacy Journey.
 // The page NEVER auto-jumps between sections.
 

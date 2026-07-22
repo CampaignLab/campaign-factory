@@ -81,7 +81,7 @@ function DraftBlock({ title, body, tag }: { title: string; body?: string; tag?: 
 }
 
 /* one rung of the campaign ladder: sticky numbered aside + right content column
-   (the option-1-scout.html / awake layout). Reveal + scrollspy are driven by the
+   (the option-1-scout.html / awake layout). Section reveal and scrollspy are driven by the
    parent observer via data-stage / data-on / the .active class. */
 function Stage({
   id,

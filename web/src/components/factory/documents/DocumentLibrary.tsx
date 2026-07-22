@@ -25,8 +25,8 @@ const PILL_TAG: Record<"complete" | "nearly", string> = { complete: "real", near
 // blue / pink / yellow palette family, so placeholders read as design.
 const SOON_TINTS = ["t-b", "t-p", "t-y"] as const;
 
-function Pill({ status, flagged }: { status: DocumentStatus; flagged: boolean }) {
-  const pill = documentPill(status, flagged);
+function Pill({ status }: { status: DocumentStatus }) {
+  const pill = documentPill(status);
   if (!pill) return null;
   return (
     <span className={`tag ${PILL_TAG[pill.tone]}`} title={status}>
@@ -52,7 +52,7 @@ export function DocumentLibrary({
   // deterministic tint per contentless doc (rotates across only the soon cards)
   const soonTint = new Map<string, string>();
   documents
-    .filter((d) => documentPill(d.status, d.flags.length > 0) == null)
+    .filter((d) => documentPill(d.status) == null)
     .forEach((d, i) => soonTint.set(d.key, SOON_TINTS[i % SOON_TINTS.length]));
 
   return (
@@ -67,7 +67,7 @@ export function DocumentLibrary({
 
       <div className="docgrid" style={{ marginTop: "0.75rem" }}>
         {documents.map((d) => {
-          const built = documentPill(d.status, d.flags.length > 0) != null;
+          const built = documentPill(d.status) != null;
           // Contentless documents are non-clickable "Coming soon" pastel cards
           // (never a dead-end empty view) — preserved exactly.
           if (!built) {
@@ -93,7 +93,7 @@ export function DocumentLibrary({
                 {d.isPack ? " · pack" : ""}
               </span>
               <h3>{d.name}</h3>
-              <Pill status={d.status} flagged={d.flags.length > 0} />
+              <Pill status={d.status} />
               <div className="d-prev">{d.plainText.slice(0, 150)}…</div>
               <div className="dd-actions">
                 <button type="button" className="toolbtn" onClick={() => copyText(d.plainText)}>

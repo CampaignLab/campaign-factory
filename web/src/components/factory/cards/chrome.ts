@@ -7,7 +7,6 @@ import { UI_LIMITS } from "@/lib/factory/contracts";
 
 export const INK = {
   surface: "rgba(22, 24, 27, 0.9)",
-  surfaceCompact: "rgba(22, 24, 27, 0.86)",
   border: "rgba(255, 255, 255, 0.09)",
   text: "#f2f3f5",
   textMuted: "rgba(242, 243, 245, 0.62)",
@@ -21,7 +20,6 @@ export const mono: CSSProperties = {
 };
 
 export const EXPANDED = UI_LIMITS.expandedCardSize; // { w: 300, h: 190 }
-export const COMPACT = UI_LIMITS.compactCardSize; // { w: 180, h: 96 }
 
 // Status → a small legible dot colour on the dark surface.
 export function statusDot(status: string): string {

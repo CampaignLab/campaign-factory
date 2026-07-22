@@ -9,7 +9,7 @@ import {
   UI_LIMITS,
   snapshotGallery,
   totalCards,
-  totalExpanded,
+  allCardsFullWidth,
   totalBackscrollRows,
   isCampaignTerminal,
   visibleTextHasFabricationTell,
@@ -31,11 +31,17 @@ interface CampaignTiming {
 }
 
 test("presenter batch: five campaigns from intake to receipts", async ({ page, context }) => {
-  // -- a. Code gate → cookie-gated intake ------------------------------------
-  await test.step("presenter code gate reveals the cookie-gated intake", async () => {
+  // -- a. Presenter session → cookie-gated intake ----------------------------
+  await test.step("presenter session reveals the cookie-gated intake", async () => {
     await page.goto("/factory/multi-campaign-demo");
-    await page.getByLabel("Presenter code").fill(PRESENTER_CODE);
-    await page.getByRole("button", { name: /Continue|Checking/ }).click();
+
+    // Production can require an explicit code. Local/demo environments can
+    // auto-issue the same HttpOnly presenter session and render intake at once.
+    const codeInput = page.getByLabel("Presenter code");
+    if (await codeInput.count()) {
+      await codeInput.fill(PRESENTER_CODE);
+      await page.getByRole("button", { name: /Continue|Checking/ }).click();
+    }
 
     // Intake heading is only reachable once the HttpOnly presenter cookie is set.
     await expect(page.getByRole("heading", { name: /campaign ideas/i })).toBeVisible();
@@ -97,7 +103,7 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
   });
 
   // -- d. Live-run observation -----------------------------------------------
-  await test.step("agent cards appear; expanded cap holds; hues are distinct", async () => {
+  await test.step("agent cards appear fully open; hues are distinct", async () => {
     // ≥5 agent cards within the first-card budget.
     await expect
       .poll(async () => totalCards(await snapshotGallery(page)), { timeout: FIRST_CARD_TIMEOUT_MS })
@@ -107,9 +113,9 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
     const hues = new Set((await snapshotGallery(page)).map((c) => c.anchorBg));
     expect(hues.size, "five campaigns should render five distinct hues").toBe(5);
 
-    // Expanded-card count never exceeds the global cap.
+    // The approved factory-floor design keeps every agent workspace open.
     const first = await snapshotGallery(page);
-    expect(totalExpanded(first)).toBeLessThanOrEqual(UI_LIMITS.maxExpandedCards);
+    expect(allCardsFullWidth(first)).toBe(true);
 
     // Work Backscroll rows update over time (live progress, not a static paint).
     const baseRows = totalBackscrollRows(first);
@@ -129,7 +135,6 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
     receiptTag: null,
   }));
   const namesSeen = new Set<string>();
-  let maxExpandedObserved = 0;
   let maxBackscrollObserved = 0;
   let unknownCardText: string | null = null;
 
@@ -143,12 +148,8 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
     while (!allTerminal && Date.now() <= deadline) {
       snap = await snapshotGallery(page);
 
-      const exp = totalExpanded(snap);
-      maxExpandedObserved = Math.max(maxExpandedObserved, exp);
       maxBackscrollObserved = Math.max(maxBackscrollObserved, totalBackscrollRows(snap));
-      expect(exp, "expanded-card count must never exceed the global cap").toBeLessThanOrEqual(
-        UI_LIMITS.maxExpandedCards,
-      );
+      expect(allCardsFullWidth(snap), "every agent card should remain fully open").toBe(true);
 
       snap.forEach((c, i) => {
         // The live gallery can render more column-like nodes than the five
@@ -268,8 +269,7 @@ test("presenter batch: five campaigns from intake to receipts", async ({ page, c
       batch: {
         firstCardMs: Math.min(...timings.map((t) => t.firstCardMs ?? Infinity)),
         allTerminalMs: Math.max(...timings.map((t) => t.terminalMs ?? 0)),
-        maxExpandedObserved,
-        expandedCap: UI_LIMITS.maxExpandedCards,
+        allCardsFullWidth: allCardsFullWidth(finalSnap),
         maxBackscrollRowsObserved: maxBackscrollObserved,
         receiptsRendered: finalSnap.filter((c) => c.hasReceipt).length,
         distinctHues: new Set(finalSnap.map((c) => c.anchorBg)).size,

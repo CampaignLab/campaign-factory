@@ -52,15 +52,12 @@ function headline(status: CampaignReceipt["status"], grade: Grade): string {
 export function CampaignCompletionReceipt({
   receipt,
   accent,
-  compact = false,
   briefUrl,
 }: {
   /** W6 receipt; the gallery bridge adds the generated campaign name (name flip). */
   receipt: CampaignReceipt & { campaignName?: string };
   /** optional campaign hue accent for the left edge (gallery) */
   accent?: string;
-  /** compact = the gallery cluster-replacement size */
-  compact?: boolean;
   /** override the brief link (defaults to receipt.briefPath) */
   briefUrl?: string;
 }) {
@@ -80,7 +77,7 @@ export function CampaignCompletionReceipt({
 
   return (
     <div
-      className={`fa-rcpt${compact ? " fa-rcpt--compact" : ""}${incomplete ? " fa-rcpt--partial" : ""}`}
+      className={`fa-rcpt${incomplete ? " fa-rcpt--partial" : ""}`}
       style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
     >
       <div className="fa-rcpt__head">

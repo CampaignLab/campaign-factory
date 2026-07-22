@@ -215,8 +215,7 @@ export function buildFixtureCampaigns(now: number): FixtureCampaign[] {
       { type: "source.fetch.failed", summary: "Environment Agency page returned 503", verb: "fetch failed", secAgo: 20 },
       { type: "agent.retry", summary: "Retrying the Environment Agency fetch", verb: "retrying", secAgo: 10 },
     ],
-    // completes (fails) 0.3s ago → inside the readable window, so it shows
-    // expanded (failure priority) and then collapses to a pill.
+    // A very recent failure exercises the terminal card treatment.
     terminal: { status: "failed", summary: "Could not reach the bathing-water designation record", secAgo: 0.3 },
   });
   agentRun(c4, "c4-adj", "evidence_adjudicator", {

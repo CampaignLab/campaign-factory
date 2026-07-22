@@ -15,6 +15,7 @@ import {
   type StatusResp,
   type StartInput,
 } from "@/lib/client/api";
+import { useStoredString } from "@/lib/client/useStoredString";
 import { type Campaign } from "@/lib/pipeline/types";
 
 type Phase = "form" | "running" | "done" | "failed";
@@ -41,19 +42,19 @@ function forgetRun() {
 }
 
 export function CampaignApp() {
+  const storedCode = useStoredString(ACCESS_CODE_KEY);
   const [status, setStatus] = useState<StatusResp | null>(null);
   const [phase, setPhase] = useState<Phase>("form");
   const [runId, setRunId] = useState<string | null>(null);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  const [submittedCode, setSubmittedCode] = useState<string | null>(null);
+  const code = submittedCode ?? storedCode;
   const [lastInput, setLastInput] = useState<StartInput | null>(null);
 
   useEffect(() => {
     void getStatus().then(setStatus);
-    const saved = typeof window !== "undefined" ? localStorage.getItem(ACCESS_CODE_KEY) : null;
-    if (saved) setCode(saved);
 
     // Recover an in-flight/recent run after an accidental refresh. We confirm
     // the run still exists (a 404 clears the pointer) and only restore recent
@@ -89,7 +90,7 @@ export function CampaignApp() {
       setBusy(true);
       setError(null);
       setLastInput(input);
-      setCode(submittedCode);
+      setSubmittedCode(submittedCode);
       const res = await startRun(input, submittedCode || undefined);
       setBusy(false);
       if (res.ok && res.id) {

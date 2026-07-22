@@ -3,20 +3,7 @@
 // components: props in, no fetching, no live clock except the supplied `now`.
 
 export { AgentWorkCard } from "./AgentWorkCard";
-export { CompactAgentCard } from "./CompactAgentCard";
-export { AgentIdentityPill } from "./AgentIdentityPill";
-export { AgentIcon, agentIcon } from "./icons";
-export { CAMPAIGN_HUES, hueByIndex, hueIndexForPosition } from "./hues";
-export { foldAgentToCardVM, adaptAgentCardVM } from "./cardAdapter";
-export type { AgentCardVMInput, CardAdaptContext } from "./cardAdapter";
-export { clockStamp, elapsedClock } from "./format";
-export type {
-  AgentCardVM,
-  AgentCardProps,
-  BackscrollRow,
-  CardActivity,
-  CardProposalState,
-  CardPresentation,
-  CampaignHueIndex,
-} from "./types";
-export type { CampaignHue } from "./hues";
+export { hueByIndex, hueIndexForPosition } from "./hues";
+export { foldAgentToCardVM } from "./cardAdapter";
+export type { CardAdaptContext } from "./cardAdapter";
+export type { AgentCardVM, CampaignHueIndex } from "./types";

@@ -128,9 +128,9 @@ export type ByokResolution =
  * and the user-facing copy for every rejection. (Public runs ALWAYS run on the
  * visitor's key — user decision, 20 Jul 2026; admin callers may omit it, and a
  * valid CF_FREE_CODE waives it onto the house key.) */
-export async function resolveByok(rawKey: unknown, isAdmin: boolean): Promise<ByokResolution> {
-  const key = typeof rawKey === "string" ? rawKey.trim() : "";
-  if (!key) {
+export async function resolveByok(rawCredential: unknown, isAdmin: boolean): Promise<ByokResolution> {
+  const credential = typeof rawCredential === "string" ? rawCredential.trim() : "";
+  if (!credential) {
     if (isAdmin) return { ok: true, key: null, provider: null };
     return {
       ok: false,
@@ -141,22 +141,22 @@ export async function resolveByok(rawKey: unknown, isAdmin: boolean): Promise<By
       },
     };
   }
-  if (matchesFreeCode(key)) return { ok: true, key: null, provider: null };
-  const provider = detectProvider(key);
+  if (matchesFreeCode(credential)) return { ok: true, key: null, provider: null };
+  const provider = detectProvider(credential);
   if (!provider) {
     return {
       ok: false,
       status: 400,
       body: {
-        error: looksLikeFreeCode(key)
+        error: looksLikeFreeCode(credential)
           ? "That access code isn't recognised. Check the code you were given, or use your own Anthropic (sk-ant-…) or OpenRouter (sk-or-…) API key."
           : "That doesn't look like an Anthropic or OpenRouter API key — they start with sk-ant- or sk-or-. Check for missing characters.",
       },
     };
   }
   const meta = PROVIDER_META[provider];
-  const check = await validateByokKey(key, provider);
-  if (check === "ok") return { ok: true, key, provider };
+  const check = await validateByokKey(credential, provider);
+  if (check === "ok") return { ok: true, key: credential, provider };
   const error =
     check === "rejected"
       ? `${meta.name} rejected that API key. Check it in ${meta.consoleHint} and try again.`

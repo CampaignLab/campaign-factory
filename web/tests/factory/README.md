@@ -57,8 +57,9 @@ genuine hang fails on the exact step rather than after the whole budget.
 
 ### `batch.spec.ts` — full presenter batch (the primary journey)
 
-1. **Code gate → intake.** Enters the presenter code; asserts the cookie-gated intake
-   heading appears and the `cf_presenter` HttpOnly cookie is set.
+1. **Presenter session → intake.** Enters the presenter code when that environment
+   requires one; local/demo environments may auto-issue the session. Asserts the
+   cookie-gated intake heading appears and the `cf_presenter` HttpOnly cookie is set.
 2. **Five campaigns; sixth not enterable.** Enters the five fixture campaigns
    (Leicester / Stratford / Tooting / Barnes / Ham); asserts the "Add another campaign"
    control is disabled and shows "Maximum 5 campaigns".
@@ -66,8 +67,8 @@ genuine hang fails on the exact step rather than after the whole budget.
    campaign anchors labelled by place, and the **Factory Ledger** visible at ≤44px
    (`UI_LIMITS.factoryLedgerMaxHeightPx`).
 4. **Live-run observation.** ≥5 agent cards within the first-card budget; five **distinct
-   campaign hues**; expanded-card count **never exceeds 10** (`UI_LIMITS.maxExpandedCards`,
-   asserted on every sample); **Work Backscroll rows update** over time.
+   campaign hues**; every agent workspace remains **fully open**; **Work Backscroll rows
+   update** over time.
 5. **Terminal.** Samples the live gallery until all five campaigns show a Campaign
    Completion Receipt **or** an honest partial/failed anchor state; asserts every rendered
    agent card shows a name from the known roster (`ALL_AGENT_DEFS`); asserts receipts link
@@ -80,8 +81,8 @@ genuine hang fails on the exact step rather than after the whole budget.
 ### `public.spec.ts` — public single-campaign intake (smoke)
 
 Enters one campaign at `/factory` (problem + place), asserts redirect to the assembly
-view, the first agent card (Step Workspace) within the first-card budget, and that the
-step workspace renders above the brief sections. It **does not** wait for a terminal state
+view, the live Agent Build Bar within the first-card budget, and the progressive brief
+sections beneath it. It **does not** wait for a terminal state
 (liveness only) and cancels via the UI if a cancel control exists, otherwise leaves the
 cheap mock run going.
 
@@ -98,8 +99,7 @@ batch-test report.
 
 - `batch.firstCardMs` — ms from launch to the first agent card anywhere.
 - `batch.allTerminalMs` — ms until the last campaign reached a terminal state.
-- `batch.maxExpandedObserved` / `expandedCap` — peak simultaneous expanded cards vs the
-  contract cap (peak should touch but never exceed the cap).
+- `batch.allCardsFullWidth` — every agent workspace retained the approved always-open layout.
 - `batch.maxBackscrollRowsObserved` — peak Work Backscroll rows (liveness).
 - `batch.receiptsRendered` / `distinctHues` — should be 5 / 5.
 - `batch.agentNamesSeen` — the distinct roster short names observed on cards.

@@ -23,12 +23,6 @@ import type {
 // CAMPAIGN_HUES in hues.ts; agents and connectors inherit their campaign's hue.
 export type CampaignHueIndex = 0 | 1 | 2 | 3 | 4;
 
-// How a card is currently drawn. The fold does NOT decide this — the gallery's
-// selectPresentation() does, from expansion-priority rules (≤10 expanded, ≤3
-// per campaign). Completed → pill only after the readable window elapses, which
-// the live layer tracks with a timer, never the fold.
-export type CardPresentation = "expanded" | "compact" | "pill";
-
 // One semantic Work Backscroll row. summary renders verbatim (sans); at + verb
 // render monospace.
 export interface BackscrollRow {
@@ -85,14 +79,11 @@ export interface AgentCardVM {
   proposal?: CardProposalState;
 
   startedAt?: string; // ISO
-  lastEventAt: string; // ISO — last meaningful event (drives priority + clock)
+  lastEventAt: string; // ISO — last meaningful event (drives elapsed clocks)
   completedAt?: string; // ISO — set on agent.completed/partial/failed
 
-  // Priority signals (drive expansion order in selectPresentation()).
-  isFailing: boolean;
+  // Handoff state adds a visible relationship line to the always-open card.
   isHandingOff: boolean;
-  isAwaitingReview: boolean;
-  spawnSequence: number; // monotonic per gallery; higher = more recently spawned
 }
 
 // Props the card components accept. `now` is the single live-time input so the

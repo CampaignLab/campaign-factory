@@ -287,3 +287,397 @@ Also fixed in passing: tests/factory/public.spec.ts had been silently
 broken since the BYOK gate shipped (it never filled the key field, so
 the submit button stayed disabled). It now fills the field from
 PW_FACTORY_KEY, defaulting to the free code.
+
+## 2026-07-22T16:16:39Z - Repo-local code simplifier skill
+
+### Goal
+
+Adapt Anthropic's code-simplifier workflow for native, shared use in Codex.
+
+### Changes
+
+Added `.agents/skills/code-simplifier` with Codex discovery metadata and a
+behavior-preserving cleanup workflow scoped to code changed in the current
+task. Its first pass clarified the free-access path by naming mixed key/code
+inputs as credentials in local UI and resolver state.
+
+### Decisions
+
+Kept the skill instruction-only. Replaced Claude-specific model and subagent
+settings with Codex-native metadata, and made repository guidance and local
+code patterns authoritative over generic JavaScript style preferences. The
+existing `keyLooksValid` export and `apiKey` request field were deliberately
+preserved; only internal naming changed.
+
+### Tradeoffs
+
+The skill does not run automatically after every edit. Codex may match it from
+the task description, and collaborators can invoke it explicitly with
+`$code-simplifier` when they want a dedicated cleanup pass.
+
+### Risks
+
+Behavior preservation still depends on relevant tests and human-reviewable
+diffs; the skill intentionally declines uncertain simplifications. The live
+Playwright journey was not run because it requires an already-running web and
+worker stack.
+
+### Verification
+
+The Codex skill validator, targeted ESLint, full TypeScript check, direct
+credential-path assertions, production Next.js build, and `git diff --check`
+all passed.
+
+### Demo Impact
+
+No runtime or demo behavior changed.
+
+### Customer-Facing Context
+
+The checked-in skill makes code-quality workflow expectations repeatable for
+Codex users without changing application execution or production controls.
+
+### Next Recommended Step
+
+Run `web/tests/factory/public.spec.ts` against the local mock stack or a safe
+preview if end-to-end coverage of the intake flow is needed before release.
+
+## 2026-07-22T16:58:15Z - Depth-first simplification audit
+
+### Goal
+
+Extend the repo-local code simplifier with a reusable file-by-file necessity
+audit, then apply it across the maintained application and worker code.
+
+### Changes
+
+The `code-simplifier` skill now defines a guarded depth-first workflow for
+runtime roots, support roots, semantic false-positive checks, symbol/section
+review, and final keep/simplify/consolidate/delete/quarantine dispositions. A
+dependency-audit helper inventories JavaScript/TypeScript/CSS/HTML/SQL files,
+resolves relative and TypeScript-alias imports, respects Git ignores, and emits
+per-file reachability evidence in dependency-first order.
+
+Added a complete 281-file reachability inventory and a semantic audit overlay
+under `docs/`. The overlay identifies fifteen confirmed dead source/assets,
+the obsolete gallery-presentation tranche, the temporary worker executor
+boundary, and three test-first complexity hotspots.
+
+### Decisions
+
+Reachability is candidate evidence rather than permission to delete. The
+worker agent barrel was added as an explicit root after confirming its computed
+dynamic import. Ignored local credential files are excluded. The original
+`app/` prototype is quarantined rather than refactored because the repository
+declares it reference-only and not deployed.
+
+### Tradeoffs
+
+The deterministic helper intentionally does not attempt to prove product
+necessity, reflection, public API use, or symbol-level deadness. Those remain a
+semantic pass backed by exact-path/export searches and relevant checks. The
+audit records recommendations but does not apply application-code deletions or
+refactors.
+
+### Risks
+
+The gallery cleanup changes a stale test contract and needs fixture/replay
+verification. The worker loader cleanup crosses an ESM boot boundary and must
+use direct imports plus container boot validation. Event-fold and graph-node
+decomposition require characterization tests because event order, retries,
+and deterministic state application are observable behavior.
+
+### Verification
+
+The helper passed Node syntax validation and a real 281-file traversal. The
+Codex skill validator passed in a temporary Python environment. Existing
+runtime evidence remains clean: worker typecheck, 97 agent checks, document
+compiler checks, and store-barrel load passed. Web lint remains red on three
+pre-existing React-effect errors and two warnings, all recorded in the audit.
+
+### Demo Impact
+
+No runtime or demo behavior changed. The audit gives a safer sequence for
+reducing code before future demo work.
+
+### Customer-Facing Context
+
+The checked-in workflow makes code-removal decisions auditable: it separates
+mechanical reachability from semantic necessity and preserves explicit checks
+around authentication, persistence, orchestration, and model execution.
+
+### Next Recommended Step
+
+Apply the confirmed dead-file and obsolete-gallery tranche first, then rerun
+web lint/build and the gallery fixture/replay checks before touching worker or
+event-fold orchestration.
+
+## 2026-07-22T17:08:06Z - Architecture pattern audit and first simplification tranche
+
+### Goal
+
+Re-audit the whole maintained codebase for recurring coding patterns, turn
+those patterns into repository-wide standards, and use them to simplify a
+safe architectural slice.
+
+### Changes
+
+Added the root `AGENTS.md` pattern catalogue and coding standards, plus a
+post-cleanup architecture report in `docs/code-pattern-audit-2026-07-22.md`.
+The code-simplifier's guarded DFS was rerun after implementation.
+
+Removed the gallery's obsolete compact/pill/judgement presentation system end
+to end: implementations, types, priority fields, adapter paths, no-op props,
+limits, exports, CSS, receipt variants, comments, and the stale ten-expanded-
+card test contract. Removed dead shared UI components, an unused state barrel,
+and default unreferenced Next assets. Public gallery/card barrels now expose
+only active consumers.
+
+Added a hydration-safe `useStoredString` platform adapter and used an
+external-value-plus-edit-override pattern for the admin key and campaign
+access code. Removed the ignored `documentPill` flag parameter and a dead
+verification-script variable.
+
+### Decisions
+
+Treated product decisions as architectural boundaries: once all gallery cards
+became always open and judgements moved to the brief, compatibility types and
+no-op props no longer represented a real contract. Kept event folds, graph
+nodes, the worker executor boundary, persistence, and live transport intact;
+those need characterization/boot coverage before structural changes.
+
+Retained the apparently empty `web/next.config.ts`: a deletion build exposed
+that Next would otherwise discover `../../next.config.ts` and inherit another
+application's Server Action body limit and response-header behavior. It is a
+workspace-isolation boundary rather than dead configuration.
+
+The code-simplifier workflow shaped the change order: mechanical reachability
+identified candidates, semantic caller/export/CSS/test searches established
+necessity, and only the low-risk complete concept was removed.
+
+### Tradeoffs
+
+The browser-storage hook adds one small module, but removes duplicated
+hydration effects and establishes a reusable platform boundary. The full
+worker/runtime architecture opportunity remains deferred rather than mixing a
+high-risk ESM and orchestration rewrite into a UI cleanup.
+
+### Risks
+
+The gallery E2E assertions now encode the approved always-open layout and
+should be exercised against a running local mock stack before a release that
+depends on presenter choreography. Deleted files are Git-tracked and
+recoverable.
+
+### Verification
+
+Post-cleanup DFS scanned 271 files: 250 runtime-reachable, 16 support-only,
+five standalone migrations, zero unreachable candidates, and seven expected
+ignored-environment edges. Web ESLint and the Next.js production build passed.
+Worker TypeScript passed. The full document compiler/render executable check
+passed. Deleted-symbol/reference searches and `git diff --check` passed.
+Playwright was not run because no local web/worker stack was active. The build
+retained the existing multiple-lockfile workspace-root warning.
+
+### Demo Impact
+
+The gallery keeps the same approved always-open behavior with less dormant
+code and a test contract that now matches the UI. Intake/admin stored values
+still restore after hydration without effect-driven state copying.
+
+### Customer-Facing Context
+
+No intended public behavior changed. This reduces dead architecture and makes
+future work follow one documented set of contracts, state, rendering, store,
+and runtime-boundary standards.
+
+### Next Recommended Step
+
+Run the factory Playwright suite with the local web and mock-worker stack. Then
+add characterization tests before simplifying the event fold, worker graph,
+or live transport controller.
+
+## 2026-07-22T17:54:39Z - Functional confirmation and repository retirement cleanup
+
+### Goal
+
+Confirm that the simplification refactor did not break the app, exercise a
+real provider path with the local API key, remove remaining repository clutter,
+and replace the README material with a concise and accurate project guide.
+
+### Changes
+
+Strengthened the public Playwright smoke test so its static "Starting up"
+placeholder no longer counts as liveness. It now waits for a folded
+`agent.started` state and cancels every accepted run with the run-scoped stream
+token, including when an assertion fails. Updated stale presenter, gallery,
+and fixture selectors to the current auto-session and always-open-card UI.
+
+Removed the tracked reference-only `app/` prototype and 33-file HTML archive as
+one retired product tranche. They had no maintained runtime, deployment, or
+fallback caller; `/legacy` in Next.js remains the supported comparison path.
+Adjusted the OpenRouter probe to read the current environment boundary instead
+of the retired prototype. Git history retains every removed file.
+
+Replaced the root README with a human-readable architecture, component map,
+local setup, verification commands, routes, and security model. Reduced the
+stale `web/README.md` from 243 to 91 lines and corrected outdated worker limits.
+Updated the audit documents and coding standards to reflect prototype
+retirement and the final maintained inventory.
+
+### Decisions
+
+Preserved research decks, product/architecture records, local ignored
+credentials, and the ignored Campaign Ops staging workspace: they are source
+material or separate user work rather than build residue. Removed only tracked
+obsolete products and reproducible test/build output.
+
+Kept the higher-risk event fold, worker graph, persistence, retry, and live
+transport refactors deferred. Their current behavior is now verified, but
+structural simplification still needs dedicated characterization coverage.
+
+### Tradeoffs
+
+The historical plan and journal still name retired paths because they describe
+the build at that time; the plan now carries a note that those files live in
+Git history. Local credential files under `app/` were not deleted because
+repository cleanup is not authority to destroy a user's secrets.
+
+The shared development database also shares one `pg-boss` queue. Another
+connected worker claimed some mock-suite jobs, so the five-campaign batch
+reached four terminal campaigns rather than five locally. Deterministic gallery
+fixtures and the public mock flow passed, but future full-batch regression runs
+should use an isolated database.
+
+### Risks
+
+Any worker connected to the same database can consume that environment's jobs,
+regardless of which machine started them. During this verification one earlier
+test job was claimed by a live worker and completed for about $0.90. All other
+unfinished test runs were cancelled. The README and Playwright documentation
+now call out database isolation for deterministic, zero-cost testing.
+
+The Next.js build still reports the pre-existing multiple-lockfile workspace-
+root warning. It does not affect compilation or route generation.
+
+### Verification
+
+- Live web and worker readiness checks passed with database, signing, model,
+  factory schema, checkpoint schema, and queue schema all ready.
+- A browser run using the local Anthropic key was stored as an encrypted BYOK
+  run and emitted real `agent.started`, `cost.update`, evidence-search, fetch,
+  specialist, and work events before cancellation.
+- The strengthened public Playwright flow passed in mock mode in 7.7 seconds
+  and cleaned up its own run.
+- The gallery fixture rendered 23 full-width agent cards with a completion
+  receipt and zero browser console warnings; stored admin state survived reload.
+- Web ESLint and the full Next.js 16 production build passed all 23 generated
+  pages/routes; worker TypeScript passed.
+- The complete document compiler/render executable check passed.
+- Final dependency traversal: 235 runtime files, 16 support files, five
+  migrations, zero unreachable candidates, and five intentional ignored-env
+  edges.
+
+### Demo Impact
+
+The maintained app, presenter/gallery layout, live assembly, documents, and
+storage behavior are unchanged. Tests now fail on a static startup shell and
+avoid leaving paid work running.
+
+### Customer-Facing Context
+
+The repository now presents the current product first, with one concise setup
+path and no duplicate prototype implementations. BYOK handling was verified
+through the real boundary without exposing a credential.
+
+### Next Recommended Step
+
+Use a dedicated local or preview database before rerunning the complete
+five-campaign Playwright batch. Add characterization tests before simplifying
+the event fold, graph orchestration, or live transport controller.
+
+## 2026-07-22T18:26:22Z - Full live campaign completion gate
+
+### Goal
+
+Do not merge the simplification refactor until one real, full-profile campaign
+has generated completely using the local API credential and its terminal
+outputs have been checked through persistence, API, and browser surfaces.
+
+### Changes
+
+No application code, commit, or merge was made. Started the local web and
+worker in live mode, then submitted one full-profile BYOK Anthropic campaign
+for a Leicester school-street case. Followed it from queue creation through all
+research, evidence, analysis, strategy, production, review, and finalisation
+waves. Recorded campaign ID `b9beddaa-2c56-48f0-8ba2-b737740d9d42`.
+
+### Decisions
+
+Used the worker's `full` profile rather than the public `express` profile so
+the verification exercised both selected specialists, the complete agent
+graph, all review gates, and all material producers. Passed the local API key
+through the BYOK seam rather than relying on a remote worker's house key.
+
+Defined success as terminal `completed`, all 15 agent rows complete, all nine
+campaign sections accepted, all nine durable documents ready, a completion
+receipt, a successful documents API response, and a completed browser render.
+An active/startup screen was not accepted as completion evidence.
+
+### Tradeoffs
+
+The run was launched directly through the signed local worker API to select
+the full profile; the public intake intentionally selects express. The browser
+observed the same public assembly route and polling/event fold used by ordinary
+shared links. Four bounded judgement requests used their documented defaults
+because no interactive starter session was attached to the direct request.
+
+### Risks
+
+The campaign is complete but honestly retains three Terminal Gaps and 30
+unresolved load-bearing claims for human checking. Those are research
+uncertainties, not missing campaign sections or documents. Generated campaign
+material still requires human review before use.
+
+The development database queue is shared with other workers. BYOK metadata and
+terminal credential cleanup were checked explicitly so completion evidence did
+not depend on which compatible worker process claimed the durable job.
+
+### Verification
+
+- Run status: `completed`, full profile, no error; elapsed 24m 49s.
+- BYOK: Anthropic provider, encrypted seal present while running and absent
+  after terminal finalisation.
+- Agents: 15 spawned, 15 complete, zero partial or failed.
+- Campaign: 9/9 accepted sections; accepted state version 58.
+- Documents: 9/9 ready. The terminal documents endpoint returned HTTP 200 and
+  all nine canonical keys at `ready`.
+- Packs: lobbying, media, and digital packs each contain 11 resources.
+- Research ledger: 132 claims, including 67 verified-public-information
+  claims; 21 source fetches recorded in the receipt.
+- Audit/event log: 1,880 ordered Factory Events plus one campaign receipt and
+  one `run.completed` event.
+- Model ledger: 47 entries, 47,962 input tokens, 213,756 output tokens, total
+  cost $3.9346023.
+- Browser: generated title, `Complete · 9 of 9 sections built`, all nine
+  document cards with copy/download controls, 10 labelled sources, and zero
+  console errors or warnings.
+
+### Demo Impact
+
+The refactored application has now completed a real end-to-end full campaign,
+not just mock, fixture, build, or liveness checks. The completed campaign is
+available locally at `/factory/c/b9beddaa-2c56-48f0-8ba2-b737740d9d42`.
+
+### Customer-Facing Context
+
+The run demonstrates the production trust model: provider credentials remain
+sealed during work and are removed on completion; append-only events expose
+agent progress; evidence uncertainty remains explicit; and deterministic
+finalisation produces versioned documents and a measurable receipt.
+
+### Next Recommended Step
+
+Review the existing working-tree diff and this completion evidence. Only merge
+after the user explicitly authorises it; this run is evidence, not merge
+permission.

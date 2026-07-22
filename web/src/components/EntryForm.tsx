@@ -55,7 +55,8 @@ export function EntryForm({
   initialCode?: string;
 }) {
   const [form, setForm] = useState<StartInput>({ problem: "" });
-  const [code, setCode] = useState(initialCode);
+  const [editedCode, setEditedCode] = useState<string | null>(null);
+  const code = editedCode ?? initialCode;
   const [exampleToggle, setExampleToggle] = useState(false);
   const set = (k: keyof StartInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const codeOk = !accessRequired || code.trim().length > 0;
@@ -139,7 +140,7 @@ export function EntryForm({
             <Input
               id="code"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => setEditedCode(e.target.value)}
               placeholder="Enter the code shown on screen"
               className="max-w-xs"
             />

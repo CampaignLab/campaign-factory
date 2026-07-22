@@ -15,7 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { startFactoryRun } from "@/lib/factory/client/api";
-import { keyLooksValid, looksLikeFreeCode, PROVIDER_META, BYOK_TYPICAL_COST, BYOK_HARD_CAP } from "@/lib/byok";
+import {
+  BYOK_HARD_CAP,
+  BYOK_TYPICAL_COST,
+  keyLooksValid,
+  looksLikeFreeCode,
+  PROVIDER_META,
+} from "@/lib/byok";
 import { rememberFactoryRun } from "@/lib/factory/client";
 import styles from "./factory-intake.module.css";
 
@@ -62,30 +68,30 @@ export default function FactoryIntakePage() {
   const router = useRouter();
   const [problem, setProblem] = useState("");
   const [place, setPlace] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [credential, setCredential] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touchedPlace, setTouchedPlace] = useState(false);
-  const [touchedKey, setTouchedKey] = useState(false);
+  const [credentialTouched, setCredentialTouched] = useState(false);
 
   const problemOk = problem.trim().length >= 8;
   const placeOk = placeIsNamed(place);
   // An access code (session handout, e.g. FREE-CAMPAIGN-BUILD) is accepted in
   // the same field as an API key; only the server knows the real code, so the
   // form gate passes anything code-shaped and lets the gate verify it.
-  const keyOk = keyLooksValid(apiKey) || looksLikeFreeCode(apiKey);
-  const canSubmit = problemOk && placeOk && keyOk && !busy;
+  const credentialOk = keyLooksValid(credential) || looksLikeFreeCode(credential);
+  const canSubmit = problemOk && placeOk && credentialOk && !busy;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouchedPlace(true);
-    setTouchedKey(true);
+    setCredentialTouched(true);
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
     const res = await startFactoryRun(
       { problem: problem.trim(), place: place.trim() },
-      { apiKey: apiKey.trim() },
+      { apiKey: credential.trim() },
     );
     if (res.ok && res.data) {
       rememberFactoryRun({
@@ -173,16 +179,16 @@ export default function FactoryIntakePage() {
           <Input
             id="apiKey"
             type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            onBlur={() => setTouchedKey(true)}
+            value={credential}
+            onChange={(e) => setCredential(e.target.value)}
+            onBlur={() => setCredentialTouched(true)}
             placeholder="sk-ant-… or sk-or-…"
             autoComplete="off"
             spellCheck={false}
             className={`${styles.field} h-auto rounded-full px-4 py-2.5 text-base`}
-            aria-invalid={touchedKey && !keyOk}
+            aria-invalid={credentialTouched && !credentialOk}
           />
-          {touchedKey && !keyOk ? (
+          {credentialTouched && !credentialOk ? (
             <p className="text-sm text-[var(--bad)]">
               Keys start with <code>sk-ant-</code> (Anthropic) or <code>sk-or-</code> (OpenRouter) — paste the
               whole key. Create one at{" "}

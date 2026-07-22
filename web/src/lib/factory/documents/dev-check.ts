@@ -342,11 +342,6 @@ assert(
 console.log("\n=== documentPill (document card vocabulary) ===");
 const pReady = documentPill("ready");
 assert(pReady?.label === "Complete" && pReady?.tone === "complete", "ready → Complete (green)");
-const pFlagged = documentPill("ready", true);
-assert(
-  pFlagged?.label === "Complete" && pFlagged?.tone === "complete",
-  "ready stays Complete even with advisory flags (status drives the pill; caveats live in Fact checks)",
-);
 const pNeeds = documentPill("needs verification");
 assert(
   pNeeds?.label === "Nearly complete" && pNeeds?.tone === "nearly",

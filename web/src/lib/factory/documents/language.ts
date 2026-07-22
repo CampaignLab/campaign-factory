@@ -95,17 +95,15 @@ export function plainDocStatus(status: DocumentStatus): string {
 
 /* ---- document card pills (14 Jul 2026 redesign) ----
    The Document Library speaks the campaignGrade vocabulary: "Complete" (green)
-   for ready, "Nearly complete" (amber) for needs-verification or flagged, and
+   for ready, "Nearly complete" (amber) for needs-verification, and
    NO pill for a contentless document — the card simply dims. Never red. */
 
-export function documentPill(
-  status: DocumentStatus | undefined,
-  // Advisory flags (e.g. not-yet-double-checked claims) do NOT demote a ready
-  // document: STATUS drives the pill; caveats live in Fact checks. Every real
-  // research run carries some advisory flags — flag-demotion would make
-  // "Complete" unreachable, contradicting the ready count in the header.
-  _flagged = false,
-): { label: string; tone: "complete" | "nearly" } | null {
+// Advisory flags do not demote a ready document: status drives the pill and
+// caveats live in Fact checks.
+export function documentPill(status: DocumentStatus | undefined): {
+  label: string;
+  tone: "complete" | "nearly";
+} | null {
   if (status === "ready") return { label: "Complete", tone: "complete" };
   if (status === "needs verification") return { label: "Nearly complete", tone: "nearly" };
   return null; // assembling / under review / not started — dimmed card, no pill

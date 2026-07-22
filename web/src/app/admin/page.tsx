@@ -6,21 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getWall, type WallItem } from "@/lib/client/api";
+import { useStoredString } from "@/lib/client/useStoredString";
 
 const ADMIN_KEY = "cf_admin_key";
 
 // Minimal admin surface: the fire extinguisher. Enter the admin key, see the
 // wall, hide anything. The key is verified server-side on each hide.
 export default function AdminPage() {
-  const [key, setKey] = useState("");
+  const storedKey = useStoredString(ADMIN_KEY);
+  const [editedKey, setEditedKey] = useState<string | null>(null);
+  const key = editedKey ?? storedKey;
   const [items, setItems] = useState<WallItem[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = async () => setItems(await getWall());
   useEffect(() => {
-    const k = typeof window !== "undefined" ? localStorage.getItem(ADMIN_KEY) : null;
-    if (k) setKey(k);
-    void load();
+    let cancelled = false;
+    void getWall().then((wall) => {
+      if (!cancelled) setItems(wall);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const hide = async (id: string) => {
@@ -46,7 +53,13 @@ export default function AdminPage() {
         <Label htmlFor="k" className="text-sm">
           Admin key
         </Label>
-        <Input id="k" type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="CF_ADMIN_KEY" />
+        <Input
+          id="k"
+          type="password"
+          value={key}
+          onChange={(e) => setEditedKey(e.target.value)}
+          placeholder="CF_ADMIN_KEY"
+        />
       </div>
       {msg ? <p className="mt-3 text-sm text-muted-foreground">{msg}</p> : null}
 

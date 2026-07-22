@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { foldEvents, useFactoryRun, type RunVM, type ConnectionState } from "@/lib/factory/client";
-import { REPLAY_ROUTE, type JudgementAnswerRequest } from "@/lib/factory/contracts";
+import { REPLAY_ROUTE } from "@/lib/factory/contracts";
 import { hueIndexForPosition } from "@/components/factory/cards";
 import { FactoryGallery } from "./FactoryGallery";
 import { deriveShortName, type GalleryCampaign } from "./viewModel";
@@ -95,17 +95,6 @@ export function GalleryLive({
     );
   }, []);
 
-  const onAnswerJudgement = useCallback(
-    (campaignId: string, judgementId: string, action: JudgementAnswerRequest["action"], answer?: string) => {
-      const body: JudgementAnswerRequest = { action, ...(answer ? { answer } : {}) };
-      void fetch(
-        `/api/factory/runs/${encodeURIComponent(campaignId)}/judgements/${encodeURIComponent(judgementId)}`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) },
-      ).catch(() => {});
-    },
-    [],
-  );
-
   return (
     <div>
       {connections.map((c) => (
@@ -124,7 +113,6 @@ export function GalleryLive({
         now={now}
         connectionLabel={label}
         onCancel={presenter ? onCancel : undefined}
-        onAnswerJudgement={presenter ? onAnswerJudgement : undefined}
       />
 
       {presenter ? (

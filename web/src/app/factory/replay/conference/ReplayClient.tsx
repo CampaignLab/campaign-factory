@@ -3,8 +3,8 @@
 // Replay renderer. Drives the ReplayPlayer over the manifest's stored public
 // events and folds the emitted slice through the SAME W4 fold + W5 gallery as a
 // live run — so a recorded run and a live run are visually identical. No
-// fetching, no model calls, no writes: onCancel/onAnswerJudgement are omitted so
-// the gallery is read-only here.
+// fetching, no model calls, no writes: onCancel is omitted so the gallery is
+// read-only here.
 //
 // Playback defaults to CONDENSED mode: the recorded run (20–46 min) plays in
 // exactly 15 minutes via a playback-side timeline remap (gaps capped, then

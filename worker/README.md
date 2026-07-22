@@ -140,15 +140,15 @@ Anthropic client. Both are no-ops when unset.
 **Hard limits + cost guards** (enforced at node boundaries; contract in
 [`../web/src/lib/factory/contracts/limits.ts`](../web/src/lib/factory/contracts/limits.ts)):
 
-- **Cost:** per campaign $4 warning / **$8 hard stop**; presenter batch $20 warning / **$35 hard
+- **Cost:** per campaign $10 warning / **$20 hard stop**; presenter batch $40 warning / **$80 hard
   stop**. Crossing a hard stop stops new model nodes, runs deterministic finalisation, and records
   remaining work as **Terminal Gaps** — it never fabricates completion.
 - **Concurrency:** 25 global active model calls; 5 per presenter campaign / 8 per public campaign;
   10 concurrent research calls.
 - **Roster / research:** 15 agents target, 20 hard cap; 20 web searches per campaign.
-- **Time:** 12-min soft target, 20-min hard limit.
+- **Time:** 12-min soft target, 25-min publish-everything point, 30-min absolute wall clock.
 
-**Honest caveats.** The 20-minute hard limit and the four-per-run Judgement Request cap were found
+**Honest caveats.** The campaign time limit and the four-per-run Judgement Request cap were found
 unenforced by the first live runs and have since been **fixed and proven live** (batch campaigns halt
 at ~21 min — the cap plus bounded in-flight overrun — recording Terminal Gaps). The latency targets
 (first sourced finding 45 s, first accepted section 90 s) are not yet met — roster/search tuning is
