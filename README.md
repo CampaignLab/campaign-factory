@@ -119,6 +119,22 @@ mode; use a live key only for an intentional, budgeted provider check.
 | `/legacy` | Maintained single-agent comparison/fallback. |
 | `/admin` and `/factory/admin/costs` | Moderation and cost controls. |
 
+## Analytics
+
+Page analytics use self-hosted [Umami](https://umami.is) — cookieless and
+GDPR-friendly, collecting aggregate pageviews rather than personal data. The
+dashboard is at
+[sugaroverflow-analytics.up.railway.app](https://sugaroverflow-analytics.up.railway.app)
+(a standalone instance shared across the maintainer's sites; ask
+[@sugaroverflow](https://github.com/sugaroverflow) for access). Its data lives
+in a dedicated Neon Postgres, fully separate from the app database.
+
+The tracker only loads when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set (Vercel
+Production only), so local dev and preview deployments record nothing. The
+script and its collection endpoint are proxied through the app's own origin via
+the `/stats/*` rewrites in [`web/next.config.ts`](web/next.config.ts) so
+ad-blocker blocklists don't filter them.
+
 ## Further reading
 
 - [`HOW_IT_WAS_BUILT.md`](HOW_IT_WAS_BUILT.md) — project story and architecture
