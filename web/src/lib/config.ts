@@ -29,10 +29,11 @@ export const config = {
   // whole room isn't locked out by one shared address (env var still overrides).
   ipRunCap: intEnv("CF_IP_RUN_CAP", 200),
   // Global daily spend ceiling (kill-switch), in GBP, converted to USD for the
-  // ledger. Conference day (16 Jul): raised to ≈$600 USD at the configured FX
-  // (user decision; was £150 ≈ $190). Zero or negative DISABLES the kill-switch
-  // (user decision, 21 Jul 2026, free-access-code launch) — per-campaign
-  // COST_GUARDS on the worker and the session/IP run caps remain the backstops.
+  // ledger. Zero or negative DISABLES the kill-switch. History: £150 at launch;
+  // ≈$600 conference day 16 Jul; OFF 21 Jul (free-access-code launch); re-armed
+  // 4 Aug 2026 at £78.74 ≈ $100/day via the Vercel env var (user decision —
+  // BYOK now optional, so the house key funds public runs again). Per-campaign
+  // COST_GUARDS on the worker and the session/IP run caps back this up.
   dailyBudgetGBP: numEnv("CF_DAILY_BUDGET_GBP", 472.44),
   fxGbpUsd: numEnv("CF_FX_GBP_USD", 1.27),
   // Sunset / maintenance switch — disables new runs, existing URLs stay readable.

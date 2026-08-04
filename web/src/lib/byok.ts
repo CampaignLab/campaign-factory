@@ -120,27 +120,18 @@ export async function validateByokKey(key: string, provider: ByokProvider): Prom
 
 export type ByokResolution =
   | { ok: true; key: string; provider: ByokProvider }
-  | { ok: true; key: null; provider: null } // house-key run: admin caller, or a valid free-access code
-  | { ok: false; status: 400 | 502; body: { error: string; byokRequired?: true } };
+  | { ok: true; key: null; provider: null } // house-key run: no credential, admin caller, or the free-access code
+  | { ok: false; status: 400 | 502; body: { error: string } };
 
-/** The run gate's whole BYOK decision behind one call: required-key policy,
- * free-access-code match, format/provider detection, live provider validation,
- * and the user-facing copy for every rejection. (Public runs ALWAYS run on the
- * visitor's key — user decision, 20 Jul 2026; admin callers may omit it, and a
- * valid CF_FREE_CODE waives it onto the house key.) */
-export async function resolveByok(rawCredential: unknown, isAdmin: boolean): Promise<ByokResolution> {
+/** The run gate's whole BYOK decision behind one call: free-access-code match,
+ * format/provider detection, live provider validation, and the user-facing
+ * copy for every rejection. BYOK is OPTIONAL (user decision, 4 Aug 2026,
+ * reversing 20 Jul): an empty credential is a house-key run — the daily
+ * budget kill-switch is the cost control — while a supplied key still runs
+ * on the visitor's account and bypasses the house budget. */
+export async function resolveByok(rawCredential: unknown): Promise<ByokResolution> {
   const credential = typeof rawCredential === "string" ? rawCredential.trim() : "";
-  if (!credential) {
-    if (isAdmin) return { ok: true, key: null, provider: null };
-    return {
-      ok: false,
-      status: 400,
-      body: {
-        byokRequired: true,
-        error: `An Anthropic or OpenRouter API key is required — your campaign's agents run on your key, so its cost (typically ${BYOK_TYPICAL_COST}, hard-capped at ${BYOK_HARD_CAP}) goes to your account.`,
-      },
-    };
-  }
+  if (!credential) return { ok: true, key: null, provider: null };
   if (matchesFreeCode(credential)) return { ok: true, key: null, provider: null };
   const provider = detectProvider(credential);
   if (!provider) {

@@ -681,3 +681,23 @@ finalisation produces versioned documents and a measurable receipt.
 Review the existing working-tree diff and this completion evidence. Only merge
 after the user explicitly authorises it; this run is evidence, not merge
 permission.
+
+## 4 Aug 2026 — BYOK rolled back to optional; kill-switch re-armed at ~$100/day
+
+The 20 Jul BYOK-required policy is reversed (user decision): a blank
+API-key field is now a house-key run on the Campaign Lab key. Supplying
+a key still works exactly as before — validated, sealed, run on the
+visitor's account — and because BYOK runs bypass the house budget, "add
+your own key" is now the overflow path once the shared budget is spent
+(the 503 capacity copy says so). The free-access code remains accepted
+but is redundant: blank does the same thing. resolveByok loses its
+isAdmin parameter (nothing distinguishes admin at the key-resolution
+step any more) and the byokRequired error field (no consumers).
+
+The daily kill-switch, disabled since 21 Jul, is re-armed:
+CF_DAILY_BUDGET_GBP=78.74 on Vercel prod+preview ≈ $100.00/day at the
+configured 1.27 FX. Per-campaign COST_GUARDS and session/IP caps
+unchanged. Also noted: web/.env.local no longer exists locally, so
+`next build` fails at page-data collection on this machine (no
+DATABASE_URL) — compile/tsc/lint/gate-smoke all pass; the deploy build
+runs on Vercel with real env.

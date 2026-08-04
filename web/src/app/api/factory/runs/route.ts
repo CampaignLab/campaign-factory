@@ -1,7 +1,6 @@
 // POST /api/factory/runs — public single-campaign intake. Thin gate: validate
-// problem+place, resolve the visitor's BYOK key (required for non-admin runs
-// unless they present the CF_FREE_CODE access code, which makes it a house-key
-// run; lib/byok.ts owns that whole decision), apply the budget kill-switch to
+// problem+place, resolve the OPTIONAL visitor key (blank = house-key run;
+// lib/byok.ts owns that whole decision), apply the budget kill-switch to
 // house-key runs, claim the session+IP slots around a signed forward to the
 // worker, and return its StartRunResponse. No business logic beyond gates.
 
@@ -53,14 +52,20 @@ export async function POST(req: Request) {
 
   const isAdmin = isAdminRequest(req);
 
-  const byok = await resolveByok(b.apiKey ?? b.anthropicApiKey, isAdmin);
+  const byok = await resolveByok(b.apiKey ?? b.anthropicApiKey);
   if (!byok.ok) return NextResponse.json(byok.body, { status: byok.status });
 
   // Global spend kill-switch — house-key runs only. BYOK runs spend the
-  // visitor's own budget, so they never trip (or count toward) ours.
+  // visitor's own budget, so they never trip (or count toward) ours; adding
+  // a key is therefore the way to keep building once today's budget is spent.
   if (!byok.key && (await overBudget())) {
     return NextResponse.json(
-      { capacity: true, reason: "budget", error: "We're at capacity right now. Explore existing campaigns while we catch up." },
+      {
+        capacity: true,
+        reason: "budget",
+        error:
+          "Today's shared campaign budget is used up. Add your own Anthropic or OpenRouter API key to keep building, or explore existing campaigns while we reset.",
+      },
       { status: 503 },
     );
   }

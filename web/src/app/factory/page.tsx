@@ -76,10 +76,13 @@ export default function FactoryIntakePage() {
 
   const problemOk = problem.trim().length >= 8;
   const placeOk = placeIsNamed(place);
-  // An access code (session handout, e.g. FREE-CAMPAIGN-BUILD) is accepted in
-  // the same field as an API key; only the server knows the real code, so the
-  // form gate passes anything code-shaped and lets the gate verify it.
-  const credentialOk = keyLooksValid(credential) || looksLikeFreeCode(credential);
+  // The credential is OPTIONAL (4 Aug 2026): blank runs on the shared house
+  // key under the daily budget. A key runs on the visitor's account; an
+  // access code (session handout) is still accepted and equivalent to blank —
+  // only the server knows the real code, so the form gate passes anything
+  // code-shaped and lets the gate verify it.
+  const credentialOk =
+    credential.trim() === "" || keyLooksValid(credential) || looksLikeFreeCode(credential);
   const canSubmit = problemOk && placeOk && credentialOk && !busy;
 
   const submit = async (e: React.FormEvent) => {
@@ -173,7 +176,7 @@ export default function FactoryIntakePage() {
           <Label htmlFor="apiKey" className="flex-wrap text-base">
             Your Anthropic or OpenRouter API key{" "}
             <span className="font-normal text-muted-foreground">
-              (the agents run on your key — <span className="font-medium text-[var(--brand)]">required</span>)
+              (optional — leave blank to run on our shared daily budget)
             </span>
           </Label>
           <Input
@@ -213,9 +216,10 @@ export default function FactoryIntakePage() {
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              A campaign typically costs {BYOK_TYPICAL_COST} of your credit, hard-capped at {BYOK_HARD_CAP}. Your
-              key is encrypted, used only for this campaign&apos;s agents, and deleted when the run finishes — get
-              one at{" "}
+              Left blank, your campaign runs on our shared daily budget — if that&apos;s spent, come back
+              tomorrow or add a key of your own. With your key it costs {BYOK_TYPICAL_COST} of your credit,
+              hard-capped at {BYOK_HARD_CAP}; the key is encrypted, used only for this campaign&apos;s agents,
+              and deleted when the run finishes — get one at{" "}
               <a
                 href={PROVIDER_META.anthropic.consoleUrl}
                 target="_blank"
