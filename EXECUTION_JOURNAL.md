@@ -741,3 +741,31 @@ Also fixed along the way: the Vercel ANTHROPIC_API_KEY was still the
 mid-July key (57 days old — the "fresh key on Vercel" from the 4 Aug
 incident never landed); user replaced it via the dashboard, and the
 spike proved the new key works.
+
+## 8 Sep 2026 (night) — Migration phase 2: the campaign graph runs as a Vercel Workflow (branch, PR)
+
+The full campaign pipeline now executes as src/workflows/campaign.ts —
+one "use step" per worker graph node, identical topology (director ‖
+specialists → adjudicator → four review passes → finalise) including the
+bounded strategy-revision loop and the dead-letter-equivalent failure
+step. The agent brains were copied 1:1 from worker/src/agents (they had
+zero worker-only imports; the store always lived in web), orchestration
+was mechanically ported off LangGraph (web/src/lib/factory/exec/README.md
+documents provenance and the accepted behavioural deltas: per-instance
+gate, per-step coalescing, node-boundary cancellation, retry-duplication
+hazard, no BYOK through workflow args).
+
+Mock-mode E2E on preview PASSED end-to-end through the EXISTING UI
+paths: run 3fcd39db completed with 9/9 sections + 9/9 documents, receipt
+before terminal, terminal event last, zero gaps; the polling read model,
+the campaign page (compiled title from campaign_state_versions), and the
+documents recompile endpoint all served it — a Workflow-executed run is
+indistinguishable in the database, which was the phase-2 exit criterion.
+A background agent produced the full DB write contract first (ordered
+write sequence, idempotency table, gallery gates) — that document shaped
+the port and its §9 idempotency warning is recorded in the exec README.
+
+Worker stays FROZEN as production + rollback. Pending before cutover:
+one LIVE express run on the workflow path, per-step maxDuration for
+full-profile research, the shared-store global gate, and the cutover
+flag inside /api/factory/runs.

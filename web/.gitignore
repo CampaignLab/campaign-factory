@@ -44,3 +44,4 @@ next-env.d.ts
 # test artifacts
 test-results/
 playwright-report/
+/.swc
