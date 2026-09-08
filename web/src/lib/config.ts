@@ -30,10 +30,11 @@ export const config = {
   ipRunCap: intEnv("CF_IP_RUN_CAP", 200),
   // Global daily spend ceiling (kill-switch), in GBP, converted to USD for the
   // ledger. Zero or negative DISABLES the kill-switch. History: £150 at launch;
-  // ≈$600 conference day 16 Jul; OFF 21 Jul (free-access-code launch); re-armed
-  // 4 Aug 2026 at £78.74 ≈ $100/day via the Vercel env var (user decision —
-  // BYOK now optional, so the house key funds public runs again). Per-campaign
-  // COST_GUARDS on the worker and the session/IP run caps back this up.
+  // ≈$600 conference day 16 Jul; OFF 21 Jul (free-access-code launch); £78.74 ≈
+  // $100/day 4 Aug (BYOK made optional); £157.48 ≈ $200/day 8 Sep 2026 via the
+  // Vercel env var (user decision — key field removed from the UI, every run on
+  // the house key). Per-campaign COST_GUARDS on the worker and the session/IP
+  // run caps back this up.
   dailyBudgetGBP: numEnv("CF_DAILY_BUDGET_GBP", 472.44),
   fxGbpUsd: numEnv("CF_FX_GBP_USD", 1.27),
   // Sunset / maintenance switch — disables new runs, existing URLs stay readable.

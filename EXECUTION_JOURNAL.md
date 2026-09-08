@@ -701,3 +701,21 @@ unchanged. Also noted: web/.env.local no longer exists locally, so
 `next build` fails at page-data collection on this machine (no
 DATABASE_URL) — compile/tsc/lint/gate-smoke all pass; the deploy build
 runs on Vercel with real env.
+
+## 8 Sep 2026 — Key field removed from the intake; every run on the house key; budget $200/day
+
+BYOK was confusing users (user report), so the API-key field is gone
+from /factory entirely. In its place a short note: building is free on
+Campaign Lab's shared daily budget; at capacity, come back tomorrow.
+Every UI run is now a house-key run. The server gate still accepts an
+optional apiKey (validated, sealed, visitor-billed) for anyone calling
+the API directly — the BYOK machinery keeps working, it just has no UI.
+The budget-exhausted 503 copy no longer suggests adding a key.
+
+Daily kill-switch raised to CF_DAILY_BUDGET_GBP=157.48 ≈ $200/day on
+Vercel prod+preview (was £78.74 ≈ $100). Per-campaign COST_GUARDS and
+session/IP caps unchanged. public.spec.ts no longer fills the removed
+field. Reminder recorded: the key that funds runs is ANTHROPIC_API_KEY
+on the Railway *worker* service (not Vercel's, which only feeds the
+dormant legacy route), and Railway variable edits need an explicit
+`railway redeploy --service worker`.

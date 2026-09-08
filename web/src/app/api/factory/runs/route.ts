@@ -55,16 +55,16 @@ export async function POST(req: Request) {
   const byok = await resolveByok(b.apiKey ?? b.anthropicApiKey);
   if (!byok.ok) return NextResponse.json(byok.body, { status: byok.status });
 
-  // Global spend kill-switch — house-key runs only. BYOK runs spend the
-  // visitor's own budget, so they never trip (or count toward) ours; adding
-  // a key is therefore the way to keep building once today's budget is spent.
+  // Global spend kill-switch — house-key runs only. BYOK runs (API-only since
+  // 8 Sep 2026; the form no longer has a key field) spend the visitor's own
+  // budget, so they never trip (or count toward) ours.
   if (!byok.key && (await overBudget())) {
     return NextResponse.json(
       {
         capacity: true,
         reason: "budget",
         error:
-          "Today's shared campaign budget is used up. Add your own Anthropic or OpenRouter API key to keep building, or explore existing campaigns while we reset.",
+          "Today's free campaign budget is used up — it resets daily, so come back tomorrow. Finished campaigns stay readable in the gallery.",
       },
       { status: 503 },
     );

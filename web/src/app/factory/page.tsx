@@ -15,13 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { startFactoryRun } from "@/lib/factory/client/api";
-import {
-  BYOK_HARD_CAP,
-  BYOK_TYPICAL_COST,
-  keyLooksValid,
-  looksLikeFreeCode,
-  PROVIDER_META,
-} from "@/lib/byok";
 import { rememberFactoryRun } from "@/lib/factory/client";
 import styles from "./factory-intake.module.css";
 
@@ -68,34 +61,24 @@ export default function FactoryIntakePage() {
   const router = useRouter();
   const [problem, setProblem] = useState("");
   const [place, setPlace] = useState("");
-  const [credential, setCredential] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touchedPlace, setTouchedPlace] = useState(false);
-  const [credentialTouched, setCredentialTouched] = useState(false);
 
   const problemOk = problem.trim().length >= 8;
   const placeOk = placeIsNamed(place);
-  // The credential is OPTIONAL (4 Aug 2026): blank runs on the shared house
-  // key under the daily budget. A key runs on the visitor's account; an
-  // access code (session handout) is still accepted and equivalent to blank —
-  // only the server knows the real code, so the form gate passes anything
-  // code-shaped and lets the gate verify it.
-  const credentialOk =
-    credential.trim() === "" || keyLooksValid(credential) || looksLikeFreeCode(credential);
-  const canSubmit = problemOk && placeOk && credentialOk && !busy;
+  const canSubmit = problemOk && placeOk && !busy;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouchedPlace(true);
-    setCredentialTouched(true);
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
-    const res = await startFactoryRun(
-      { problem: problem.trim(), place: place.trim() },
-      { apiKey: credential.trim() },
-    );
+    // No key field (user decision, 8 Sep 2026): every run goes on the house
+    // key under the daily budget. The API still accepts a BYOK key — that
+    // path just has no UI any more.
+    const res = await startFactoryRun({ problem: problem.trim(), place: place.trim() });
     if (res.ok && res.data) {
       rememberFactoryRun({
         campaignId: res.data.campaignId,
@@ -172,75 +155,14 @@ export default function FactoryIntakePage() {
           )}
         </div>
 
-        <div className="mt-6 space-y-2.5">
-          <Label htmlFor="apiKey" className="flex-wrap text-base">
-            Your Anthropic or OpenRouter API key{" "}
-            <span className="font-normal text-muted-foreground">
-              (optional — leave blank to run on our shared daily budget)
-            </span>
-          </Label>
-          <Input
-            id="apiKey"
-            type="password"
-            value={credential}
-            onChange={(e) => setCredential(e.target.value)}
-            onBlur={() => setCredentialTouched(true)}
-            placeholder="sk-ant-… or sk-or-…"
-            autoComplete="off"
-            spellCheck={false}
-            className={`${styles.field} h-auto rounded-full px-4 py-2.5 text-base`}
-            aria-invalid={credentialTouched && !credentialOk}
-          />
-          {credentialTouched && !credentialOk ? (
-            <p className="text-sm text-[var(--bad)]">
-              Keys start with <code>sk-ant-</code> (Anthropic) or <code>sk-or-</code> (OpenRouter) — paste the
-              whole key. Create one at{" "}
-              <a
-                href={PROVIDER_META.anthropic.consoleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {PROVIDER_META.anthropic.consoleLabel}
-              </a>{" "}
-              or{" "}
-              <a
-                href={PROVIDER_META.openrouter.consoleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {PROVIDER_META.openrouter.consoleLabel}
-              </a>
-              .
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Left blank, your campaign runs on our shared daily budget — if that&apos;s spent, come back
-              tomorrow or add a key of your own. With your key it costs {BYOK_TYPICAL_COST} of your credit,
-              hard-capped at {BYOK_HARD_CAP}; the key is encrypted, used only for this campaign&apos;s agents,
-              and deleted when the run finishes — get one at{" "}
-              <a
-                href={PROVIDER_META.anthropic.consoleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {PROVIDER_META.anthropic.consoleLabel}
-              </a>{" "}
-              or{" "}
-              <a
-                href={PROVIDER_META.openrouter.consoleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {PROVIDER_META.openrouter.consoleLabel}
-              </a>
-              .
-            </p>
-          )}
-        </div>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Building is free — campaigns run on Campaign Lab&apos;s shared daily budget. If we&apos;re at
+          capacity today, come back tomorrow; finished campaigns stay readable in the{" "}
+          <a href="/gallery" className="underline underline-offset-2">
+            gallery
+          </a>
+          .
+        </p>
 
         {error ? <p className="mt-4 text-sm text-[var(--bad)]">{error}</p> : null}
 
