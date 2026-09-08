@@ -719,3 +719,25 @@ field. Reminder recorded: the key that funds runs is ANTHROPIC_API_KEY
 on the Railway *worker* service (not Vercel's, which only feeds the
 dormant legacy route), and Railway variable edits need an explicit
 `railway redeploy --service worker`.
+
+## 8 Sep 2026 (later) — Decision: migrate run execution to Vercel Workflow; spike PASSED
+
+User decision: one deploy story and ownership — campaign execution moves
+from the Railway worker onto Vercel Workflow. Plan + worker→Workflow
+mapping in docs/product/vercel-workflow-migration.md.
+
+Proving spike shipped and passed on a preview deploy: a "use step"
+function reused lib/anthropic's getClient()/call() UNCHANGED — streaming,
+prompt caching, web_search_20260209 with its code-execution containers
+and pause_turn resumes all work inside a workflow step; live tool notes
+and text deltas flowed over the run's stream; the Vercel World backend
+auto-provisioned with zero config. Single research-probe step: 111s,
+8 tool notes, correct sourced answer (Leicester's elected mayor). The
+spike route (/api/workflow-spike) is secret-gated and dead in production
+(WORKFLOW_SPIKE_SECRET is preview-only). next.config.ts now wraps
+withWorkflow — verified compiling under Next 16.2.10.
+
+Also fixed along the way: the Vercel ANTHROPIC_API_KEY was still the
+mid-July key (57 days old — the "fresh key on Vercel" from the 4 Aug
+incident never landed); user replaced it via the dashboard, and the
+spike proved the new key works.

@@ -1,3 +1,4 @@
+import { withWorkflow } from "workflow/next";
 import type { NextConfig } from "next";
 
 // Keep this local config even while it is empty: without it, Next.js discovers
@@ -19,4 +20,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withWorkflow enables the "use workflow"/"use step" directives (Vercel
+// Workflow migration spike — docs/product/vercel-workflow-migration.md).
+export default withWorkflow(nextConfig);
