@@ -46,11 +46,21 @@ auto-provisioned on deploy, isolated per environment.
 ## Phases
 
 1. **Spike** — done (above).
-2. **Skeleton**: one full express campaign as a workflow behind a flag route,
-   writing the same factory.* rows/events; verify a complete brief renders in
-   the existing UI from a Workflow-executed run. Verify long research steps:
-   raise per-step `maxDuration` (check the campaign-lab plan ceiling; single
-   full-effort calls have historically hit ~10 min).
+2. **Skeleton — DONE (8 Sep 2026, PR: feat/workflow-migration-phase2).** The
+   whole campaign graph runs as `src/workflows/campaign.ts`: one "use step" per
+   worker graph node (same crash/retry unit as checkpoint-per-node), state as
+   plain locals with the exact channel-reducer semantics, agent brains copied
+   1:1 into `web/src/lib/factory/exec/` (see its README for provenance +
+   accepted deltas). Start route: `POST /api/factory/workflow-runs`
+   (WORKFLOW_SPIKE_SECRET-gated; house-key only; returns empty streamToken →
+   client falls back to polling). Mock-mode E2E on preview PASSED: campaign
+   3fcd39db — completed, 9/9 sections accepted, 9/9 documents ready, receipt
+   before terminal, terminal event last, zero gaps, 193 events; the standard
+   read model, campaign page (compiled title), and documents recompile
+   endpoint all rendered it. STILL PENDING from phase 2: a LIVE express run on
+   the workflow path + per-step `maxDuration` for full-effort research calls
+   (express spike call was 111s; the 300s default may clip full-profile
+   research).
 3. **Parity**: retries/backoff taxonomy, cancellation, cost guards, global
    concurrency gate, BYOK sealing (or drop worker-side sealing — key is
    API-only now), dead-letter equivalent (workflow failed-run alerting).
